@@ -205,9 +205,17 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 </div>
 
 <div id="iframeContainer">
-    <button id="extraSiteBtn">Funfri Game</button>
     <iframe id="embeddedSite" style="width:100%; height:80vh;" frameborder="0"></iframe>   
 </div>
+
+<script>
+const iframe = document.getElementById('embeddedSite');
+const originalSrc = 'https://funfrinew.neocities.org/';
+
+// Load the site directly in the iframe
+iframe.src = originalSrc;
+</script>
+
 
 <div id="tutorialOverlay">
     <div class="tutorialBubble" id="tutorialBubble">Tutorial text here
