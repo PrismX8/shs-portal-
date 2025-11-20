@@ -205,8 +205,47 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 </div>
 
 <div id="iframeContainer">
-    <iframe id="embeddedSite" src="https://funfrinew.neocities.org/" allowfullscreen allow="fullscreen"></iframe>
+    <button id="extraSiteBtn">Funfri Game</button>
+    <iframe id="embeddedSite" style="width:100%; height:80vh;" frameborder="0"></iframe>
 </div>
+
+<script>
+const iframe = document.getElementById('embeddedSite');
+const extraSiteBtn = document.getElementById('extraSiteBtn');
+const originalSrc = 'https://funfrinew.neocities.org/';
+let onExtra = false;
+
+extraSiteBtn.addEventListener('click', () => {
+    if (!onExtra) {
+        // Step 1: load a blank page first
+        iframe.src = 'about:blank';
+
+        // Step 2: load Funfri inside the blank page
+        setTimeout(() => {
+            const iframeDoc = iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head><meta charset="UTF-8"><title>Funfri</title></head>
+                <body style="margin:0; overflow:hidden;">
+                    <iframe src="${originalSrc}" style="width:100%; height:100%; border:none;"></iframe>
+                </body>
+                </html>
+            `);
+            iframeDoc.close();
+        }, 50);
+
+        onExtra = true;
+        extraSiteBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Go Back';
+    } else {
+        // Go back to original embedded site or leave blank
+        iframe.src = originalSrc; 
+        onExtra = false;
+        extraSiteBtn.innerHTML = '<i class="fas fa-gamepad"></i> Funfri Game';
+    }
+});
+</script>
 
 <div id="tutorialOverlay">
     <div class="tutorialBubble" id="tutorialBubble">Tutorial text here
