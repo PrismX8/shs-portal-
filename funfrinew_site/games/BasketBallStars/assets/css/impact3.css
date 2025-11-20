@@ -1,0 +1,9 @@
+﻿@font-face {
+    font-family:"Impact3";
+    src:    url("https://funfrinew.neocities.org/games/BasketBallStars/assets/fonts/Impact3/impact.eot?")                format("eot"),
+            url("../fonts/Impact3/impact.woff")                format("woff"),
+            url("https://funfrinew.neocities.org/games/BasketBallStars/assets/fonts/Impact3/impact.ttf")                 format("truetype"),
+            url("https://funfrinew.neocities.org/games/BasketBallStars/assets/fonts/Impact3/impact.svg")    format("svg");
+    font-weight:normal;
+    font-style:normal;
+}
