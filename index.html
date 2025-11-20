@@ -360,11 +360,26 @@ const arrow = document.getElementById('tutorialArrow');
 function showStep(step){
     overlay.style.display='block';
     const s = steps[step];
-    bubble.innerHTML = s.text + '<br><button id="nextTutorialBtn">Next</button>';
+    bubble.innerHTML = s.text + '<br>' +
+        '<button id="nextTutorialBtn">Next</button> ' +
+        '<button id="skipTutorialBtn">Skip</button>';
+
+    // Next button
     document.getElementById('nextTutorialBtn').addEventListener('click', ()=>{
         currentStep++;
-        if(currentStep >= steps.length){ overlay.style.display='none'; arrow.style.display='none'; showPopup(); }
-        else showStep(currentStep);
+        if(currentStep >= steps.length){
+            overlay.style.display='none';
+            arrow.style.display='none';
+            showPopup();
+        } else showStep(currentStep);
+    });
+
+    // Skip button
+    document.getElementById('skipTutorialBtn').addEventListener('click', ()=>{
+        overlay.style.display='none';
+        arrow.style.display='none';
+        localStorage.setItem('tutorialShown','true'); // mark tutorial as seen
+        showPopup();
     });
 
     if(s.target){
@@ -379,8 +394,10 @@ function showStep(step){
         bubble.style.left='50%';
         arrow.style.display='none';
     }
+
     setTimeout(()=>bubble.classList.add('show'),50);
 }
+
 function startTutorial(){ currentStep=0; showStep(currentStep); localStorage.setItem('tutorialShown','true'); }
 document.getElementById('replayTutorialBtn').addEventListener('click', startTutorial);
 
