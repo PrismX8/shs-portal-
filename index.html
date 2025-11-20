@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHS Wrapper – Interactive Portal</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Visitor Counter Top Bar */
+#visitorCounter {
+    width: 100%; 
+    text-align: center; 
+    background: linear-gradient(135deg, #1e90ff, #00bfff, #4682b4, #5f9ea0); 
+    padding: 5px 0; 
+    font-size: 14px; 
+    color: #fff; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 1000;
+    font-weight:bold;
+}
+
+/* Header */
+header {
+    background: linear-gradient(90deg, #1e90ff, #00bfff);
+    color: white;
+    padding: 20px;
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    border-bottom: 3px solid #005f99;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-radius: 0 0 20px 20px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+header .headerText { line-height: 1.4; text-align: center; }
+header small { font-size:16px; font-weight:normal; display:block; margin-top:4px; color:#e0f0ff; }
+
+#replayTutorialBtn {
+    position:absolute; top:15px; right:15px; width:35px; height:35px;
+    font-weight:bold; font-size:16px; border-radius:50%; border:none;
+    background:rgba(255,255,255,0.85); cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,0.3); transition: all 0.3s ease;
+}
+#replayTutorialBtn:hover { background: rgba(255,255,255,1); }
+
+
+/* Controls */
+.controls {
+    background:#fff; padding:15px; display:flex; flex-wrap:wrap;
+    justify-content:center; gap:12px; border-bottom:2px solid #ddd;
+    box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+.controls button {
+    padding:10px 20px; border:none; color:white; cursor:pointer;
+    border-radius:12px; font-size:14px; display:flex; align-items:center; gap:8px;
+    transition: all 0.3s ease;
+}
+#reloadBtn { background: #1e90ff; }
+#fullscreenBtn { background: #ff6347; }
+#zoomInBtn, #zoomOutBtn { background: #32cd32; }
+#hideIframeBtn, #showIframeBtn { background: #ffa500; }
+#extraSiteBtn, #backBtn { background: #9932cc; }
+#privacyBtn { background: #007bff; font-weight:bold; font-size:16px; }
+#toggleChatBtn { background: rgba(12, 10, 10, 0.85); color:#f00000; }
+#toggleChatBtn:hover { background: rgba(255,255,255,1);}
+.controls button:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.2); color: #f70000; }
+
+/* Iframe */
+#iframeContainer { position: relative; }
+#embeddedSite {
+    width: 100%; height: calc(100vh - 140px); border:5px solid #1e90ff;
+    border-radius:12px; box-sizing:border-box; transition: all 0.3s ease;
+}
+
+/* Tutorial Bubble */
+#tutorialOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index:9999; display:none; }
+.tutorialBubble {
+    position: absolute; max-width:280px; background: rgba(255,255,255,0.95); color:#333;
+    padding:18px 20px; border-radius:20px; box-shadow:0 8px 20px rgba(0,0,0,0.25);
+    text-align:center; font-size:15px; opacity:0;
+    transform: translate(-50%, -20px); transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+.tutorialBubble.show { opacity:1; transform: translate(-50%,0); }
+.tutorialBubble button { margin-top:12px; padding:7px 14px; border:none; background:#1e90ff; color:white; border-radius:12px; cursor:pointer; }
+.tutorialBubble button:hover { background:#006bb3; transform:translateY(-2px); }
+
+#tutorialArrow {
+    position:absolute; width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent;
+    border-bottom:18px solid rgba(255,255,255,0.95); z-index:10000; transition: all 0.4s ease;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+}
+
+/* Cinematic Fullscreen Popup */
+#fullscreenPopup {
+    position: fixed; top:0; left:0; width:100%; height:100%; display:flex;
+    justify-content:center; align-items:center; z-index:10001; opacity:0; pointer-events:none;
+    background: linear-gradient(135deg, #007bff, #00bfff, #4682b4, #5f9ea0);
+    flex-direction: column; color:#fff; text-align:center; overflow:hidden;
+}
+#fullscreenPopup.show { opacity:1; pointer-events:auto; animation: cinematicFade 1.5s ease forwards; }
+#fullscreenPopup.show .popupContent {
+    animation: cinematicScale 1.5s forwards ease-out;
+}
+#fullscreenPopup .popupContent {
+    width: 100%; height: 100%; display:flex; justify-content:center; align-items:center; flex-direction:column;
+    background: rgba(0,0,0,0.85); box-shadow:0 10px 50px rgba(0,0,0,0.7);
+    transform: scale(0.6); opacity:0;
+}
+#fullscreenPopup h1 { font-size:4vw; margin:0; }
+#fullscreenPopup p { font-size:1.5vw; margin-top:20px; }
+#fullscreenPopup .extraSiteHighlight { font-weight:bold; color:#ff4b4b; }
+#fullscreenPopup .closeBtn {
+    position:absolute; top:15px; right:15px; border:none; background:transparent;
+    font-size:28px; cursor:pointer; color:#fff; transition: all 0.3s ease;
+}
+#fullscreenPopup .closeBtn:hover { color:#ff4b4b; }
+
+/* Cinematic Animations */
+@keyframes cinematicFade { 0% { opacity:0; } 100% { opacity:1; } }
+@keyframes cinematicScale { 0% { transform: scale(0.6) translateY(-100px); opacity:0; } 60% { transform: scale(1.05) translateY(20px); opacity:1; } 100% { transform: scale(1) translateY(0); opacity:1; } }
+
+/* Sparkles */
+#sparkleCanvas { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+
+/* Chat Box */
+#chatContainer {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 300px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: rgba(255,255,255,0.95);
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-size: 14px;
+}
+#chatContainer input {
+    width: calc(100% - 20px);
+    margin-top: 10px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    border:1px solid #ccc;
+}
+#chatContainer header {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+}
+#changeNameBtn {
+    font-size: 12px;
+    cursor: pointer;
+    color: #007bff;
+}
+
+</style>
+</head>
+<body>
+
+<div id="visitorCounter">Visitors Online: 0 | Total Visitors: 0</div>
+
+<header>
+    <div class="headerText">
+        SHS Unblocked – Interactive Portal <br>
+        <small>SPS-devices Wi-Fi Password: 7&UI0)jk</small>
+    </div>
+    <button id="replayTutorialBtn" title="Replay Tutorial">T</button>
+</header>
+
+<div class="controls">
+    <button id="reloadBtn"><i class="fas fa-redo"></i> Reload</button>
+    <button id="fullscreenBtn"><i class="fas fa-expand"></i> Fullscreen</button>
+    <button id="zoomInBtn"><i class="fas fa-search-plus"></i> Zoom In</button>
+    <button id="zoomOutBtn"><i class="fas fa-search-minus"></i> Zoom Out</button>
+    <button id="hideIframeBtn"><i class="fas fa-eye-slash"></i> Hide</button>
+    <button id="showIframeBtn"><i class="fas fa-eye"></i> Show</button>
+    <button id="extraSiteBtn"><i class="fas fa-gamepad"></i> Extra Site</button>
+    <button id="privacyBtn"><i class="fas fa-shield-alt"></i> Browser</button>
+    <button id="toggleChatBtn" title="Toggle Chat">💬 global chat</button>
+</div>
+
+<div id="iframeContainer">
+    <iframe id="embeddedSite" src="https://funfrinew.neocities.org/"></iframe>
+</div>
+
+<div id="tutorialOverlay">
+    <div class="tutorialBubble" id="tutorialBubble">Tutorial text here
+        <br><button id="nextTutorialBtn">Next</button>
+    </div>
+</div>
+<div id="tutorialArrow" style="display:none;"></div>
+
+<div id="fullscreenPopup">
+    <div class="popupContent">
+        <button class="closeBtn">&times;</button>
+        <h1>Welcome to SHS Portal</h1>
+        <p>Access games, browse the web unblocked, and explore our interactive portal.<br>Close to get started.</p>
+        <canvas id="sparkleCanvas"></canvas>
+    </div>
+</div>
+
+<div id="chatContainer" style="display:none;">
+    <header>
+        Chat <span id="changeNameBtn">Change Name/Color</span>
+    </header>
+    <div id="chatMessages" style="max-height:300px; overflow-y:auto;"></div>
+    <input type="text" id="chatInput" placeholder="Type a message...">
+</div>
+
+
+<div id="nameColorPopup" style="display:none; position:fixed; bottom:80px; right:10px; width:280px; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:10000;">
+    <label style="font-weight:bold;">Name:</label>
+    <input type="text" id="popupUsername" style="width:100%; padding:5px; margin-bottom:10px; border-radius:6px; border:1px solid #ccc;" placeholder="Enter name">
+
+    <label style="font-weight:bold;">Color:</label>
+    <select id="popupColor" style="width:100%; padding:5px; border-radius:6px; border:1px solid #ccc;">
+        <option value="#007bff" style="color:#007bff;">Blue</option>
+        <option value="#ff0000" style="color:#ff0000;">Red</option>
+        <option value="#32cd32" style="color:#32cd32;">Green</option>
+        <option value="#ffa500" style="color:#ffa500;">Orange</option>
+        <option value="#9932cc" style="color:#9932cc;">Purple</option>
+    </select>
+
+    <button id="saveNameColor" style="margin-top:10px; width:100%; padding:8px; background:#1e90ff; color:white; border:none; border-radius:8px; cursor:pointer;">Save</button>
+</div>
+
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// ---------------- Firebase ----------------
+const firebaseConfig = {
+  apiKey: "YOUR_WEB_API_KEY",
+  authDomain: "shsproject-d60d0.firebaseapp.com",
+  databaseURL: "https://shsproject-d60d0-default-rtdb.firebaseio.com",
+  projectId: "shsproject-d60d0",
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Online & Total Visitors
+const visitorId = 'visitor_' + Date.now();
+const onlineRef = db.ref('online/' + visitorId);
+onlineRef.set({online: true});
+onlineRef.onDisconnect().remove();
+
+const visitorCounter = document.getElementById('visitorCounter');
+db.ref('online').on('value', snapshot => {
+    const online = snapshot.numChildren();
+    db.ref('totalVisitors').once('value').then(snap => {
+        let total = snap.val() || 0;
+        visitorCounter.innerText = `Visitors Online: ${online} | Total Visitors: ${total}`;
+    });
+});
+db.ref('totalVisitors').transaction(val => (val||0)+1);
+
+// ---------------- Chat ----------------
+let username = 'Guest';
+let userColor = '#007bff';
+
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const changeNameBtn = document.getElementById('changeNameBtn');
+
+const nameColorPopup = document.getElementById('nameColorPopup');
+const popupUsername = document.getElementById('popupUsername');
+const popupColor = document.getElementById('popupColor');
+const saveNameColor = document.getElementById('saveNameColor');
+
+// Open popup when clicking "Change Name/Color"
+changeNameBtn.addEventListener('click', () => {
+    popupUsername.value = username;
+    popupColor.value = userColor;
+    nameColorPopup.style.display = 'block';
+});
+
+// Save the name and color from the popup
+saveNameColor.addEventListener('click', () => {
+    if(popupUsername.value.trim() !== '') username = popupUsername.value.trim();
+    userColor = popupColor.value;
+    nameColorPopup.style.display = 'none';
+});
+
+// Send chat message on Enter
+chatInput.addEventListener('keypress', e => {
+    if(e.key === 'Enter' && chatInput.value.trim() !== '') {
+        db.ref('chat').push({user: username, text: chatInput.value, color: userColor});
+        chatInput.value = '';
+    }
+});
+
+// Display incoming messages
+db.ref('chat').on('child_added', snapshot => {
+    const msg = snapshot.val();
+    const p = document.createElement('p');
+    p.innerHTML = `<span style="color:${msg.color}">${msg.user}:</span> ${msg.text}`;
+    chatMessages.appendChild(p);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+
+// ---------------- Buttons ----------------
+const iframe = document.getElementById('embeddedSite');
+let zoomLevel = 1;
+let originalSrc = iframe.src;
+const extraBtn = document.getElementById('extraSiteBtn');
+const privacyBtn = document.getElementById('privacyBtn');
+let onExtra = false;
+let onPrivacy = false;
+
+document.getElementById('reloadBtn').addEventListener('click', ()=>iframe.src = iframe.src);
+document.getElementById('fullscreenBtn').addEventListener('click', ()=>{ if(iframe.requestFullscreen) iframe.requestFullscreen(); });
+document.getElementById('zoomInBtn').addEventListener('click', ()=>{ zoomLevel += 0.1; iframe.style.transform = `scale(${zoomLevel})`; iframe.style.transformOrigin='top left'; });
+document.getElementById('zoomOutBtn').addEventListener('click', ()=>{ zoomLevel = Math.max(0.5, zoomLevel - 0.1); iframe.style.transform = `scale(${zoomLevel})`; iframe.style.transformOrigin='top left'; });
+document.getElementById('hideIframeBtn').addEventListener('click', ()=>iframe.style.display='none');
+document.getElementById('showIframeBtn').addEventListener('click', ()=>iframe.style.display='block');
+
+extraBtn.addEventListener('click', ()=>{ if(!onExtra){ iframe.src='https://slopegame.online'; extraBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back'; onExtra=true; } else { iframe.src=originalSrc; extraBtn.innerHTML='<i class="fas fa-gamepad"></i> Extra Site'; onExtra=false; } });
+privacyBtn.addEventListener('click', ()=>{ if(!onPrivacy){ iframe.src="https://webtoppings.bar/browse?url=https://wikipedia.org&region=us-west&mode=privacy"; privacyBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back'; onPrivacy=true; } else { iframe.src=originalSrc; privacyBtn.innerHTML='<i class="fas fa-shield-alt"></i> Browser'; onPrivacy=false; } });
+
+// ---------------- Tutorial ----------------
+const steps = [
+    {text:"Welcome! This tutorial guides you through the buttons.", target:null},
+    {text:"Reload: Reloads the embedded site.", target:document.getElementById('reloadBtn')},
+    {text:"Fullscreen: Make the site fullscreen.", target:document.getElementById('fullscreenBtn')},
+    {text:"Zoom: Scale the site for better view.", target:document.getElementById('zoomInBtn')},
+    {text:"Hide/Show: Hide or show the embedded site.", target:document.getElementById('hideIframeBtn')},
+    {text:"Extra Site: Open a fun game site.", target:extraBtn},
+    {text:"Browser: Browse UNBLOCKED!", target:privacyBtn}
+];
+let currentStep = 0;
+const overlay = document.getElementById('tutorialOverlay');
+const bubble = document.getElementById('tutorialBubble');
+const arrow = document.getElementById('tutorialArrow');
+
+function showStep(step){
+    overlay.style.display='block';
+    const s = steps[step];
+    bubble.innerHTML = s.text + '<br><button id="nextTutorialBtn">Next</button>';
+    document.getElementById('nextTutorialBtn').addEventListener('click', ()=>{
+        currentStep++;
+        if(currentStep >= steps.length){ overlay.style.display='none'; arrow.style.display='none'; showPopup(); }
+        else showStep(currentStep);
+    });
+
+    if(s.target){
+        const rect = s.target.getBoundingClientRect();
+        bubble.style.top = (rect.bottom + 20 + window.scrollY) + 'px';
+        bubble.style.left = (rect.left + rect.width/2) + 'px';
+        arrow.style.display='block';
+        arrow.style.top = (rect.bottom + window.scrollY) + 'px';
+        arrow.style.left = (rect.left + rect.width/2 - 12) + 'px';
+    } else {
+        bubble.style.top='30%';
+        bubble.style.left='50%';
+        arrow.style.display='none';
+    }
+    setTimeout(()=>bubble.classList.add('show'),50);
+}
+function startTutorial(){ currentStep=0; showStep(currentStep); localStorage.setItem('tutorialShown','true'); }
+document.getElementById('replayTutorialBtn').addEventListener('click', startTutorial);
+
+// ---------------- Popup ----------------
+const popup = document.getElementById('fullscreenPopup');
+popup.querySelector('.closeBtn').addEventListener('click', ()=>popup.classList.remove('show'));
+function showPopup(){ popup.classList.add('show'); }
+
+// ---------------- Sparkles ----------------
+const canvas = document.getElementById('sparkleCanvas');
+const ctx = canvas.getContext('2d');
+let sparkles=[];
+function resizeCanvas(){ canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight; }
+window.addEventListener('resize',resizeCanvas); resizeCanvas();
+function createSparkle(){ return { x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*3+1, vx:(Math.random()-0.5)*0.5, vy:(Math.random()-0.5)*0.5, alpha:Math.random(), color:['#007bff','#00bfff','#4682b4','#5f9ea0'][Math.floor(Math.random()*4)] }; }
+for(let i=0;i<150;i++) sparkles.push(createSparkle());
+function animateSparkles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let s of sparkles){
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+        ctx.fillStyle=`rgba(${parseInt(s.color.slice(1,3),16)},${parseInt(s.color.slice(3,5),16)},${parseInt(s.color.slice(5,7),16)},${s.alpha})`;
+        ctx.fill();
+        s.x+=s.vx; s.y+=s.vy;
+        if(s.x<0||s.x>canvas.width)s.vx*=-1;
+        if(s.y<0||s.y>canvas.height)s.vy*=-1;
+    }
+    requestAnimationFrame(animateSparkles);
+}
+animateSparkles();
+
+// ---------------- On Load ----------------
+window.onload = ()=>{
+    if(!localStorage.getItem('tutorialShown')) startTutorial();
+    else showPopup();
+}
+
+const chatContainer = document.getElementById('chatContainer');
+const toggleChatBtn = document.getElementById('toggleChatBtn');
+
+toggleChatBtn.addEventListener('click', () => {
+    if(chatContainer.style.display === 'none' || chatContainer.style.display === '') {
+        chatContainer.style.display = 'block';
+    } else {
+        chatContainer.style.display = 'none';
+    }
+});
+
+
+</script>
+</body>
+</html>
