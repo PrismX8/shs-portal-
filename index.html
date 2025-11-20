@@ -208,7 +208,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 <div id="tutorialArrow" style="display:none;"></div>
 
 <div id="fullscreenPopup">
-    <div class="popupContent">
+    <div class="popupContent" id="popupContent">
         <button class="closeBtn">&times;</button>
         <h1>Welcome to SHS Portal</h1>
         <p>Access games, browse the web unblocked, and explore our interactive portal.<br>Close to get started.</p>
@@ -328,7 +328,16 @@ let onExtra = false;
 let onPrivacy = false;
 
 document.getElementById('reloadBtn').addEventListener('click', ()=>iframe.src = iframe.src);
-document.getElementById('fullscreenBtn').addEventListener('click', ()=>{ if(iframe.requestFullscreen) iframe.requestFullscreen(); });
+    
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    const iframe = document.getElementById("embeddedSite");
+
+    if (iframe.requestFullscreen) iframe.requestFullscreen();
+    else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
+    else if (iframe.mozRequestFullScreen) iframe.mozRequestFullScreen();
+    else if (iframe.msRequestFullscreen) iframe.msRequestFullscreen();
+});
+
 document.getElementById('zoomInBtn').addEventListener('click', ()=>{ zoomLevel += 0.1; iframe.style.transform = `scale(${zoomLevel})`; iframe.style.transformOrigin='top left'; });
 document.getElementById('zoomOutBtn').addEventListener('click', ()=>{ zoomLevel = Math.max(0.5, zoomLevel - 0.1); iframe.style.transform = `scale(${zoomLevel})`; iframe.style.transformOrigin='top left'; });
 document.getElementById('hideIframeBtn').addEventListener('click', ()=>iframe.style.display='none');
@@ -381,7 +390,18 @@ document.getElementById('replayTutorialBtn').addEventListener('click', startTuto
 
 // ---------------- Popup ----------------
 const popup = document.getElementById('fullscreenPopup');
-popup.querySelector('.closeBtn').addEventListener('click', ()=>popup.classList.remove('show'));
+// Close when clicking the X button
+popup.querySelector('.closeBtn').addEventListener('click', () => {
+    popup.classList.remove('show');
+});
+
+// Close when clicking *anywhere* outside the popupContent
+popup.addEventListener('click', (e) => {
+    if (e.target === popup) {
+        popup.classList.remove('show');
+    }
+});
+
 function showPopup(){ popup.classList.add('show'); }
 
 // ---------------- Sparkles ----------------
