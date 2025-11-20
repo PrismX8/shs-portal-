@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="FunFri">
+  <meta property="og:description" content="The 3rd and best version of FunFri, the best site for games online!">
+  <meta property="og:image" content="assets/icons/favicon.jpg">
+  <title>『 FunFri 』</title>
+  <link rel="stylesheet" href="storage/styles.css">
+  <link rel="icon" href="assets/icons/favicon.jpg" type="image/x-icon">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@900&display=swap">
+  <style>
+    .title {
+      font-family: 'Unbounded', sans-serif;
+      font-weight: 900;
+      font-size: 128px;
+      color: #ffffff;
+      text-align: center;
+      margin-top: 40px;
+      z-index: 1;
+      position: relative;
+    }
+    .placeholder-container {
+      text-align: center;
+      margin-top: 40px;
+      margin-bottom: 40px;
+      z-index: 1;
+      position: relative;
+    }
+    .placeholder {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 18px;
+      font-weight: 750;
+      color: #ffffff;
+      margin: 17.5px 0;
+    }
+    .background-embed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .intro-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, #000000, #0a0a0a, #000000);
+      background-size: 400%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 1;
+      animation: gradientShift 3s ease infinite;
+      transition: opacity 0.8s ease-out;
+      will-change: opacity, background-position;
+    }
+    .intro-overlay.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-text {
+      font-family: 'Unbounded', sans-serif;
+      font-weight: 900;
+      font-size: 48px;
+      color: #ffffff;
+      position: absolute;
+      opacity: 1;
+      animation: fadeOutLoading 1s ease-out forwards;
+      will-change: opacity;
+    }
+    .intro-title {
+      font-family: 'Unbounded', sans-serif;
+      font-weight: 900;
+      font-size: 128px;
+      color: #ffffff;
+      transform: translateX(-150%) rotate(-10deg) scale(0.7);
+      opacity: 0;
+      animation: coolSlideIn 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards 0.5s, pulse 0.3s ease-in-out 2s;
+      will-change: transform, opacity, filter;
+      position: relative;
+    }
+    .intro-title::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 70%);
+      opacity: 0;
+      transform: translate(-50%, -50%);
+      animation: burst 0.5s ease-out 2s forwards;
+      will-change: width, height, opacity;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes fadeOutLoading {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    @keyframes coolSlideIn {
+      0% {
+        transform: translateX(-150%) rotate(-10deg) scale(0.7);
+        opacity: 0;
+        filter: blur(10px);
+      }
+      60% {
+        transform: translateX(10%) rotate(2deg) scale(1.1);
+        opacity: 0.9;
+        filter: blur(2px);
+      }
+      80% {
+        transform: translateX(-5%) rotate(-1deg) scale(0.98);
+        opacity: 0.95;
+      }
+      100% {
+        transform: translateX(0) rotate(0deg) scale(1);
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    @keyframes burst {
+      0% {
+        width: 0;
+        height: 0;
+        opacity: 0.8;
+      }
+      100% {
+        width: 300px;
+        height: 300px;
+        opacity: 0;
+      }
+    }
+    .content-hidden {
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    .content-visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="intro-overlay" id="introOverlay">
+    <div class="loading-text" id="loadingText">Loading...</div>
+    <div class="intro-title" id="introTitle">FunFri</div>
+  </div>
+
+  <div id="mainContent" class="content-hidden">
+    <div class="title">FunFri</div>
+    <div class="placeholder-container">
+      <div class="placeholder">I'm NOT responsible for ANY events related to this site.</div>
+      <div class="placeholder">This is the new FunFri version.</div>
+      <div class="placeholder">It's in BETA, and is VERY buggy!</div>
+      <div class="placeholder">Scroll down to see the games.</div>
+      <div class="placeholder">Enjoy!</div>
+    </div>
+    
+    <div class="search-bar-container">
+      <div class="search-bar">
+        <img src="assets/images/searchwhite.png" alt="Search" class="search-icon">
+        <input type="text" placeholder="Search" id="search-input" oninput="filterGames()">
+        <div id="counter"></div>
+      </div>
+    </div>
+
+<div class="game-container">
+    <a href="games/1v1lol/index.html">
+        <div class="game-widget">
+            <img src="assets/images/1v1.jpg">
+            <div class="game-title">1v1.LOL</div>
+        </div>
+    </a>
+    <a href="games/10MinutesTillDawn/index.html">
+        <div class="game-widget">
+            <img src="assets/images/10Minutes-1.png">
+            <div class="game-title">10 Minutes Till Dawn</div>
+        </div>
+    </a>
+    <a href="games/2048/index.html">
+        <div class="game-widget">
+            <img src="assets/images/2048.jpg">
+            <div class="game-title">2048</div>
+        </div>
+    </a>
+    <a href="games/AlienNest/index.html">
+        <div class="game-widget">
+            <img src="assets/images/AlienNest.png">
+            <div class="game-title">Alien's Nest</div>
+        </div>
+    </a>
+    <a href="games/TheFinalEarth2/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TheFinalEarth2.jpg">
+            <div class="game-title">The Final Earth 2</div>
+        </div>
+    </a>
+    <a href="games/IndianTruck/index.html">
+        <div class="game-widget">
+            <img src="assets/images/indi.jpg">
+            <div class="game-title">Indian Truck Driving</div>
+        </div>
+    </a>
+    <a href="games/ClusterRush/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ClusterRush.jpg">
+            <div class="game-title">Cluster Rush</div>
+        </div>
+    </a>
+    <a href="games/FunnyShooter2/index.html">
+        <div class="game-widget">
+            <img src="assets/images/funny.jpg">
+            <div class="game-title">Funny Shooter 2</div>
+        </div>
+    </a>
+    <a href="games/LittleAlchemy2/index.html">
+        <div class="game-widget">
+            <img src="assets/images/LittleAlchemy-1.png">
+            <div class="game-title">Little Alchemy 2</div>
+        </div>
+    </a>
+    <a href="games/Slope/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Slope.jpg">
+            <div class="game-title">Slope</div>
+        </div>
+    </a>
+    <a href="games/SlopeBall/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SlopeBall-1.jpg">
+            <div class="game-title">Slope Ball</div>
+        </div>
+    </a>
+    <a href="games/ScrapMetal3/index.html">
+        <div class="game-widget">
+            <img src="assets/images/scrap3.jpg">
+            <div class="game-title">Scrap Metal 3</div>
+        </div>
+    </a>
+    <a href="games/BlockBlast/index.html">
+        <div class="game-widget">
+            <img src="assets/images/blockblast.jpg">
+            <div class="game-title">Block Blast</div>
+        </div>
+    </a>
+    <a href="games/StickmanHook/index.html">
+        <div class="game-widget">
+            <img src="assets/images/stickman.jpg">
+            <div class="game-title">Stickman Hook</div>
+        </div>
+    </a>
+    <a href="games/4x4/index.html">
+        <div class="game-widget">
+            <img src="assets/images/4x4i.jpg">
+            <div class="game-title">4x4 Offroad</div>
+        </div>
+    </a>
+    <a href="games/MergeRoundRacers/index.html">
+        <div class="game-widget">
+            <img src="assets/images/MergeRound.jpg">
+            <div class="game-title">Merge Round Racers</div>
+        </div>
+    </a>
+    <a href="games/GeometryDashLite/index.html">
+        <div class="game-widget">
+            <img src="assets/images/gd.png">
+            <div class="game-title">Geometry Dash</div>
+        </div>
+    </a>
+    <a href="games/DriftHunters/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DriftHunter.jpg">
+            <div class="game-title">Drift Hunters</div>
+        </div>
+    </a>
+    <a href="games/DriftBoss/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DriftBoss-1.png">
+            <div class="game-title">Drift Boss</div>
+        </div>
+    </a>
+    <a href="games/Granny/index.html">
+        <div class="game-widget">
+            <img src="assets/images/granny1.jpg">
+            <div class="game-title">Granny</div>
+        </div>
+    </a>
+    <a href="games/Granny4/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Granny4.jpg">
+            <div class="game-title">Granny 4</div>
+        </div>
+    </a>
+    <a href="games/GrannyPrisonEscape/index.html">
+        <div class="game-widget">
+            <img src="assets/images/grannyprisonescape.jpg">
+            <div class="game-title">Granny Prison Escape</div>
+        </div>
+    </a>
+    <a href="games/BackToGranny/index.html">
+        <div class="game-widget">
+            <img src="assets/images/GrannyS.png">
+            <div class="game-title">Shoot Granny</div>
+        </div>
+    </a>
+    <a href="games/Polytrack/index.html">
+        <div class="game-widget">
+            <img src="assets/images/PolyTrack.jpg">
+            <div class="game-title">Poly Track</div>
+        </div>
+    </a>
+    <a href="games/LevelDevil/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Level.jpg">
+            <div class="game-title">Level Devil</div>
+        </div>
+    </a>
+    <a href="games/RagdollArchers/index.html">
+        <div class="game-widget">
+            <img src="assets/images/RA.jpg">
+            <div class="game-title">Ragdoll Archers</div>
+        </div>
+    </a>
+    <a href="games/ArcadeCarDrift/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ACD.jpg">
+            <div class="game-title">Arcade Car Drift</div>
+        </div>
+    </a>
+    <a href="games/SpiralRoll/index.html">
+        <div class="game-widget">
+            <img src="assets/images/spiral1.jpg">
+            <div class="game-title">Spiral Roll</div>
+        </div>
+    </a>
+    <a href="games/MonkeyMart/index.html">
+        <div class="game-widget">
+            <img src="assets/images/MonkeyMart.jpg">
+            <div class="game-title">Monkey Mart</div>
+        </div>
+    </a>
+    <a href="games/DriveMad/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DM.jpg">
+            <div class="game-title">Drive Mad</div>
+        </div>
+    </a>
+    <a href="games/RetroBowlReal/index.html">
+        <div class="game-widget">
+            <img src="assets/images/RetroBowl.png">
+            <div class="game-title">Retro Bowl</div>
+        </div>
+    </a>
+    <a href="games/RetroBowl/index.html">
+        <div class="game-widget">
+            <img src="assets/images/retrobowl.png">
+            <div class="game-title">Retro Bowl College</div>
+        </div>
+    </a>
+    <a href="games/IdleAnts/index.html">
+        <div class="game-widget">
+            <img src="assets/images/idleants.jpg">
+            <div class="game-title">Idle Ants</div>
+        </div>
+    </a>
+    <a href="games/BaldiRealClassic/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Baldi.png">
+            <div class="game-title">Baldi's Basics</div>
+        </div>
+    </a>
+    <a href="games/BaldiBasicFieldTrip">
+        <div class="game-widget">
+            <img src="assets/images/baldiFT.jpg">
+            <div class="game-title">Baldi's Basics Field Trip</div>
+        </div>
+    </a>
+    <a href="games/BreakingTheBank/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BreakingTheBank.jpg">
+            <div class="game-title">Breaking The Bank</div>
+        </div>
+    </a>
+    <a href="games/EscapingThePrison/index.html">
+        <div class="game-widget">
+            <img src="assets/images/EscapingThePrison.jpg">
+            <div class="game-title">Escaping The Prison</div>
+        </div>
+    </a>
+    <a href="games/StealingTheDiamond/index.html">
+        <div class="game-widget">
+            <img src="assets/images/StealingTheDiamond.jpg">
+            <div class="game-title">Stealing The Diamond</div>
+        </div>
+    </a>
+    <a href="games/InfiltratingTheAirship/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ITA.jpg">
+            <div class="game-title">Infiltrating The Airship</div>
+        </div>
+    </a>
+    <a href="https://funfrinew.neocities.org/games/FleeingTheComplex/">
+        <div class="game-widget">
+            <img src="assets/images/fleeing.jpg">
+            <div class="game-title">Fleeing The Complex</div>
+        </div>
+    </a>
+    <a href="games/HighwayTraffic/index.html">
+        <div class="game-widget">
+            <img src="assets/images/highway.jpg">
+            <div class="game-title">Highway Traffic</div>
+        </div>
+    </a>
+    <a href="games/Recoil/index.html">
+        <div class="game-widget">
+            <img src="assets/images/recoil.jpg">
+            <div class="game-title">Recoil</div>
+        </div>
+    </a>
+    <a href="games/Coreball/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CoreBall.jpg">
+            <div class="game-title">Coreball</div>
+        </div>
+    </a>
+    <a href="games/Watermelon/index.html">
+        <div class="game-widget">
+            <img src="assets/images/wm.jpg">
+            <div class="game-title">Watermelon Game</div>
+        </div>
+    </a>
+    <a href="games/RaceSurvival/index.html">
+        <div class="game-widget">
+            <img src="assets/images/RaceSurvival-1.png">
+            <div class="game-title">Race Survival</div>
+        </div>
+    </a>
+    <a href="games/ECDS/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ecds.png">
+            <div class="game-title">Extreme Car Driving Simulator</div>
+        </div>
+    </a>
+    <a href="games/WeBecome/index.html">
+        <div class="game-widget">
+            <img src="assets/images/wbh.jpg">
+            <div class="game-title">We Become What We Behold</div>
+        </div>
+    </a>
+    <a href="games/CarSimulator/index.html">
+        <div class="game-widget">
+            <img src="assets/images/cars.png">
+            <div class="game-title">Car Simulator</div>
+        </div>
+    </a>
+    <a href="games/WebGLFluid">
+        <div class="game-widget">
+            <img src="assets/images/WebGLFluid.jpg">
+            <div class="game-title">WebGLFluid</div>
+        </div>
+    </a>
+    <a href="games/CrazyCars/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CrazyCars.jpg">
+            <div class="game-title">Crazy Cars</div>
+        </div>
+    </a>
+    <a href="games/CrazyBikes/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CrazyBikes.jpg">
+            <div class="game-title">Crazy Bikes</div>
+        </div>
+    </a>
+    <a href="games/ShortcutRace/index.html">
+        <div class="game-widget">
+            <img src="assets/images/shortcutrace.jpg">
+            <div class="game-title">Shortcut Race</div>
+        </div>
+    </a>
+    <a href="games/RiseHigher/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Risehigher.jpg">
+            <div class="game-title">Rise Higher</div>
+        </div>
+    </a>
+    <a href="games/Vex3m/index.html">
+        <div class="game-widget">
+            <img src="assets/images/v3m1.jpg">
+            <div class="game-title">Vex x3m</div>
+        </div>
+    </a>
+    <a href="games/Vex/index.html">
+        <div class="game-widget">
+            <img src="assets/images/vex.jpg">
+            <div class="game-title">Vex 1</div>
+        </div>
+    </a>
+    <a href="games/Vex2/index.html">
+        <div class="game-widget">
+            <img src="assets/images/vex2.jpg">
+            <div class="game-title">Vex 2</div>
+        </div>
+    </a>
+    <a href="games/Vex3/index.html">
+        <div class="game-widget">
+            <img src="assets/images/vex3.jpg">
+            <div class="game-title">Vex 3</div>
+        </div>
+    </a>
+    <a href="games/Vex4/index.html">
+        <div class="game-widget">
+            <img src="assets/images/vex4.jpg">
+            <div class="game-title">Vex 4</div>
+        </div>
+    </a>
+    <a href="games/Vex5/index.html">
+        <div class="game-widget">
+            <img src="assets/images/vex5.jpg">
+            <div class="game-title">Vex 5</div>
+        </div>
+    </a>
+    <a href="games/Vex6/index.html">
+        <div class="game-widget">
+            <img src="assets/images/vex6.jpg">
+            <div class="game-title">Vex 6</div>
+        </div>
+    </a>
+    <a href="games/Vex7/index.html">
+        <div class="game-widget">
+            <img src="assets/images/vex7.jpg">
+            <div class="game-title">Vex 7</div>
+        </div>
+    </a>
+    <a href="games/Vex8/index.html">
+        <div class="game-widget">
+            <img src="assets/images/vex8.jpg">
+            <div class="game-title">Vex 8</div>
+        </div>
+    </a>
+    <a href="games/BadTimeSimulator/index.html">
+        <div class="game-widget">
+            <img src="assets/images/badtime.jpg">
+            <div class="game-title">Bad Time Simulator</div>
+        </div>
+    </a>
+    <a href="games/BrainTest/index.html">
+        <div class="game-widget">
+            <img src="assets/images/brain1.jpg">
+            <div class="game-title">Brain Test </div>
+        </div>
+    </a>
+    <a href="games/BrainTest2/index.html">
+        <div class="game-widget">
+            <img src="assets/images/brain2.jpg">
+            <div class="game-title">Brain Test 2</div>
+        </div>
+    </a>
+    <a href="games/BrainTest3/index.html">
+        <div class="game-widget">
+            <img src="assets/images/brain3.jpg">
+            <div class="game-title">Brain Test 3</div>
+        </div>
+    </a>
+    <a href="games/SubwaySurfers/index.html">
+        <div class="game-widget">
+            <img src="assets/images/subway2.png">
+            <div class="game-title">Subway Surfers</div>
+        </div>
+    </a>
+    <a href="games/BadPiggies/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BadPiggies.jpg">
+            <div class="game-title">Bad Piggies</div>
+        </div>
+    </a>
+    <a href="games/EggyCar/index.html">
+        <div class="game-widget">
+            <img src="assets/images/EggyCar.jpg">
+            <div class="game-title">Eggy Car</div>
+        </div>
+    </a>
+    <a href="games/FNAF/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FNAF.jpg">
+            <div class="game-title">FNAF</div>
+        </div>
+    </a>
+    <a href="games/FNAF-2/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FNAF2.jpg">
+            <div class="game-title">FNAF 2</div>
+        </div>
+    </a>
+    <a href="games/FNAF-3/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FNAF3.jpg">
+            <div class="game-title">FNAF 3</div>
+        </div>
+    </a>
+    <a href="games/AchievementUnlocked/index.html">
+        <div class="game-widget">
+            <img src="assets/images/AchievementUnlocked.jpg">
+            <div class="game-title">Achievement Unlocked</div>
+        </div>
+    </a>
+    <a href="games/HelixJump/index.html">
+        <div class="game-widget">
+            <img src="assets/images/HelixJump.jpg">
+            <div class="game-title">Helix Jump</div>
+        </div>
+    </a>
+    <a href="games/BasketRandom/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BasketRandom-1.png">
+            <div class="game-title">Basket Random</div>
+        </div>
+    </a>
+    <a href="games/VolleyRandom/index.html">
+        <div class="game-widget">
+            <img src="assets/images/VolleyRandom-1.png">
+            <div class="game-title">Volley Random</div>
+        </div>
+    </a>
+    <a href="games/SoccerRandom/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SoccerRandom-1.png">
+            <div class="game-title">Soccer Random</div>
+        </div>
+    </a>
+    <a href="games/InfiniteCraft/index.html">
+        <div class="game-widget">
+            <img src="assets/images/InfiniteCraft.png">
+            <div class="game-title">Infnite Craft</div>
+        </div>
+    </a>
+    <a href="games/TopSpeed3D/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TopSpeed3D.jpg">
+            <div class="game-title">Top Speed 3D</div>
+        </div>
+    </a>
+    <a href="games/AdventureCapatilist/index.html">
+        <div class="game-widget">
+            <img src="assets/images/AdventureCapitalist.jpg">
+            <div class="game-title">Adventure Capitalist</div>
+        </div>
+    </a>
+    <a href="games/Bloxorz/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Bloxorz.jpg">
+            <div class="game-title">Bloxorz</div>
+        </div>
+    </a>
+    <a href="games/CookieClicker/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CookieClicker.jpg">
+            <div class="game-title">Cookie Clicker</div>
+        </div>
+    </a>
+    <a href="games/GunSpin/index.html">
+        <div class="game-widget">
+            <img src="assets/images/GSpin.jpg">
+            <div class="game-title">Gun Spin</div>
+        </div>
+    </a>
+    <a href="games/Yohoho/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Yohoho.jpg">
+            <div class="game-title">Yohoho.io</div>
+        </div>
+    </a>
+    <a href="games/CSGoClicker/index.html">
+        <div class="game-widget">
+            <img src="assets/images/csgo.jpg">
+            <div class="game-title">CSGO Clicker</div>
+        </div>
+    </a>
+    <a href="games/TimeShot3/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Time3.jpg">
+            <div class="game-title">Time Shooter 3</div>
+        </div>
+    </a>
+    <a href="games/TinyFishing/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Tiny.jpg">
+            <div class="game-title">Tiny Fishing</div>
+        </div>
+    </a>
+    <a href="games/ZombieDerbyPixelSurvival">
+        <div class="game-widget">
+            <img src="assets/images/zd.jpg">
+            <div class="game-title">Zombie Derby: Pixel Survival</div>
+        </div>
+    </a>
+    <a href="games/SuperMario64/index.html">
+        <div class="game-widget">
+            <img src="assets/images/s64.jpg">
+            <div class="game-title">Super Mario 64</div>
+        </div>
+    </a>
+    <a href="games/PakoHighway/index.html">
+        <div class="game-widget">
+            <img src="assets/images/pako2.jpg">
+            <div class="game-title">Pako Highway</div>
+        </div>
+    </a>
+    <a href="games/DucklingsIo/index.html">
+        <div class="game-widget">
+            <img src="assets/images/duck1.jpg">
+            <div class="game-title">Ducklings.io</div>
+        </div>
+    </a>
+    <a href="games/Snowrider3D/index.html">
+        <div class="game-widget">
+            <img src="assets/images/snow1.jpg">
+            <div class="game-title">Snow Rider</div>
+        </div>
+    </a>
+    <a href="games/adofai/index.html">
+        <div class="game-widget">
+            <img src="assets/images/adofai1.jpg">
+            <div class="game-title">ADOFAI</div>
+        </div>
+    </a>
+    <a href="games/CutTheRope/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CutTheRope.jpg">
+            <div class="game-title">Cut The Rope</div>
+        </div>
+    </a>
+    <a href="games/HillClimbRacing/index.html">
+        <div class="game-widget">
+            <img src="assets/images/hill1.jpg">
+            <div class="game-title">Hill Climb Racing</div>
+        </div>
+    </a>
+    <a href="games/HillClimbRacingLITE/index.html">
+        <div class="game-widget">
+            <img src="assets/images/HillClimbLITE-1.png">
+            <div class="game-title">Hill Climb Racing LITE</div>
+        </div>
+    </a>
+    <a href="games/2PlayerTag/index.html">
+        <div class="game-widget">
+            <img src="assets/images/2PT.jpg">
+            <div class="game-title">2 Player Tag</div>
+        </div>
+    </a>
+    <a href="games/WorldHardest/index.html">
+        <div class="game-widget">
+            <img src="assets/images/wh1.jpg">
+            <div class="game-title">World's Hardest Game</div>
+        </div>
+    </a>
+    <a href="games/Sketchbook/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SketchBook.png">
+            <div class="game-title">Sketch Book</div>
+        </div>
+    </a>
+    <a href="games/IdleSuccess/index.html">
+        <div class="game-widget">
+            <img src="assets/images/IdleSuccess.jpg">
+            <div class="game-title">Idle Success</div>
+        </div>
+    </a>
+    <a href="games/CityCoachBusSim/index.html">
+        <div class="game-widget">
+            <img src="assets/images/city1.png">
+            <div class="game-title">City Coach Bus Simulator</div>
+        </div>
+    </a>
+    <a href="games/AirCraftIdle/index.html">
+        <div class="game-widget">
+            <img src="assets/images/idleair.jpg">
+            <div class="game-title">Air Craft Idle</div>
+        </div>
+    </a>
+    <a href="games/ObbyOnBike/index.html">
+        <div class="game-widget">
+            <img src="assets/images/bikeobby.jpg">
+            <div class="game-title">Obby On A Bike</div>
+        </div>
+    </a>
+    <a href="games/ShoppingBusiness/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ShoppingBusiness-1.webp">
+            <div class="game-title">Shopping Business</div>
+        </div>
+    </a>
+    <a href="games/UCDS/index.html">
+        <div class="game-widget">
+            <img src="assets/images/UCDS1.jpg">
+            <div class="game-title">Ultimate Car Driving Simulator</div>
+        </div>
+    </a>
+    <a href="games/ECOTerra/index.html">
+        <div class="game-widget">
+            <img src="assets/images/eco1.jpg">
+            <div class="game-title">Eco Terra Idle</div>
+        </div>
+    </a>
+    <a href="games/MyMiniGarage/index.html">
+        <div class="game-widget">
+            <img src="assets/images/minigarage.jpg">
+            <div class="game-title">My Mini Garage</div>
+        </div>
+    </a>
+    <a href="games/DriveZone/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DriveZone.jpg">
+            <div class="game-title">Drive Zone</div>
+        </div>
+    </a>
+    <a href="games/CarCrash/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CarCrash.jpg">
+            <div class="game-title">Car Crash</div>
+        </div>
+    </a>
+    <a href="games/FoodTruckIdle/index.html">
+        <div class="game-widget">
+            <img src="assets/images/foodtruck.jpg">
+            <div class="game-title">Food Truck Idle</div>
+        </div>
+    </a>
+    <a href="games/RaftSurvival/index.html">
+        <div class="game-widget">
+            <img src="assets/images/raft.jpg">
+            <div class="game-title">Raft Survival</div>
+        </div>
+    </a>
+    <a href="games/CarSale/index.html">
+        <div class="game-widget">
+            <img src="assets/images/carsale.webp">
+            <div class="game-title">Car Sale</div>
+        </div>
+    </a>
+    <a href="games/DestructionOfWorld/index.html">
+        <div class="game-widget">
+            <img src="assets/images/dof.jpg">
+            <div class="game-title">Destruction Of World</div>
+        </div>
+    </a>
+    <a href="games/EpicRoadBuild/index.html">
+        <div class="game-widget">
+            <img src="assets/images/epicroad.png">
+            <div class="game-title">Epic Road Build</div>
+        </div>
+    </a>
+    <a href="games/GladiHoppers/index.html">
+        <div class="game-widget">
+            <img src="assets/images/GladiHoppers.png">
+            <div class="game-title">Gladihoppers</div>
+        </div>
+    </a>
+    <a href="games/Getaway/index.html">
+        <div class="game-widget">
+            <img src="assets/images/GASO.jpg">
+            <div class="game-title">Getaway Shootout</div>
+        </div>
+    </a>
+    <a href="games/SuperTunnelRush/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SuperTN.jpg">
+            <div class="game-title">Super Tunnel Rush</div>
+        </div>
+    </a>
+    <a href="games/TunnelRush/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TunnelRush1.jpg">
+            <div class="game-title">Tunnel Rush</div>
+        </div>
+    </a>
+    <a href="games/OvO/index.html">
+        <div class="game-widget">
+            <img src="assets/images/OvO1.jpg">
+            <div class="game-title">OvO</div>
+        </div>
+    </a>
+    <a href="games/EdgeSurf/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Surf.jpg">
+            <div class="game-title">Edge Surf</div>
+        </div>
+    </a>
+    <a href="games/xx142-b2.exe/index.html">
+        <div class="game-widget">
+            <img src="assets/images/142-1.jpg">
+            <div class="game-title">xx142-b2.exe</div>
+        </div>
+    </a>
+    <a href="games/RedBall4/index.html">
+        <div class="game-widget">
+            <img src="assets/images/RedBall4-1.jpg">
+            <div class="game-title">Red Ball 4</div>
+        </div>
+    </a>
+    <a href="games/PaperIo2/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Paperio-1.jpg">
+            <div class="game-title">Paper.io 2</div>
+        </div>
+    </a>
+    <a href="games/FruitNinja/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FruitNinja-1.jpg">
+            <div class="game-title">Fruit Ninja</div>
+        </div>
+    </a>
+    <a href="games/CellMachine/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CellMachine-1.jpg">
+            <div class="game-title">Cell Machine</div>
+        </div>
+    </a>
+    <a href="games/CubeField/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CubeField-1.jpg">
+            <div class="game-title">Cube Field</div>
+        </div>
+    </a>
+    <a href="https://funfrinew.neocities.org/g/UltimateCarDriving2">
+        <div class="game-widget">
+            <img src="assets/images/CarDriveSim-1.png">
+            <div class="game-title">Car Driving Simulator</div>
+        </div>
+    </a>
+    <a href="games/ThereIsNoGame/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TING-1.jpg">
+            <div class="game-title">There Is No Game</div>
+        </div>
+    </a>
+    <a href="games/TanukiSunset/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TanukiSunset-1.png">
+            <div class="game-title">Tanuki Sunset</div>
+        </div>
+    </a>
+    <a href="games/TruckLoader/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TruckLoader-1.png">
+            <div class="game-title">Truck Loader</div>
+        </div>
+    </a>
+    <a href="games/FireboyWatergirl/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FireBoyWaterGirl-1.png">
+            <div class="game-title">Fireboy And Watergirl</div>
+        </div>
+    </a>
+    <a href="games/ElasticMan/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ElasticMan-1.png">
+            <div class="game-title">Elastic Man</div>
+        </div>
+    </a>
+    <a href="games/FlappyBird/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FlappyBird-1.png">
+            <div class="game-title">Flappy Bird</div>
+        </div>
+    </a>
+    <a href="games/ColorSwitch/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ColorSwitch-1.png">
+            <div class="game-title">Color Switch</div>
+        </div>
+    </a>
+    <a href="games/Pou/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Pou-1.png">
+            <div class="game-title">Pou</div>
+        </div>
+    </a>
+    <a href="games/FactoryBallsForever/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FactoryBallsForever-1.png">
+            <div class="game-title">Factory Balls Forever</div>
+        </div>
+    </a>
+    <a href="games/Stack/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Stack-1.png">
+            <div class="game-title">Stack</div>
+        </div>
+    </a>
+    <a href="games/SkyRiders/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SkyRiders-1.png">
+            <div class="game-title">Sky Riders</div>
+        </div>
+    </a>
+    <a href="games/FryingNemo/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FryingNemo-1.png">
+            <div class="game-title">Frying Nemo</div>
+        </div>
+    </a>
+    <a href="games/RedVSBluez/index.html">
+        <div class="game-widget">
+            <img src="assets/images/RedVSBluez-1.png">
+            <div class="game-title">Red VS Bluez</div>
+        </div>
+    </a>
+    <a href="games/MrRacer/index.html">
+        <div class="game-widget">
+            <img src="assets/images/MrRacer-1.png">
+            <div class="game-title">Mr.Racer</div>
+        </div>
+    </a>
+    <a href="games/GodoBlocks/index.html">
+        <div class="game-widget">
+            <img src="assets/images/GodoBlocks-1.png">
+            <div class="game-title">GodoBlocks</div>
+        </div>
+    </a>
+    <a href="games/Backrooms2D/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Backrooms2D-1.png">
+            <div class="game-title">Backrooms 2D</div>
+        </div>
+    </a>
+    <a href="games/Backrooms3D/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Backrooms3D-1.png">
+            <div class="game-title">Backrooms 3D</div>
+        </div>
+    </a>
+    <a href="games/Skibidi1VS100/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Skibidi1VS100-1.png">
+            <div class="game-title">Skibidi 1 VS 100</div>
+        </div>
+    </a>
+    <a href="games/ElectricBox/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ElectricBox-1.png">
+            <div class="game-title">Electric Box</div>
+        </div>
+    </a>
+    <a href="games/DoodleJump/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DoodleJump-1.png">
+            <div class="game-title">Doodle Jump</div>
+        </div>
+    </a>
+    <a href="games/DogeMiner/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DogeMiner-1.png">
+            <div class="game-title">Doge Miner</div>
+        </div>
+    </a>
+    <a href="games/FunnyMadRacing/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FunnyMadRacing-1.png">
+            <div class="game-title">Funny Mad Racing</div>
+        </div>
+    </a>
+    <a href="games/GoldDigger/index.html">
+        <div class="game-widget">
+            <img src="assets/images/GoldDiggerFRVR-1.png">
+            <div class="game-title">Gold Digger FRVR</div>
+        </div>
+    </a>
+    <a href="games/SuperHot/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SuperHot-1.png">
+            <div class="game-title">Super Hot</div>
+        </div>
+    </a>
+    <a href="games/Sudoku/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Sudoku-1.png">
+            <div class="game-title">Sudoku</div>
+        </div>
+    </a>
+    <a href="games/RocketSoccer/index.html">
+        <div class="game-widget">
+            <img src="assets/images/RocketSoccerDerby-1.png">
+            <div class="game-title">Rocket Soccer Derby</div>
+        </div>
+    </a>
+    <a href="games/Motox3m/index.html">
+        <div class="game-widget">
+            <img src="assets/images/MotoX3M-1.png">
+            <div class="game-title">Moto X3M</div>
+        </div>
+    </a>
+    <a href="games/RideInACadillac/index.html">
+        <div class="game-widget">
+            <img src="assets/images/RideInACadillac-1.png">
+            <div class="game-title">Ride In A Cadillac</div>
+        </div>
+    </a>
+    <a href="games/TowerOfHell/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TOH-1.png">
+            <div class="game-title">Tower Of Hell</div>
+        </div>
+    </a>
+    <a href="games/TunerRacer/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TunerRacer-1.png">
+            <div class="game-title">Tuner Racer</div>
+        </div>
+    </a>
+    <a href="games/DealOrNoDeal/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DealOrNoDeal-1.png">
+            <div class="game-title">Deal Or No Deal</div>
+        </div>
+    </a>
+    <a href="games/Evolution/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Evolution-1.png">
+            <div class="game-title">Evolution</div>
+        </div>
+    </a>
+    <a href="games/BurritoBison/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BurritoBison-1.png">
+            <div class="game-title">Burrito Bison</div>
+        </div>
+    </a>
+    <a href="games/SlideInTheWoods/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SlideInTheWoods-1.png">
+            <div class="game-title">Slide In The Woods</div>
+        </div>
+    </a>
+    <a href="games/5NightsAtShrek/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FNASH-1.png">
+            <div class="game-title">5 Nights At Shreks Hotel</div>
+        </div>
+    </a>
+    <a href="games/PerfectHotel/index.html">
+        <div class="game-widget">
+            <img src="assets/images/PerfectHotel-1.png">
+            <div class="game-title">Perfect Hotel</div>
+        </div>
+    </a>
+    <a href="games/NeonRider/index.html">
+        <div class="game-widget">
+            <img src="assets/images/NeonRider-1.png">
+            <div class="game-title">Neon Rider</div>
+        </div>
+    </a>
+    <a href="games/StuntCarChallenge3/index.html">
+        <div class="game-widget">
+            <img src="assets/images/StuntCar3-1.png">
+            <div class="game-title">Stunt Car Challenge 3</div>
+        </div>
+    </a>
+    <a href="games/TombOfTheMask/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TombOfTheMask-1.png">
+            <div class="game-title">Tomb Of The Mask</div>
+        </div>
+    </a>
+    <a href="games/BlumgiRacers/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BlumgiRacers-1.png">
+            <div class="game-title">Blumgi Racers</div>
+        </div>
+    </a>
+    <a href="games/BlumgiRocket/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BlumgiRocket-1.png">
+            <div class="game-title">Blumgi Rocket</div>
+        </div>
+    </a>
+    <a href="games/EpicSandbox/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BlockTech-1.png">
+            <div class="game-title">Block Tech: Epic Sandbox</div>
+        </div>
+    </a>
+    <a href="games/SuperRetroChase/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SuperRetroChase-1.png">
+            <div class="game-title">Super Retro Chase</div>
+        </div>
+    </a>
+    <a href="games/Bowmasters/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Bowmasters-1.png">
+            <div class="game-title">Bowmasters</div>
+        </div>
+    </a>
+    <a href="games/BlackTopChase/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Blacktop-1.png">
+            <div class="game-title">Blacktop: Police Chase</div>
+        </div>
+    </a>
+    <a href="games/DemolitionDerby/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DemolitionDerby-1.png">
+            <div class="game-title">Demolition Derby</div>
+        </div>
+    </a>
+    <a href="games/FearResponseWork/index.html">
+        <div class="game-widget">
+            <img src="assets/images/FearResponse-1.png">
+            <div class="game-title">Fear Response</div>
+        </div>
+    </a>
+    <a href="games/GoogleFeud/index.html">
+        <div class="game-widget">
+            <img src="assets/images/GoogleFeud-1.png">
+            <div class="game-title">Google Feud</div>
+        </div>
+    </a>
+    <a href="games/SausageFlip/index.html">
+        <div class="game-widget">
+            <img src="assets/images/SausageFlip-1.png">
+            <div class="game-title">Sausage Flip</div>
+        </div>
+    </a>
+    <a href="games/MoneyRush/index.html">
+        <div class="game-widget">
+            <img src="assets/images/MoneyRush-1.png">
+            <div class="game-title">Money Rush</div>
+        </div>
+    </a>
+    <a href="games/ClickerHeroes/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ClickerHeroes-1.png">
+            <div class="game-title">Clicker Heroes</div>
+        </div>
+    </a>
+    <a href="games/BottleFlip3D/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BottleFlip3D-1.png">
+            <div class="game-title">Bottle Flip 3D</div>
+        </div>
+    </a>
+    <a href="games/WaterColorSort/index.html">
+        <div class="game-widget">
+            <img src="assets/images/WaterColorSort-1.png">
+            <div class="game-title">Water Color Sort</div>
+        </div>
+    </a>
+    <a href="games/TinyTownRacing/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TinyTownRacing-1.png">
+            <div class="game-title">Tiny Town Racing</div>
+        </div>
+    </a>
+    <a href="games/Swerve/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Swerve-1.png">
+            <div class="game-title">Swerve</div>
+        </div>
+    </a>
+    <a href="games/CircloO/index.html">
+        <div class="game-widget">
+            <img src="assets/images/CircloO-1.png">
+            <div class="game-title">CircloO</div>
+        </div>
+    </a>
+    <a href="games/TownScaper/index.html">
+        <div class="game-widget">
+            <img src="assets/images/Townscaper-1.png">
+            <div class="game-title">Townscaper</div>
+        </div>
+    </a>
+    <a href="games/TurboMotoRacer/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TurboMotoRacer-1.png">
+            <div class="game-title">Turbo Moto Racer</div>
+        </div>
+    </a>
+    <a href="games/DragRacing3D/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DragRacing3D-1.png">
+            <div class="game-title">Drag Racing 3D</div>
+        </div>
+    </a>
+    <a href="games/TazMechanicSimulator/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TazMechanicSimulator-1.png">
+            <div class="game-title">Taz Mechanic Simulator</div>
+        </div>
+    </a>
+    <a href="games/LockTheDoor/index.html">
+        <div class="game-widget">
+            <img src="assets/images/LockTheDoor-1.png">
+            <div class="game-title">Lock The Door</div>
+        </div>
+    </a>
+    <a href="games/ObbyRobby/index.html">
+        <div class="game-widget">
+            <img src="assets/images/ObbyRobby-1.png">
+            <div class="game-title">Obby Robby: Only Up</div>
+        </div>
+    </a>
+    <a href="games/LightTheLamp/index.html">
+        <div class="game-widget">
+            <img src="assets/images/LightTheLamp-1.png">
+            <div class="game-title">Light The Lamp</div>
+        </div>
+    </a>
+    <a href="games/PaperPlane/index.html">
+        <div class="game-widget">
+            <img src="assets/images/PaperPlane-1.png">
+            <div class="game-title">Paper Plane</div>
+        </div>
+    </a>
+    <a href="games/StickmanClimb2/index.html">
+        <div class="game-widget">
+            <img src="assets/images/StickmanClimb2-1.png">
+            <div class="game-title">Stickman Climb 2</div>
+        </div>
+    </a>
+    <a href="games/GoingBalls/index.html">
+        <div class="game-widget">
+            <img src="assets/images/GoingBalls-1.png">
+            <div class="game-title">Going Balls</div>
+        </div>
+    </a>
+    <a href="games/BaconMayDie/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BaconMayDie-1.png">
+            <div class="game-title">Bacon May Die</div>
+        </div>
+    </a>
+    <a href="games/PathToGlory/index.html">
+        <div class="game-widget">
+            <img src="assets/images/PathToGlory-1.png">
+            <div class="game-title">Path To Glory</div>
+        </div>
+    </a>
+    <a href="games/HexGL/index.html">
+        <div class="game-widget">
+            <img src="assets/images/HexGL-1.png">
+            <div class="game-title">HexGL</div>
+        </div>
+    </a>
+    <a href="games/NeonSwing/index.html">
+        <div class="game-widget">
+            <img src="assets/images/NeonSwing-1.png">
+            <div class="game-title">Neon Swing</div>
+        </div>
+    </a>
+    <a href="games/DeepestSword/index.html">
+        <div class="game-widget">
+            <img src="assets/images/DeepestSword-1.png">
+            <div class="game-title">Deepest Sword</div>
+        </div>
+    </a>
+    <a href="games/BlockySnakes/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BlockySnakes-1.png">
+            <div class="game-title">Blocky Snakes</div>
+        </div>
+    </a>
+    <a href="games/RoadWars/index.html">
+        <div class="game-widget">
+            <img src="assets/images/RoadWars-1.png">
+            <div class="game-title">Road Wars</div>
+        </div>
+    </a>
+    <a href="games/TopDriver/index.html">
+        <div class="game-widget">
+            <img src="assets/images/TopDriver-1.png">
+            <div class="game-title">Top Driver</div>
+        </div>
+    </a>
+    <a href="games/BaldiUltimate/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BaldiUltimate-1.png">
+            <div class="game-title">Baldi's Fun New School Plus Ultimate Edition</div>
+        </div>
+    </a>
+    <a href="games/BasketBallStars/index.html">
+        <div class="game-widget">
+            <img src="assets/images/BasketballStars-1.png">
+            <div class="game-title">Basketball Stars</div>
+        </div>
+    </a>
+    
+</div>
+    <embed class="background-embed" src="storage/background/index.html" type="text/html">
+  </div>
+  
+  <script src="storage/speeder.js"></script>
+  <script src="storage/popuphandler.js"></script>
+  <script src="storage/search.js"></script>
+  <script src="storage/contextmenu.js"></script>
+</body>
+</html>
