@@ -418,9 +418,7 @@ popup.querySelector('.closeBtn').addEventListener('click', () => {
 
 // Close when clicking *anywhere* outside the popupContent
 popup.addEventListener('click', (e) => {
-    if (e.target === popup) {
         popup.classList.remove('show');
-    }
 });
 
 function showPopup(){ popup.classList.add('show'); }
