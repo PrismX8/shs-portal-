@@ -197,7 +197,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 </div>
 
 <div id="iframeContainer">
-    <iframe id="embeddedSite" src="https://funfrinew.neocities.org/"></iframe>
+    <iframe id="embeddedSite" src="https://funfrinew.neocities.org/" allowfullscreen allow="fullscreen"></iframe>
 </div>
 
 <div id="tutorialOverlay">
@@ -329,13 +329,9 @@ let onPrivacy = false;
 
 document.getElementById('reloadBtn').addEventListener('click', ()=>iframe.src = iframe.src);
     
-document.getElementById('fullscreenBtn').addEventListener('click', () => {
-    const iframe = document.getElementById("embeddedSite");
-
-    if (iframe.requestFullscreen) iframe.requestFullscreen();
-    else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
-    else if (iframe.mozRequestFullScreen) iframe.mozRequestFullScreen();
-    else if (iframe.msRequestFullscreen) iframe.msRequestFullscreen();
+document.getElementById("fullscreenBtn").addEventListener("click", () => {
+    const frame = document.getElementById("embeddedSite");
+    frame.requestFullscreen?.();
 });
 
 document.getElementById('zoomInBtn').addEventListener('click', ()=>{ zoomLevel += 0.1; iframe.style.transform = `scale(${zoomLevel})`; iframe.style.transformOrigin='top left'; });
