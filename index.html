@@ -799,6 +799,7 @@ drawingModal.addEventListener('click', (e) => {
   const drawnIds = new Set(); // stroke IDs already rendered
   const strokesRef = db.ref('canvas/strokes');
   const metaRef = db.ref('canvas/meta');
+  const strokesCache = {}; // local cache of strokes by id to allow redraw on resize
 
   // Resize helper
   function resizeCanvasToDisplay() {
@@ -810,6 +811,8 @@ drawingModal.addEventListener('click', (e) => {
     canvasEl.style.width = styleW + 'px';
     canvasEl.style.height = styleH + 'px';
     ctx2.setTransform(ratio, 0, 0, ratio, 0, 0);
+    // After resizing the canvas (which clears its bitmap), redraw cached strokes
+    redrawAllStrokes();
   }
   window.addEventListener('resize', resizeCanvasToDisplay);
   resizeCanvasToDisplay();
@@ -853,6 +856,23 @@ drawingModal.addEventListener('click', (e) => {
       ctx2.lineTo(pts[i].x, pts[i].y);
     }
     ctx2.stroke();
+  }
+
+  // Redraw all strokes from the in-memory cache (sorted by time)
+  function redrawAllStrokes() {
+    try {
+      ctx2.clearRect(0,0,canvasEl.width,canvasEl.height);
+      drawnIds.clear();
+      // Sort strokes by timestamp so order is preserved
+      const strokes = Object.keys(strokesCache).map(k => ({ id: k, s: strokesCache[k] }));
+      strokes.sort((a,b) => (a.s.time || 0) - (b.s.time || 0));
+      for(const item of strokes) {
+        drawStrokeLocally(item.s);
+        drawnIds.add(item.id);
+      }
+    } catch (err) {
+      console.warn('redrawAllStrokes failed', err);
+    }
   }
 
   // Pointer events
@@ -913,19 +933,32 @@ drawingModal.addEventListener('click', (e) => {
   // Listen for strokes added by anyone
   strokesRef.on('child_added', snapshot => {
     const strokeId = snapshot.key;
-    if(drawnIds.has(strokeId)) return;
     const stroke = snapshot.val();
     if(!stroke) return;
-    drawStrokeLocally(stroke);
-    drawnIds.add(strokeId);
+    // Cache the stroke
+    strokesCache[strokeId] = stroke;
+    // If not already drawn on current canvas, draw it
+    if(!drawnIds.has(strokeId)){
+      drawStrokeLocally(stroke);
+      drawnIds.add(strokeId);
+    }
+  });
+
+  // When a stroke is removed (e.g., clear), update cache and redraw
+  strokesRef.on('child_removed', snapshot => {
+    const id = snapshot.key;
+    if(id && strokesCache[id]) delete strokesCache[id];
+    redrawAllStrokes();
   });
 
   // Listen for clear events
   metaRef.child('clear').on('value', snap => {
     const v = snap.val();
     if(v) {
+      // Clear visible canvas and local caches so redraw won't restore cleared strokes
       ctx2.clearRect(0,0,canvasEl.width,canvasEl.height);
       drawnIds.clear();
+      for(const k in strokesCache) delete strokesCache[k];
     }
   });
 
