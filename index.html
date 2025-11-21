@@ -472,10 +472,14 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     <div id="sharedCanvasContainer" style="position:relative;">
       <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
         <button id="toggleCanvasBtn">Open/Close Canvas</button>
-        
+
         <div style="display:flex; gap:6px; align-items:center; padding:6px 8px; background:rgba(0,255,255,0.1); border-radius:2px; border:1px solid rgba(0,255,255,0.3);">
           <button id="brushToolBtn" title="Brush Tool" style="padding:6px 10px; border:2px solid #00ffff; background:rgba(0,255,255,0.3); color:#00ffff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">✏ Brush</button>
           <button id="eraserToolBtn" title="Eraser Tool" style="padding:6px 10px; border:2px solid rgba(255,170,0,0.3); background:transparent; color:#ffaa00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">🗑 Eraser</button>
+          <button id="rectangleToolBtn" title="Rectangle Tool" style="padding:6px 10px; border:2px solid rgba(255,0,255,0.3); background:transparent; color:#ff00ff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">▭ Rectangle</button>
+          <button id="circleToolBtn" title="Circle Tool" style="padding:6px 10px; border:2px solid rgba(0,255,0,0.3); background:transparent; color:#00ff00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">○ Circle</button>
+          <button id="lineToolBtn" title="Line Tool" style="padding:6px 10px; border:2px solid rgba(255,255,0,0.3); background:transparent; color:#ffff00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">━ Line</button>
+          <button id="textToolBtn" title="Text Tool" style="padding:6px 10px; border:2px solid rgba(255,165,0,0.3); background:transparent; color:#ffa500; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">T Text</button>
         </div>
 
         <label style="display:flex;align-items:center;gap:6px;">
@@ -486,6 +490,21 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
           <input id="sizeSlider" type="range" min="1" max="50" value="4">
           <small id="sizeLabel" style="min-width:25px;">4</small>
         </label>
+        <label style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px; color:#999;">Opacity:</span>
+          <input id="opacitySlider" type="range" min="0.1" max="1" step="0.1" value="1">
+          <small id="opacityLabel" style="min-width:25px;">1</small>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input id="fillCheckbox" type="checkbox" title="Fill Shapes">
+          <span style="font-size:12px; color:#999;">Fill</span>
+        </label>
+        <button id="undoBtn" title="Undo" style="padding:6px 8px;border-radius:2px;border:1px solid #00ff88;background:rgba(0,255,136,0.2);color:#00ff88;cursor:pointer;font-weight:600;">↶ Undo</button>
+        <button id="eyedropperBtn" title="Eyedropper" style="padding:6px 8px;border-radius:2px;border:1px solid #ff1493;background:rgba(255,20,147,0.2);color:#ff1493;cursor:pointer;font-weight:600;">💧 Eyedropper</button>
+        <button id="saveBtn" title="Save Drawing" style="padding:6px 8px;border-radius:2px;border:1px solid #00ffff;background:rgba(0,255,255,0.2);color:#00ffff;cursor:pointer;font-weight:600;">💾 Save</button>
+        <button id="loadBtn" title="Load Drawing" style="padding:6px 8px;border-radius:2px;border:1px solid #00ffff;background:rgba(0,255,255,0.2);color:#00ffff;cursor:pointer;font-weight:600;">📁 Load</button>
+        <button id="zoomInBtn" title="Zoom In" style="padding:6px 8px;border-radius:2px;border:1px solid #00ff88;background:rgba(0,255,136,0.2);color:#00ff88;cursor:pointer;font-weight:600;">🔍+</button>
+        <button id="zoomOutBtn" title="Zoom Out" style="padding:6px 8px;border-radius:2px;border:1px solid #00ff88;background:rgba(0,255,136,0.2);color:#00ff88;cursor:pointer;font-weight:600;">🔍-</button>
         <button id="clearCanvasBtn" style="padding:6px 8px;border-radius:2px;border:1px solid #ff0000;background:rgba(255,0,0,0.2);color:#ff0000;cursor:pointer;font-weight:600;">Clear</button>
         <div style="margin-left:auto; font-size:12px; color:#777;">Shared canvas (Realtime)</div>
       </div>
@@ -917,36 +936,123 @@ drawingModal.addEventListener('click', (e) => {
   const eraserToolBtn = document.getElementById('eraserToolBtn');
 
   // Tool state
-  let currentTool = 'brush'; // 'brush' or 'eraser'
+  let currentTool = 'brush'; // 'brush' or 'eraser' or 'rectangle' etc
   let drawing = false;
   let currentStroke = [];
   let brushColor = colorPicker.value;
   let brushSize = parseInt(sizeSlider.value,10);
+  let brushOpacity = 1;
+  let fillShapes = false;
+  let shapeStart = null;
+  let undoHistory = [];
+  let zoomLevel = 1;
+  let panX = 0, panY = 0;
+  let pushedStrokes = [];
   const drawnIds = new Set(); // stroke IDs already rendered
   const strokesRef = db.ref('canvas/strokes');
   const metaRef = db.ref('canvas/meta');
   const strokesCache = {}; // local cache of strokes by id to allow redraw on resize
 
   // Tool switching
+  function resetToolStyles() {
+    const tools = ['brushToolBtn', 'eraserToolBtn', 'rectangleToolBtn', 'circleToolBtn', 'lineToolBtn', 'textToolBtn', 'eyedropperBtn'];
+    tools.forEach(id => {
+      const btn = document.getElementById(id);
+      btn.style.background = 'transparent';
+      btn.style.border = '2px solid rgba(0,255,255,0.3)';
+    });
+  }
+
   function selectTool(tool) {
     currentTool = tool;
+    resetToolStyles();
     if(tool === 'brush') {
       brushToolBtn.style.background = 'rgba(0,255,255,0.3)';
       brushToolBtn.style.border = '2px solid #00ffff';
-      eraserToolBtn.style.background = 'transparent';
-      eraserToolBtn.style.border = '2px solid rgba(255,170,0,0.3)';
       canvasEl.style.cursor = 'crosshair';
     } else if(tool === 'eraser') {
-      brushToolBtn.style.background = 'transparent';
-      brushToolBtn.style.border = '2px solid rgba(0,255,255,0.3)';
       eraserToolBtn.style.background = 'rgba(255,170,0,0.2)';
       eraserToolBtn.style.border = '2px solid #ffaa00';
       canvasEl.style.cursor = 'cell';
+    } else if(tool === 'rectangle') {
+      document.getElementById('rectangleToolBtn').style.background = 'rgba(255,0,255,0.2)';
+      document.getElementById('rectangleToolBtn').style.border = '2px solid #ff00ff';
+      canvasEl.style.cursor = 'crosshair';
+    } else if(tool === 'circle') {
+      document.getElementById('circleToolBtn').style.background = 'rgba(0,255,0,0.2)';
+      document.getElementById('circleToolBtn').style.border = '2px solid #00ff00';
+      canvasEl.style.cursor = 'crosshair';
+    } else if(tool === 'line') {
+      document.getElementById('lineToolBtn').style.background = 'rgba(255,255,0,0.2)';
+      document.getElementById('lineToolBtn').style.border = '2px solid #ffff00';
+      canvasEl.style.cursor = 'crosshair';
+    } else if(tool === 'text') {
+      document.getElementById('textToolBtn').style.background = 'rgba(255,165,0,0.2)';
+      document.getElementById('textToolBtn').style.border = '2px solid #ffa500';
+      canvasEl.style.cursor = 'text';
+    } else if(tool === 'eyedropper') {
+      document.getElementById('eyedropperBtn').style.background = 'rgba(255,20,147,0.2)';
+      document.getElementById('eyedropperBtn').style.border = '2px solid #ff1493';
+      canvasEl.style.cursor = 'copy';
     }
+  }
+
+  function undoLast() {
+    if(pushedStrokes.length > 0) {
+      const lastKey = pushedStrokes.pop();
+      strokesRef.child(lastKey).remove();
+    }
+  }
+
+  function saveDrawing() {
+    const dataURL = canvasEl.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataURL;
+    a.download = 'drawing.png';
+    a.click();
+  }
+
+  function loadDrawing() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if(file) {
+        const img = new Image();
+        img.onload = () => {
+          ctx2.clearRect(0,0,canvasEl.width,canvasEl.height);
+          ctx2.drawImage(img, 0, 0, canvasEl.width, canvasEl.height);
+        };
+        img.src = URL.createObjectURL(file);
+      }
+    };
+    input.click();
+  }
+
+  function applyZoom() {
+    ctx2.setTransform(zoomLevel, 0, 0, zoomLevel, panX, panY);
+    redrawAllStrokes();
+  }
+
+  function rgbToHex(r, g, b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
   }
 
   brushToolBtn.addEventListener('click', () => selectTool('brush'));
   eraserToolBtn.addEventListener('click', () => selectTool('eraser'));
+  document.getElementById('rectangleToolBtn').addEventListener('click', () => selectTool('rectangle'));
+  document.getElementById('circleToolBtn').addEventListener('click', () => selectTool('circle'));
+  document.getElementById('lineToolBtn').addEventListener('click', () => selectTool('line'));
+  document.getElementById('textToolBtn').addEventListener('click', () => selectTool('text'));
+  document.getElementById('fillCheckbox').addEventListener('change', (e) => fillShapes = e.target.checked);
+  document.getElementById('opacitySlider').addEventListener('input', (e) => { brushOpacity = parseFloat(e.target.value); document.getElementById('opacityLabel').textContent = brushOpacity; });
+  document.getElementById('undoBtn').addEventListener('click', undoLast);
+  document.getElementById('eyedropperBtn').addEventListener('click', () => selectTool('eyedropper'));
+  document.getElementById('saveBtn').addEventListener('click', saveDrawing);
+  document.getElementById('loadBtn').addEventListener('click', loadDrawing);
+  document.getElementById('zoomInBtn').addEventListener('click', () => { zoomLevel *= 1.2; applyZoom(); });
+  document.getElementById('zoomOutBtn').addEventListener('click', () => { zoomLevel /= 1.2; applyZoom(); });
   selectTool('brush');
 
   // Resize helper
@@ -1009,7 +1115,51 @@ drawingModal.addEventListener('click', (e) => {
       }
       ctx2.stroke();
       ctx2.restore();
+    } else if(stroke.type === 'rectangle') {
+      ctx2.globalAlpha = stroke.opacity || 1;
+      ctx2.strokeStyle = stroke.color;
+      ctx2.lineWidth = stroke.size || 1;
+      const x = Math.min(stroke.points[0].x, stroke.points[1].x);
+      const y = Math.min(stroke.points[0].y, stroke.points[1].y);
+      const width = Math.abs(stroke.points[1].x - stroke.points[0].x);
+      const height = Math.abs(stroke.points[1].y - stroke.points[0].y);
+      if(stroke.fill) {
+        ctx2.fillStyle = stroke.color;
+        ctx2.fillRect(x, y, width, height);
+      } else {
+        ctx2.strokeRect(x, y, width, height);
+      }
+    } else if(stroke.type === 'circle') {
+      ctx2.globalAlpha = stroke.opacity || 1;
+      ctx2.strokeStyle = stroke.color;
+      ctx2.lineWidth = stroke.size || 1;
+      const centerX = stroke.points[0].x;
+      const centerY = stroke.points[0].y;
+      const radius = Math.sqrt((stroke.points[1].x - centerX)**2 + (stroke.points[1].y - centerY)**2);
+      ctx2.beginPath();
+      ctx2.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      if(stroke.fill) {
+        ctx2.fillStyle = stroke.color;
+        ctx2.fill();
+      } else {
+        ctx2.stroke();
+      }
+    } else if(stroke.type === 'line') {
+      ctx2.globalAlpha = stroke.opacity || 1;
+      ctx2.strokeStyle = stroke.color;
+      ctx2.lineWidth = stroke.size || 1;
+      ctx2.beginPath();
+      ctx2.moveTo(stroke.points[0].x, stroke.points[0].y);
+      ctx2.lineTo(stroke.points[1].x, stroke.points[1].y);
+      ctx2.stroke();
+    } else if(stroke.type === 'text') {
+      ctx2.globalAlpha = stroke.opacity || 1;
+      ctx2.fillStyle = stroke.color;
+      ctx2.font = `${stroke.fontSize || 16}px Arial`;
+      ctx2.fillText(stroke.text, stroke.x, stroke.y);
     } else {
+      // default brush
+      ctx2.globalAlpha = stroke.opacity || 1;
       ctx2.lineJoin = 'round';
       ctx2.lineCap = 'round';
       ctx2.strokeStyle = stroke.color;
@@ -1045,84 +1195,183 @@ drawingModal.addEventListener('click', (e) => {
   canvasEl.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     canvasEl.setPointerCapture?.(e.pointerId);
-    drawing = true;
-    currentStroke = [];
     const p = getCanvasPoint(e);
-    currentStroke.push(p);
-    
-    if(currentTool === 'brush') {
-      ctx2.fillStyle = brushColor;
-      ctx2.beginPath();
-      ctx2.arc(p.x, p.y, Math.max(1, brushSize/2), 0, Math.PI*2);
-      ctx2.fill();
-    } else if(currentTool === 'eraser') {
-      ctx2.save();
-      ctx2.globalCompositeOperation = 'destination-out';
-      ctx2.fillStyle = 'rgba(0,0,0,1)';
-      ctx2.beginPath();
-      ctx2.arc(p.x, p.y, Math.max(1, brushSize/2), 0, Math.PI*2);
-      ctx2.fill();
-      ctx2.restore();
+    if(currentTool === 'brush' || currentTool === 'eraser') {
+      drawing = true;
+      currentStroke = [];
+      currentStroke.push(p);
+      if(currentTool === 'brush') {
+        ctx2.globalAlpha = brushOpacity;
+        ctx2.fillStyle = brushColor;
+        ctx2.beginPath();
+        ctx2.arc(p.x, p.y, Math.max(1, brushSize/2), 0, Math.PI*2);
+        ctx2.fill();
+      } else if(currentTool === 'eraser') {
+        ctx2.save();
+        ctx2.globalCompositeOperation = 'destination-out';
+        ctx2.fillStyle = 'rgba(0,0,0,1)';
+        ctx2.beginPath();
+        ctx2.arc(p.x, p.y, Math.max(1, brushSize/2), 0, Math.PI*2);
+        ctx2.fill();
+        ctx2.restore();
+      }
+    } else if(currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'line') {
+      shapeStart = p;
+    } else if(currentTool === 'text') {
+      const text = prompt('Enter text:');
+      if(text) {
+        const strokeObj = {
+          user: visitorId || ('anon_'+Date.now()),
+          type: 'text',
+          text: text,
+          x: p.x,
+          y: p.y,
+          color: brushColor,
+          fontSize: brushSize,
+          opacity: brushOpacity,
+          time: Date.now()
+        };
+        strokesRef.push(strokeObj).then(pushRef => pushedStrokes.push(pushRef.key));
+      }
+    } else if(currentTool === 'eyedropper') {
+      const imageData = ctx2.getImageData(p.x, p.y, 1, 1);
+      const data = imageData.data;
+      const hex = rgbToHex(data[0], data[1], data[2]);
+      colorPicker.value = hex;
+      brushColor = hex;
     }
   });
 
   canvasEl.addEventListener('pointermove', (e) => {
-    if(!drawing) return;
+    if(!drawing && !shapeStart) return;
     e.preventDefault();
     const p = getCanvasPoint(e);
-    const last = currentStroke[currentStroke.length-1];
-    if(!last || last.x !== p.x || last.y !== p.y) {
-      currentStroke.push(p);
-      
-      if(currentTool === 'brush') {
-        ctx2.lineJoin = 'round';
-        ctx2.lineCap = 'round';
+    if(currentTool === 'brush' || currentTool === 'eraser') {
+      const last = currentStroke[currentStroke.length-1];
+      if(!last || last.x !== p.x || last.y !== p.y) {
+        currentStroke.push(p);
+
+        if(currentTool === 'brush') {
+          ctx2.globalAlpha = brushOpacity;
+          ctx2.lineJoin = 'round';
+          ctx2.lineCap = 'round';
+          ctx2.strokeStyle = brushColor;
+          ctx2.lineWidth = brushSize;
+          ctx2.beginPath();
+          ctx2.moveTo(last.x, last.y);
+          ctx2.lineTo(p.x, p.y);
+          ctx2.stroke();
+        } else if(currentTool === 'eraser') {
+          ctx2.save();
+          ctx2.globalCompositeOperation = 'destination-out';
+          ctx2.strokeStyle = 'rgba(0,0,0,1)';
+          ctx2.lineJoin = 'round';
+          ctx2.lineCap = 'round';
+          ctx2.lineWidth = brushSize;
+          ctx2.beginPath();
+          ctx2.moveTo(last.x, last.y);
+          ctx2.lineTo(p.x, p.y);
+          ctx2.stroke();
+          ctx2.restore();
+        }
+      }
+    }
+    // For shapes, preview
+    if(shapeStart && (currentTool === 'rectangle' || currentTool === 'circle' || currentTool === 'line')) {
+      redrawAllStrokes(); // clear and redraw all
+      // then draw preview
+      ctx2.globalAlpha = brushOpacity;
+      if(currentTool === 'rectangle') {
+        const x = Math.min(shapeStart.x, p.x);
+        const y = Math.min(shapeStart.y, p.y);
+        const width = Math.abs(p.x - shapeStart.x);
+        const height = Math.abs(p.y - shapeStart.y);
+        ctx2.strokeStyle = brushColor;
+        ctx2.lineWidth = 1;
+        if(fillShapes) {
+          ctx2.fillStyle = brushColor;
+          ctx2.fillRect(x, y, width, height);
+        } else {
+          ctx2.strokeRect(x, y, width, height);
+        }
+      } else if(currentTool === 'circle') {
+        const centerX = shapeStart.x;
+        const centerY = shapeStart.y;
+        const radius = Math.sqrt((p.x - centerX)**2 + (p.y - centerY)**2);
+        ctx2.strokeStyle = brushColor;
+        ctx2.lineWidth = 1;
+        ctx2.beginPath();
+        ctx2.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        if(fillShapes) {
+          ctx2.fillStyle = brushColor;
+          ctx2.fill();
+        } else {
+          ctx2.stroke();
+        }
+      } else if(currentTool === 'line') {
         ctx2.strokeStyle = brushColor;
         ctx2.lineWidth = brushSize;
         ctx2.beginPath();
-        ctx2.moveTo(last.x, last.y);
+        ctx2.moveTo(shapeStart.x, shapeStart.y);
         ctx2.lineTo(p.x, p.y);
         ctx2.stroke();
-      } else if(currentTool === 'eraser') {
-        ctx2.save();
-        ctx2.globalCompositeOperation = 'destination-out';
-        ctx2.strokeStyle = 'rgba(0,0,0,1)';
-        ctx2.lineJoin = 'round';
-        ctx2.lineCap = 'round';
-        ctx2.lineWidth = brushSize;
-        ctx2.beginPath();
-        ctx2.moveTo(last.x, last.y);
-        ctx2.lineTo(p.x, p.y);
-        ctx2.stroke();
-        ctx2.restore();
       }
     }
   });
 
   canvasEl.addEventListener('pointerup', async (e) => {
-    if(!drawing) return;
+    if(!drawing && !shapeStart) return;
     drawing = false;
-    if(currentStroke.length > 0) {
+    if(currentTool === 'brush' || currentTool === 'eraser') {
+      if(currentStroke.length > 0) {
+        const strokeObj = {
+          user: visitorId || ('anon_'+Date.now()),
+          size: brushSize,
+          points: currentStroke,
+          time: Date.now()
+        };
+
+        if(currentTool === 'brush') {
+          strokeObj.color = brushColor;
+          strokeObj.type = 'brush';
+          strokeObj.opacity = brushOpacity;
+        } else if(currentTool === 'eraser') {
+          strokeObj.type = 'erase';
+        }
+
+        try {
+          const pushRef = await strokesRef.push(strokeObj);
+          pushedStrokes.push(pushRef.key);
+        } catch (err) {
+          console.error('Failed to push stroke', err);
+        }
+      }
+    } else if(shapeStart) {
+      const p = getCanvasPoint(e);
       const strokeObj = {
         user: visitorId || ('anon_'+Date.now()),
         size: brushSize,
-        points: currentStroke,
+        points: [shapeStart, p],
+        color: brushColor,
+        opacity: brushOpacity,
+        fill: fillShapes,
         time: Date.now()
       };
-      
-      if(currentTool === 'brush') {
-        strokeObj.color = brushColor;
-        strokeObj.type = 'brush';
-      } else if(currentTool === 'eraser') {
-        strokeObj.type = 'erase';
+      if(currentTool === 'rectangle') {
+        strokeObj.type = 'rectangle';
+      } else if(currentTool === 'circle') {
+        strokeObj.type = 'circle';
+      } else if(currentTool === 'line') {
+        strokeObj.type = 'line';
       }
-      
       try {
         const pushRef = await strokesRef.push(strokeObj);
-        drawnIds.add(pushRef.key);
+        pushedStrokes.push(pushRef.key);
       } catch (err) {
-        console.error('Failed to push stroke', err);
+        console.error('Failed to push shape', err);
       }
+      shapeStart = null;
+      redrawAllStrokes(); // to remove preview
     }
     currentStroke = [];
   });
