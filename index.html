@@ -205,7 +205,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 </div>
 
 <div id="iframeContainer">
-    <iframe id="embeddedSite" src="https://blockifscared.neocities.org/activities/"></iframe>
+    <iframe id="embeddedSite" src="https://slopegame.online"></iframe>
 </div>
 
 <div id="tutorialOverlay">
@@ -347,7 +347,7 @@ document.getElementById('zoomOutBtn').addEventListener('click', ()=>{ zoomLevel 
 document.getElementById('hideIframeBtn').addEventListener('click', ()=>iframe.style.display='none');
 document.getElementById('showIframeBtn').addEventListener('click', ()=>iframe.style.display='block');
 
-extraBtn.addEventListener('click', ()=>{ if(!onExtra){ iframe.src='https://slopegame.online'; extraBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back'; onExtra=true; } else { iframe.src=originalSrc; extraBtn.innerHTML='<i class="fas fa-gamepad"></i> Extra Site'; onExtra=false; } });
+extraBtn.addEventListener('click', ()=>{ if(!onExtra){ iframe.src='https://funfrinew.neocities.org/'; extraBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back'; onExtra=true; } else { iframe.src=originalSrc; extraBtn.innerHTML='<i class="fas fa-gamepad"></i> Extra Site'; onExtra=false; } });
 privacyBtn.addEventListener('click', ()=>{ if(!onPrivacy){ iframe.src="https://webtoppings.bar/browse?url=https://wikipedia.org&region=us-west&mode=privacy"; privacyBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back'; onPrivacy=true; } else { iframe.src=originalSrc; privacyBtn.innerHTML='<i class="fas fa-shield-alt"></i> Browser'; onPrivacy=false; } });
 
 // ---------------- Tutorial ----------------
