@@ -227,7 +227,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
   <div class="introParticles"></div>
   <div class="introContent">
     <div class="logoBounce">
-      <img src="https://your-logo-url-here.png" alt="Logo" />
+      <img src="logoshs.png" alt="Logo" />
     </div>
     <div class="introText">Welcome to SHS Portal</div>
     <div class="typingDots"><span></span><span></span><span></span></div>
@@ -673,12 +673,7 @@ function animateSparkles(){
 }
 animateSparkles();
 
-// ---------------- On Load ----------------
-window.onload = ()=>{
-    if(!localStorage.getItem('tutorialShown')) startTutorial();
-    else showPopup();
-}
-
+// ---------------- Chat Toggle ----------------
 const chatContainer = document.getElementById('chatContainer');
 const toggleChatBtn = document.getElementById('toggleChatBtn');
 
@@ -690,7 +685,7 @@ toggleChatBtn.addEventListener('click', () => {
     }
 });
 
-// ================= new: drawing modal open/close handlers =================
+// ================= Drawing Modal =================
 const drawingModal = document.getElementById('drawingModal');
 const openDrawingBtn = document.getElementById('openDrawingBtn');
 const closeDrawingBtn = document.getElementById('closeDrawingBtn');
@@ -711,7 +706,6 @@ drawingModal.addEventListener('click', (e) => {
 });
 
 // ================= Shared Drawing Canvas Script =================
-// The following script uses your existing 'db' (firebase.database()) and 'visitorId'.
 (function(){
   const container = document.getElementById('sharedCanvasContainer');
   const toggleBtn = document.getElementById('toggleCanvasBtn');
@@ -735,20 +729,18 @@ drawingModal.addEventListener('click', (e) => {
   // Resize helper
   function resizeCanvasToDisplay() {
     const ratio = window.devicePixelRatio || 1;
-    // target width based on container
     const styleW = Math.min(window.innerWidth - 60, 1000);
     const styleH = Math.min(window.innerHeight * 0.7, 700);
     canvasEl.width = styleW * ratio;
     canvasEl.height = styleH * ratio;
     canvasEl.style.width = styleW + 'px';
     canvasEl.style.height = styleH + 'px';
-    // reset transform / scale for drawing context
     ctx2.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
   window.addEventListener('resize', resizeCanvasToDisplay);
   resizeCanvasToDisplay();
 
-  // Show/hide canvas area toggle (keeps layout compact inside modal)
+  // Show/hide canvas area toggle
   toggleBtn.addEventListener('click', () => {
     if (canvasWrapper.style.display === 'none' || canvasWrapper.style.display === '') {
       canvasWrapper.style.display = 'block';
@@ -764,7 +756,7 @@ drawingModal.addEventListener('click', (e) => {
   colorPicker.addEventListener('input', (e) => brushColor = e.target.value);
   sizeSlider.addEventListener('input', (e) => { brushSize = parseInt(e.target.value,10); sizeLabel.textContent = brushSize; });
 
-  // Convert screen coords to canvas coords (CSS pixels)
+  // Convert screen coords to canvas coords
   function getCanvasPoint(e) {
     const rect = canvasEl.getBoundingClientRect();
     const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0].clientX);
@@ -775,7 +767,6 @@ drawingModal.addEventListener('click', (e) => {
   }
 
   function drawStrokeLocally(stroke, opts={}) {
-    // stroke: {points: [{x,y},...], color, size}
     if(!stroke || !stroke.points || stroke.points.length===0) return;
     ctx2.lineJoin = 'round';
     ctx2.lineCap = 'round';
@@ -790,7 +781,7 @@ drawingModal.addEventListener('click', (e) => {
     ctx2.stroke();
   }
 
-  // Pointer events (works for mouse + touch)
+  // Pointer events
   canvasEl.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     canvasEl.setPointerCapture?.(e.pointerId);
@@ -798,7 +789,6 @@ drawingModal.addEventListener('click', (e) => {
     currentStroke = [];
     const p = getCanvasPoint(e);
     currentStroke.push(p);
-    // draw small dot to start
     ctx2.fillStyle = brushColor;
     ctx2.beginPath();
     ctx2.arc(p.x, p.y, Math.max(1, brushSize/2), 0, Math.PI*2);
@@ -810,10 +800,8 @@ drawingModal.addEventListener('click', (e) => {
     e.preventDefault();
     const p = getCanvasPoint(e);
     const last = currentStroke[currentStroke.length-1];
-    // Avoid pushing duplicate points
     if(!last || last.x !== p.x || last.y !== p.y) {
       currentStroke.push(p);
-      // draw incremental line
       ctx2.lineJoin = 'round';
       ctx2.lineCap = 'round';
       ctx2.strokeStyle = brushColor;
@@ -851,7 +839,7 @@ drawingModal.addEventListener('click', (e) => {
   // Listen for strokes added by anyone
   strokesRef.on('child_added', snapshot => {
     const strokeId = snapshot.key;
-    if(drawnIds.has(strokeId)) return; // already drawn locally during the push
+    if(drawnIds.has(strokeId)) return;
     const stroke = snapshot.val();
     if(!stroke) return;
     drawStrokeLocally(stroke);
@@ -862,24 +850,22 @@ drawingModal.addEventListener('click', (e) => {
   metaRef.child('clear').on('value', snap => {
     const v = snap.val();
     if(v) {
-      // clear canvas visually
       ctx2.clearRect(0,0,canvasEl.width,canvasEl.height);
       drawnIds.clear();
     }
   });
 
-  // Clear button - broadcast clear
+  // Clear button
   clearBtn.addEventListener('click', () => {
     metaRef.child('clear').set({ by: visitorId || 'anon', time: Date.now() });
-    // Optionally delete strokes: strokesRef.remove() <-- careful, shared DB operation
   });
 
-  // Presence: mark this user as online in canvas users list
+  // Presence
   const presenceRef = db.ref('canvas/presence/' + (visitorId || ('anon_'+Date.now())));
   presenceRef.set({online:true, color: colorPicker.value, lastSeen: Date.now()});
   presenceRef.onDisconnect().remove();
 
-  // Initial load of existing strokes (limit to avoid huge loads)
+  // Initial load of existing strokes
   strokesRef.limitToFirst(5000).once('value').then(snap => {
     const data = snap.val();
     if(!data) return;
@@ -890,16 +876,57 @@ drawingModal.addEventListener('click', (e) => {
       }
     });
   }).catch(err => console.warn('initial strokes load failed', err));
-
 })();
-</script>
-<script>
-// Particle effect
+
+// ================= Loading Screen Removal =================
+// Remove loading screen after 3 seconds (don't wait for window load)
+setTimeout(function() {
+    const introScreen = document.getElementById('introScreen');
+    if (introScreen) {
+        console.log('Removing loading screen...');
+        introScreen.style.transition = 'opacity 1s ease';
+        introScreen.style.opacity = '0';
+        setTimeout(function() {
+            if (introScreen && introScreen.parentNode) {
+                introScreen.remove();
+                console.log('Loading screen removed');
+            }
+        }, 1000);
+    }
+}, 3000);
+
+// Safety fallback - remove loading screen after max 5 seconds
+setTimeout(function() {
+    const introScreen = document.getElementById('introScreen');
+    if (introScreen && introScreen.parentNode) {
+        console.log('Safety fallback: Removing loading screen');
+        introScreen.style.transition = 'opacity 0.5s ease';
+        introScreen.style.opacity = '0';
+        setTimeout(function() {
+            if (introScreen && introScreen.parentNode) {
+                introScreen.remove();
+            }
+        }, 500);
+    }
+}, 5000);
+
+// ================= Page Initialization =================
+// Initialize tutorial/popup when page loads
+window.addEventListener('load', function() {
+    console.log('Page fully loaded');
+    if(!localStorage.getItem('tutorialShown')) {
+        startTutorial();
+    } else {
+        showPopup();
+    }
+});
+
+// ================= Intro Screen Particles =================
 const particleCanvas = document.createElement('canvas');
 particleCanvas.width = window.innerWidth;
 particleCanvas.height = window.innerHeight;
 document.querySelector('.introParticles').appendChild(particleCanvas);
-const ctx = particleCanvas.getContext('2d');
+const particleCtx = particleCanvas.getContext('2d');
 
 let particles = [];
 for(let i=0;i<100;i++){
@@ -914,12 +941,12 @@ for(let i=0;i<100;i++){
 }
 
 function animateParticles(){
-    ctx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
+    particleCtx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
     for(let p of particles){
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-        ctx.fillStyle=p.color;
-        ctx.fill();
+        particleCtx.beginPath();
+        particleCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        particleCtx.fillStyle=p.color;
+        particleCtx.fill();
         p.x += p.vx; p.y += p.vy;
         if(p.x<0||p.x>particleCanvas.width)p.vx*=-1;
         if(p.y<0||p.y>particleCanvas.height)p.vy*=-1;
@@ -928,21 +955,11 @@ function animateParticles(){
 }
 animateParticles();
 
-// Hide intro after page loads
-window.addEventListener('load', ()=>{
-    setTimeout(()=>{
-        document.getElementById('introScreen').style.transition='opacity 1s';
-        document.getElementById('introScreen').style.opacity='0';
-        setTimeout(()=>document.getElementById('introScreen').remove(),1000);
-    },3000); // 3 seconds minimum
-});
-
 window.addEventListener('resize', ()=>{
     particleCanvas.width = window.innerWidth;
     particleCanvas.height = window.innerHeight;
 });
 </script>
-
 
 </body>
 </html>
