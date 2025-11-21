@@ -278,21 +278,16 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 
 
 
-<div id="nameColorPopup" style="display:none; position:fixed; bottom:80px; right:10px; width:280px; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:10000;">
+<div id="chatNameColorPopup" style="display:none; position:fixed; bottom:80px; right:10px; width:280px; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:10000;">
     <label style="font-weight:bold;">Name:</label>
-    <input type="text" id="popupUsername" style="width:100%; padding:5px; margin-bottom:10px; border-radius:6px; border:1px solid #ccc;" placeholder="Enter name">
+    <input type="text" id="chatPopupUsername" style="width:100%; padding:5px; margin-bottom:10px; border-radius:6px; border:1px solid #ccc;" placeholder="Enter name">
 
     <label style="font-weight:bold;">Color:</label>
-    <select id="popupColor" style="width:100%; padding:5px; border-radius:6px; border:1px solid #ccc;">
-        <option value="#007bff" style="color:#007bff;">Blue</option>
-        <option value="#ff0000" style="color:#ff0000;">Red</option>
-        <option value="#32cd32" style="color:#32cd32;">Green</option>
-        <option value="#ffa500" style="color:#ffa500;">Orange</option>
-        <option value="#9932cc" style="color:#9932cc;">Purple</option>
-    </select>
+    <input type="color" id="chatPopupColor" value="#007bff" style="width:100%; padding:5px; border-radius:6px; border:1px solid #ccc;">
 
-    <button id="saveNameColor" style="margin-top:10px; width:100%; padding:8px; background:#1e90ff; color:white; border:none; border-radius:8px; cursor:pointer;">Save</button>
+    <button id="chatSaveNameColor" style="margin-top:10px; width:100%; padding:8px; background:#1e90ff; color:white; border:none; border-radius:8px; cursor:pointer;">Save</button>
 </div>
+
 
 <!-- ================ NEW: drawing modal (hidden by default) ================ -->
 <div id="drawingModal" aria-hidden="true">
@@ -462,13 +457,24 @@ db.ref('chatTyping').on('value', snap => {
 
 // Change Name/Color popup
 const changeNameBtn = document.getElementById('changeNameBtn');
+const chatNameColorPopup = document.getElementById('chatNameColorPopup');
+const chatPopupUsername = document.getElementById('chatPopupUsername');
+const chatPopupColor = document.getElementById('chatPopupColor');
+const chatSaveNameColor = document.getElementById('chatSaveNameColor');
+
+// Open popup
 changeNameBtn.addEventListener('click', () => {
-    const newName = prompt("Enter your name:", username);
-    if(newName) username = newName;
-    const newColor = prompt("Enter color hex code (e.g., #ff0000):", userColor);
-    if(newColor) userColor = newColor;
+    chatPopupUsername.value = username;
+    chatPopupColor.value = userColor;
+    chatNameColorPopup.style.display = 'block';
 });
 
+// Save changes
+chatSaveNameColor.addEventListener('click', () => {
+    if(chatPopupUsername.value.trim() !== '') username = chatPopupUsername.value.trim();
+    userColor = chatPopupColor.value;
+    chatNameColorPopup.style.display = 'none';
+});
 
 // ---------------- Buttons ----------------
 const iframe = document.getElementById('embeddedSite');
