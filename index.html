@@ -459,9 +459,10 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
         <div style="margin-left:auto; font-size:12px; color:#555;">Shared canvas (Realtime)</div>
       </div>
 
-      <div id="canvasArea">
+      <div id="canvasArea" style="position:relative;">
         <canvas id="sharedCanvas" width="800" height="500" style="display:block; touch-action:none;"></canvas>
-        <div style="padding:8px; font-size:12px; color:#555;">Draw and everyone currently connected will see it.</div>
+        <canvas id="cursorOverlay" width="800" height="500" style="position:absolute; top:0; left:0; cursor:crosshair; background:transparent;"></canvas>
+        <div style="padding:8px; font-size:12px; color:#777;">Draw and everyone currently connected will see it. Cursors show where others are drawing.</div>
       </div>
     </div>
     <!-- end shared UI -->
@@ -934,9 +935,130 @@ drawingModal.addEventListener('click', (e) => {
   });
 
   // Presence
-  const presenceRef = db.ref('canvas/presence/' + (visitorId || ('anon_'+Date.now())));
+  const userId = visitorId || ('anon_'+Date.now());
+  const presenceRef = db.ref('canvas/presence/' + userId);
   presenceRef.set({online:true, color: colorPicker.value, lastSeen: Date.now()});
   presenceRef.onDisconnect().remove();
+
+  // ================= Cursor Tracking =================
+  const cursorOverlay = document.getElementById('cursorOverlay');
+  const ctxCursor = cursorOverlay.getContext('2d');
+  const cursorsRef = db.ref('canvas/cursors');
+  let activeCursors = {}; // { userId: { x, y, color, username, timestamp } }
+  
+  // Sync cursor overlay to main canvas size
+  function syncCursorOverlay() {
+    // Match the overlay to the main canvas device pixel dimensions
+    // canvasEl.width/height are in device pixels (after resize helper sets them)
+    const ratio = window.devicePixelRatio || 1;
+    cursorOverlay.width = canvasEl.width;    // device pixels
+    cursorOverlay.height = canvasEl.height;  // device pixels
+    // Keep CSS size the same as the visible canvas so boundingClientRect coords match
+    cursorOverlay.style.width = canvasEl.style.width;
+    cursorOverlay.style.height = canvasEl.style.height;
+    // Reset transform and scale so we can draw using CSS pixel coordinates (same units as getCanvasPoint)
+    ctxCursor.setTransform(1, 0, 0, 1, 0, 0);
+    ctxCursor.scale(ratio, ratio);
+    // Ensure overlay doesn't block pointer events on the main canvas
+    cursorOverlay.style.pointerEvents = 'none';
+  }
+  window.addEventListener('resize', syncCursorOverlay);
+  syncCursorOverlay();
+
+  // Track mouse movement and broadcast cursor
+  let lastCursorUpdate = 0;
+  canvasEl.addEventListener('pointermove', (e) => {
+    const now = Date.now();
+    if(now - lastCursorUpdate > 100) { // Throttle to 100ms
+      const p = getCanvasPoint(e);
+      cursorsRef.child(userId).set({
+        x: p.x,
+        y: p.y,
+        color: brushColor,
+        username: username,
+        timestamp: Date.now()
+      }).catch(err => console.warn('Cursor update failed', err));
+      lastCursorUpdate = now;
+    }
+  });
+
+  // Listen for other users' cursors
+  cursorsRef.on('value', snap => {
+    const data = snap.val() || {};
+    activeCursors = data;
+  });
+
+  // Draw cursors on overlay
+  function drawCursorsFrame() {
+    // Clear using device pixel dimensions — ctx transform is already scaled to device pixels
+    ctxCursor.clearRect(0, 0, cursorOverlay.width, cursorOverlay.height);
+
+    for(const uid in activeCursors) {
+      if(uid === userId) continue; // Don't draw own cursor
+      const cursor = activeCursors[uid];
+      if(!cursor || (typeof cursor.x !== 'number') || (typeof cursor.y !== 'number')) continue;
+
+      // Don't show stale cursors (older than 2 seconds)
+      if(Date.now() - cursor.timestamp > 2000) continue;
+
+      // cursor.x/y are stored in CSS pixels (getCanvasPoint uses boundingClientRect)
+      // ctxCursor is scaled so drawing with CSS coordinates works correctly
+      const x = cursor.x;
+      const y = cursor.y;
+      const color = cursor.color || '#00ffff';
+
+      // Draw cursor dot
+      ctxCursor.save();
+      ctxCursor.fillStyle = color;
+      ctxCursor.beginPath();
+      ctxCursor.arc(x, y, 5, 0, Math.PI * 2);
+      ctxCursor.fill();
+
+      // Draw cursor glow
+      ctxCursor.strokeStyle = color;
+      ctxCursor.lineWidth = 2;
+      ctxCursor.globalAlpha = 0.5;
+      ctxCursor.beginPath();
+      ctxCursor.arc(x, y, 8, 0, Math.PI * 2);
+      ctxCursor.stroke();
+      ctxCursor.globalAlpha = 1;
+
+      // Draw username label
+      ctxCursor.fillStyle = color;
+      ctxCursor.font = 'bold 11px Arial';
+      ctxCursor.textBaseline = 'top';
+      ctxCursor.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctxCursor.shadowBlur = 3;
+      ctxCursor.fillText(cursor.username, x + 12, y + 2);
+      ctxCursor.restore();
+    }
+
+    requestAnimationFrame(drawCursorsFrame);
+  }
+  drawCursorsFrame();
+
+  // Clean up own cursor on canvas exit
+  canvasEl.addEventListener('pointerleave', () => {
+    cursorsRef.child(userId).remove().catch(err => console.warn('Cursor cleanup failed', err));
+  });
+
+  canvasEl.addEventListener('pointerenter', () => {
+    presenceRef.update({lastSeen: Date.now()});
+  });
+
+  // Ensure presence and cursor entries are removed when the connection disconnects
+  try {
+    presenceRef.onDisconnect().remove();
+    cursorsRef.child(userId).onDisconnect().remove();
+  } catch (err) {
+    console.warn('onDisconnect setup failed', err);
+  }
+
+  // Update presence color when user changes brush color
+  colorPicker.addEventListener('input', (e) => {
+    brushColor = e.target.value;
+    try { presenceRef.update({ color: brushColor }); } catch (err) { /* ignore */ }
+  });
 
   // Initial load of existing strokes
   strokesRef.limitToFirst(5000).once('value').then(snap => {
