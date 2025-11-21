@@ -338,21 +338,40 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Online & Total Visitors
+// Generate a unique visitor ID (per session)
 const visitorId = 'visitor_' + Date.now();
+
+// Online presence
 const onlineRef = db.ref('online/' + visitorId);
-onlineRef.set({online: true});
+onlineRef.set({online:true});
 onlineRef.onDisconnect().remove();
 
+// UI element
 const visitorCounter = document.getElementById('visitorCounter');
-db.ref('online').on('value', snapshot => {
-    const online = snapshot.numChildren();
-    db.ref('totalVisitors').once('value').then(snap => {
-        let total = snap.val() || 0;
-        visitorCounter.innerText = `Visitors Online: ${online} | Total Visitors: ${total}`;
+
+// Increment total visitors only once per user (use localStorage to avoid duplicates)
+if (!localStorage.getItem('visitorCounted')) {
+    db.ref('totalVisitors').transaction(val => (val || 0) + 1);
+    localStorage.setItem('visitorCounted', 'yes');
+}
+
+// Listen for online users and total visitors
+const totalRef = db.ref('totalVisitors');
+const onlineDbRef = db.ref('online');
+
+function updateCounter() {
+    onlineDbRef.once('value').then(snap => {
+        const online = snap.numChildren();
+        totalRef.once('value').then(snap2 => {
+            const total = snap2.val() || 0;
+            visitorCounter.innerText = `Visitors Online: ${online} | Total Visitors: ${total}`;
+        });
     });
-});
-db.ref('totalVisitors').transaction(val => (val||0)+1);
+}
+
+// Update counter live when online users change
+onlineDbRef.on('value', updateCounter);
+totalRef.on('value', updateCounter);
 
 // ---------------- Chat ----------------
 let username = 'Guest';
