@@ -10,8 +10,8 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f5f7fa;
-    color: #333;
+    background: #0a0e27;
+    color: #e0e0e0;
     position: relative;
     overflow-x: hidden;
 }
@@ -20,96 +20,157 @@ body {
 #visitorCounter {
     width: 100%; 
     text-align: center; 
-    background: linear-gradient(135deg, #1e90ff, #00bfff, #4682b4, #5f9ea0); 
-    padding: 5px 0; 
-    font-size: 14px; 
-    color: #fff; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: #050812;
+    padding: 6px 0; 
+    font-size: 13px; 
+    color: #00ff88; 
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
     position: relative;
     z-index: 1000;
-    font-weight:bold;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(0, 255, 136, 0.2);
 }
 
 /* Header */
 header {
-    background: linear-gradient(90deg, #1e90ff, #00bfff);
-    color: white;
-    padding: 20px;
+    background: linear-gradient(90deg, #0f0f1e, #1a1a2e);
+    color: #00ffff;
+    padding: 24px 20px;
     text-align: center;
     font-size: 28px;
-    font-weight: bold;
-    border-bottom: 3px solid #005f99;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    border-radius: 0 0 20px 20px;
+    font-weight: 700;
+    border-bottom: 2px solid #00ffff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), inset 0 0 20px rgba(0, 255, 255, 0.05);
+    border-radius: 0;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 }
 
 header .headerText { line-height: 1.4; text-align: center; }
-header small { font-size:16px; font-weight:normal; display:block; margin-top:4px; color:#e0f0ff; }
+header small { font-size:16px; font-weight:normal; display:block; margin-top:4px; color:#00ff88; text-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
 
 #replayTutorialBtn {
     position:absolute; top:15px; right:15px; width:35px; height:35px;
-    font-weight:bold; font-size:16px; border-radius:50%; border:none;
-    background:rgba(255,255,255,0.85); cursor:pointer;
-    box-shadow:0 2px 6px rgba(0,0,0,0.3); transition: all 0.3s ease;
+    font-weight:bold; font-size:16px; border-radius: 2px; border: 2px solid #00ffff;
+    background: rgba(0, 255, 255, 0.1); cursor:pointer;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4); transition: all 0.3s ease;
+    color: #00ffff;
 }
-#replayTutorialBtn:hover { background: rgba(255,255,255,1); }
+#replayTutorialBtn:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
 
 /* Controls */
 .controls {
-    background:#fff; padding:15px; display:flex; flex-wrap:wrap;
-    justify-content:center; gap:12px; border-bottom:2px solid #ddd;
-    box-shadow:0 2px 6px rgba(0,0,0,0.05);
+    background: #0f0f1e; padding: 16px; display:flex; flex-wrap:wrap;
+    justify-content:center; gap:10px; border-bottom: 1px solid #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
 }
 .controls button {
-    padding:10px 20px; border:none; color:white; cursor:pointer;
-    border-radius:12px; font-size:14px; display:flex; align-items:center; gap:8px;
-    transition: all 0.3s ease;
+    padding: 10px 18px; border: 2px solid; color:white; cursor:pointer;
+    border-radius: 2px; font-size: 13px; display:flex; align-items:center; gap:8px;
+    transition: all 0.15s ease;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
 }
-#reloadBtn { background: #1e90ff; }
-#fullscreenBtn { background: #ff6347; }
-#zoomInBtn, #zoomOutBtn { background: #32cd32; }
-#hideIframeBtn, #showIframeBtn { background: #ffa500; }
-#extraSiteBtn, #backBtn { background: #9932cc; }
-#privacyBtn { background: #007bff; font-weight:bold; font-size:16px; }
-#toggleChatBtn { background: rgba(12, 10, 10, 0.85); color:#f00000; }
-#toggleChatBtn:hover { background: rgba(255,255,255,1);}
-.controls button:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.2); color: #f70000; }
+.controls button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    transition: left 0.15s ease;
+    z-index: -1;
+}
+.controls button:hover::before { left: 0; }
+.controls button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px currentColor;
+}
+#reloadBtn { border-color: #00ccff; color: #00ccff; background: rgba(0, 204, 255, 0.1); }
+#reloadBtn::before { background: rgba(0, 204, 255, 0.2); }
+#reloadBtn:hover { background: rgba(0, 204, 255, 0.3); box-shadow: 0 0 20px rgba(0, 204, 255, 0.6); }
+
+#fullscreenBtn { border-color: #ff00ff; color: #ff00ff; background: rgba(255, 0, 255, 0.1); }
+#fullscreenBtn::before { background: rgba(255, 0, 255, 0.2); }
+#fullscreenBtn:hover { background: rgba(255, 0, 255, 0.3); box-shadow: 0 0 20px rgba(255, 0, 255, 0.6); }
+
+#zoomInBtn { border-color: #00ff88; color: #00ff88; background: rgba(0, 255, 136, 0.1); }
+#zoomInBtn::before { background: rgba(0, 255, 136, 0.2); }
+#zoomInBtn:hover { background: rgba(0, 255, 136, 0.3); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+
+#zoomOutBtn { border-color: #00ff88; color: #00ff88; background: rgba(0, 255, 136, 0.1); }
+#zoomOutBtn::before { background: rgba(0, 255, 136, 0.2); }
+#zoomOutBtn:hover { background: rgba(0, 255, 136, 0.3); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+
+#hideIframeBtn { border-color: #ffaa00; color: #ffaa00; background: rgba(255, 170, 0, 0.1); }
+#hideIframeBtn::before { background: rgba(255, 170, 0, 0.2); }
+#hideIframeBtn:hover { background: rgba(255, 170, 0, 0.3); box-shadow: 0 0 20px rgba(255, 170, 0, 0.6); }
+
+#showIframeBtn { border-color: #ffaa00; color: #ffaa00; background: rgba(255, 170, 0, 0.1); }
+#showIframeBtn::before { background: rgba(255, 170, 0, 0.2); }
+#showIframeBtn:hover { background: rgba(255, 170, 0, 0.3); box-shadow: 0 0 20px rgba(255, 170, 0, 0.6); }
+
+#extraSiteBtn { border-color: #ff1493; color: #ff1493; background: rgba(255, 20, 147, 0.1); }
+#extraSiteBtn::before { background: rgba(255, 20, 147, 0.2); }
+#extraSiteBtn:hover { background: rgba(255, 20, 147, 0.3); box-shadow: 0 0 20px rgba(255, 20, 147, 0.6); }
+
+#backBtn { border-color: #ff1493; color: #ff1493; background: rgba(255, 20, 147, 0.1); }
+#backBtn::before { background: rgba(255, 20, 147, 0.2); }
+#backBtn:hover { background: rgba(255, 20, 147, 0.3); box-shadow: 0 0 20px rgba(255, 20, 147, 0.6); }
+
+#privacyBtn { border-color: #00ffaa; color: #00ffaa; background: rgba(0, 255, 170, 0.1); font-weight: 600; }
+#privacyBtn::before { background: rgba(0, 255, 170, 0.2); }
+#privacyBtn:hover { background: rgba(0, 255, 170, 0.3); box-shadow: 0 0 20px rgba(0, 255, 170, 0.6); }
+
+#toggleChatBtn { border-color: #00ffff; color: #00ffff; background: rgba(0, 255, 255, 0.1); }
+#toggleChatBtn::before { background: rgba(0, 255, 255, 0.2); }
+#toggleChatBtn:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
+
+#openDrawingBtn { border-color: #ff00ff !important; color: #ff00ff !important; background: rgba(255, 0, 255, 0.1) !important; }
+#openDrawingBtn::before { background: rgba(255, 0, 255, 0.2) !important; }
+#openDrawingBtn:hover { background: rgba(255, 0, 255, 0.3) !important; box-shadow: 0 0 20px rgba(255, 0, 255, 0.6) !important; }
+
+#clearCanvasBtn { border-color: #ff0000 !important; color: #ff0000 !important; background: rgba(255, 0, 0, 0.1) !important; }
+#clearCanvasBtn:hover { background: rgba(255, 0, 0, 0.3) !important; box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important; }
 
 /* Iframe */
 #iframeContainer { position: relative; }
 #embeddedSite {
-    width: 100%; height: calc(100vh - 140px); border:5px solid #1e90ff;
-    border-radius:12px; box-sizing:border-box; transition: all 0.3s ease;
+    width: 100%; height: calc(100vh - 140px); border: 2px solid #00ffff;
+    border-radius: 0; box-sizing:border-box; transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.05);
 }
 
 /* Tutorial Bubble */
-#tutorialOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index:9999; display:none; }
+#tutorialOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); z-index:9999; display:none; }
 .tutorialBubble {
-    position: absolute; max-width:280px; background: rgba(255,255,255,0.95); color:#333;
-    padding:18px 20px; border-radius:20px; box-shadow:0 8px 20px rgba(0,0,0,0.25);
+    position: absolute; max-width:280px; background: rgba(15, 15, 30, 0.98); color:#00ffff;
+    padding:18px 20px; border-radius: 2px; border: 1px solid #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
     text-align:center; font-size:15px; opacity:0;
     transform: translate(-50%, -20px); transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 .tutorialBubble.show { opacity:1; transform: translate(-50%,0); }
-.tutorialBubble button { margin-top:12px; padding:7px 14px; border:none; background:#1e90ff; color:white; border-radius:12px; cursor:pointer; }
-.tutorialBubble button:hover { background:#006bb3; transform:translateY(-2px); }
+.tutorialBubble button { margin-top:12px; padding:8px 14px; border: 1px solid #00ffff; background: rgba(0, 255, 255, 0.1); color:#00ffff; border-radius: 2px; cursor:pointer; font-weight: 600; }
+.tutorialBubble button:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); transform:translateY(-2px); }
 
 #tutorialArrow {
     position:absolute; width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent;
-    border-bottom:18px solid rgba(255,255,255,0.95); z-index:10000; transition: all 0.4s ease;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+    border-bottom:18px solid rgba(15, 15, 30, 0.98); z-index:10000; transition: all 0.4s ease;
+    filter: drop-shadow(0 4px 8px rgba(0, 255, 255, 0.3));
 }
 
 /* Cinematic Fullscreen Popup */
 #fullscreenPopup {
     position: fixed; top:0; left:0; width:100%; height:100%; display:flex;
     justify-content:center; align-items:center; z-index:10001; opacity:0; pointer-events:none;
-    background: linear-gradient(135deg, #007bff, #00bfff, #4682b4, #5f9ea0);
-    flex-direction: column; color:#fff; text-align:center; overflow:hidden;
+    background: linear-gradient(135deg, #0a0e27, #1a1a3e);
+    flex-direction: column; color:#00ffff; text-align:center; overflow:hidden;
 }
 #fullscreenPopup.show { opacity:1; pointer-events:auto; animation: cinematicFade 1.5s ease forwards; }
 #fullscreenPopup.show .popupContent {
@@ -117,17 +178,18 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 }
 #fullscreenPopup .popupContent {
     width: 100%; height: 100%; display:flex; justify-content:center; align-items:center; flex-direction:column;
-    background: rgba(0,0,0,0.85); box-shadow:0 10px 50px rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.9); box-shadow: 0 0 50px rgba(0, 255, 255, 0.2);
     transform: scale(0.6); opacity:0;
 }
-#fullscreenPopup h1 { font-size:4vw; margin:0; }
+#fullscreenPopup h1 { font-size:4vw; margin:0; text-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
 #fullscreenPopup p { font-size:1.5vw; margin-top:20px; }
-#fullscreenPopup .extraSiteHighlight { font-weight:bold; color:#ff4b4b; }
+#fullscreenPopup .extraSiteHighlight { font-weight:bold; color: #ff00ff; text-shadow: 0 0 10px rgba(255, 0, 255, 0.6); }
 #fullscreenPopup .closeBtn {
-    position:absolute; top:15px; right:15px; border:none; background:transparent;
-    font-size:28px; cursor:pointer; color:#fff; transition: all 0.3s ease;
+    position:absolute; top:15px; right:15px; border: 2px solid #00ffff; background: rgba(0, 255, 255, 0.1);
+    font-size:28px; cursor:pointer; color:#00ffff; transition: all 0.3s ease;
+    width: 40px; height: 40px; border-radius: 2px;
 }
-#fullscreenPopup .closeBtn:hover { color:#ff4b4b; }
+#fullscreenPopup .closeBtn:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
 
 /* Cinematic Animations */
 @keyframes cinematicFade { 0% { opacity:0; } 100% { opacity:1; } }
@@ -151,18 +213,22 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     width: 300px;
     max-height: 400px;
     overflow-y: auto;
-    background: rgba(255,255,255,0.95);
+    background: rgba(15, 15, 30, 0.95);
     padding: 10px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border-radius: 2px;
+    border: 1px solid #00ffff;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
     font-size: 14px;
+    color: #e0e0e0;
 }
 #chatContainer input {
     width: calc(100% - 20px);
     margin-top: 10px;
     padding: 5px 8px;
-    border-radius: 8px;
-    border:1px solid #ccc;
+    border-radius: 2px;
+    border: 1px solid #00ffff;
+    background: rgba(0, 255, 255, 0.05);
+    color: #00ffff;
 }
 #chatContainer header {
     font-weight: bold;
@@ -170,18 +236,19 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     font-size: 14px;
     display: flex;
     justify-content: space-between;
+    color: #00ffff;
 }
 #changeNameBtn {
     font-size: 12px;
     cursor: pointer;
-    color: #007bff;
+    color: #00ff88;
 }
 
 /* ================= new drawing modal styles ================= */
 #drawingModal {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgba(0,0,0,0.85);
   z-index: 20000;
   display: none;
   align-items: center;
@@ -192,27 +259,31 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
   width: min(1100px, 96%);
   max-height: 92%;
   overflow: auto;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  border-radius: 2px;
+  background: #0f0f1e;
+  border: 1px solid #00ffff;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
   padding: 12px;
   position: relative;
+  color: #e0e0e0;
 }
 #drawingModal .closeDrawing {
   position: absolute;
   top: 10px; right: 10px;
   border: none; background: transparent; font-size: 20px; cursor: pointer;
+  color: #00ffff;
 }
 #sharedCanvasContainer {
   width: 100%;
-  background: rgba(255,255,255,0.98);
-  border-radius:8px;
+  background: rgba(20, 20, 40, 0.95);
+  border-radius: 2px;
   padding:10px;
   box-sizing:border-box;
 }
-#canvasArea { border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#fafafa; display:block; }
-#sharedCanvas { width:100%; height:500px; display:block; background:#ffffff; touch-action:none; }
-#toggleCanvasBtn { padding:6px 8px; border-radius:8px; cursor:pointer; }
+#canvasArea { border: 1px solid #00ffff; border-radius: 2px; overflow:hidden; background: #0a0a15; display:block; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); }
+#sharedCanvas { width:100%; height:500px; display:block; background: #0a0a15; touch-action:none; }
+#toggleCanvasBtn { padding: 8px 14px; border-radius: 2px; cursor:pointer; border: 1px solid #00ffff; background: rgba(0, 255, 255, 0.1); color: #00ffff; font-weight: 600; transition: all 0.15s ease; }
+#toggleCanvasBtn:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); }
 
 /* small responsive tweaks */
 @media (max-width:700px) {
@@ -240,7 +311,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     position: fixed;
     top:0; left:0;
     width:100%; height:100%;
-    background: linear-gradient(135deg, #1e90ff, #00bfff, #4682b4, #5f9ea0);
+    background: linear-gradient(135deg, #0a0e27, #1a1a3e, #0f0f1e);
     display:flex; justify-content:center; align-items:center;
     z-index:99999; overflow:hidden;
     flex-direction: column;
@@ -268,7 +339,8 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     margin-top:15px;
     animation: fadeIn 2s ease-in-out forwards;
     opacity:0;
-    text-shadow: 0 0 8px #fff, 0 0 16px #00f;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ff88;
+    color: #00ffff;
 }
 
 .typingDots {
@@ -277,9 +349,10 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 }
 
 .typingDots span {
-    width:10px; height:10px; border-radius:50%;
-    background:white; opacity:0.3;
+    width:10px; height:10px; border-radius: 2px;
+    background: #00ffff; opacity:0.3;
     animation: blink 1.5s infinite;
+    box-shadow: 0 0 5px #00ffff;
 }
 
 .typingDots span:nth-child(1){ animation-delay:0s; }
@@ -355,14 +428,14 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 
 
 
-<div id="chatNameColorPopup" style="display:none; position:fixed; bottom:80px; right:10px; width:280px; background:#fff; padding:15px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:10000;">
-    <label style="font-weight:bold;">Name:</label>
-    <input type="text" id="chatPopupUsername" style="width:100%; padding:5px; margin-bottom:10px; border-radius:6px; border:1px solid #ccc;" placeholder="Enter name">
+<div id="chatNameColorPopup" style="display:none; position:fixed; bottom:80px; right:10px; width:280px; background:#0f0f1e; padding:15px; border-radius: 2px; border: 1px solid #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); z-index:10000; color: #e0e0e0;">
+    <label style="font-weight:bold; color: #00ffff;">Name:</label>
+    <input type="text" id="chatPopupUsername" style="width:100%; padding:5px; margin-bottom:10px; border-radius: 2px; border: 1px solid #00ffff; background: rgba(0, 255, 255, 0.05); color: #00ffff;" placeholder="Enter name">
 
-    <label style="font-weight:bold;">Color:</label>
-    <input type="color" id="chatPopupColor" value="#007bff" style="width:100%; padding:5px; border-radius:6px; border:1px solid #ccc;">
+    <label style="font-weight:bold; color: #00ffff;">Color:</label>
+    <input type="color" id="chatPopupColor" value="#007bff" style="width:100%; padding:5px; border-radius: 2px; border: 1px solid #00ffff;">
 
-    <button id="chatSaveNameColor" style="margin-top:10px; width:100%; padding:8px; background:#1e90ff; color:white; border:none; border-radius:8px; cursor:pointer;">Save</button>
+    <button id="chatSaveNameColor" style="margin-top:10px; width:100%; padding:8px; background: rgba(0, 255, 255, 0.1); color:#00ffff; border: 1px solid #00ffff; border-radius: 2px; cursor:pointer; font-weight: 600; transition: all 0.15s ease;">Save</button>
 </div>
 
 
