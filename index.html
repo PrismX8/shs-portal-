@@ -930,8 +930,17 @@ drawingModal.addEventListener('click', (e) => {
   });
 
   // Clear button
-  clearBtn.addEventListener('click', () => {
-    metaRef.child('clear').set({ by: visitorId || 'anon', time: Date.now() });
+  clearBtn.addEventListener('click', async () => {
+    try {
+      // Remove all strokes from DB so the clear persists across reloads
+      await strokesRef.remove();
+      // Notify other clients with a transient clear flag
+      await metaRef.child('clear').set({ by: visitorId || 'anon', time: Date.now() });
+      // Remove transient clear flag shortly after so new clients don't auto-clear forever
+      setTimeout(() => { metaRef.child('clear').remove().catch(()=>{}); }, 1500);
+    } catch (err) {
+      console.warn('Failed to clear strokes', err);
+    }
   });
 
   // Presence
@@ -1088,7 +1097,7 @@ setTimeout(function() {
             }
         }, 1000);
     }
-}, 3000);
+}, 2000);
 
 // Safety fallback - remove loading screen after max 5 seconds
 setTimeout(function() {
