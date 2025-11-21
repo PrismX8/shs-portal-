@@ -1103,15 +1103,19 @@ drawingModal.addEventListener('click', (e) => {
   });
 
   // Initial load of existing strokes
+  // Initial load of existing strokes: populate local cache then redraw
   strokesRef.limitToFirst(5000).once('value').then(snap => {
     const data = snap.val();
     if(!data) return;
-    Object.keys(data).forEach(k => {
-      if(!drawnIds.has(k)) {
-        drawStrokeLocally(data[k]);
-        drawnIds.add(k);
-      }
-    });
+    try {
+      Object.keys(data).forEach(k => {
+        strokesCache[k] = data[k];
+      });
+      // Draw cached strokes once (preserves order)
+      redrawAllStrokes();
+    } catch (err) {
+      console.warn('initial strokes processing failed', err);
+    }
   }).catch(err => console.warn('initial strokes load failed', err));
 })();
 
