@@ -376,6 +376,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 <div id="visitorCounter">Visitors Online: 0 | Total Visitors: 0</div>
 
 <header>
+    <button id="adminBtn" title="Admin Panel" style="position:absolute; top:15px; left:15px; width:35px; height:35px; font-weight:bold; font-size:16px; border-radius: 2px; border: 2px solid #ff00ff; background: rgba(255, 0, 255, 0.1); cursor:pointer; box-shadow: 0 0 10px rgba(255, 0, 255, 0.4); transition: all 0.3s ease; color: #ff00ff;">⚙</button>
     <div class="headerText">
         SHS - Gooner Gamesite <br>
         <small>SPS-devices Wi-Fi Password: 7&UI0)jk</small>
@@ -439,6 +440,29 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 </div>
 
 
+<!-- ================ ADMIN PANEL ================ -->
+<div id="adminModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:20001; align-items:center; justify-content:center;">
+  <div style="width:min(500px, 96%); background:#0f0f1e; border:2px solid #ff00ff; border-radius:2px; padding:20px; box-shadow:0 0 30px rgba(255,0,255,0.3); color:#e0e0e0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <h2 style="margin:0; color:#ff00ff;">Admin Panel</h2>
+      <button id="closeAdminBtn" style="border:none; background:transparent; color:#ff00ff; font-size:24px; cursor:pointer;">&times;</button>
+    </div>
+    <div id="adminContent" style="display:none;">
+      <div style="display:grid; gap:10px;">
+        <button id="deleteChatHistoryBtn" style="padding:10px; background:rgba(255,0,0,0.2); border:1px solid #ff0000; color:#ff0000; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">Delete All Chat History</button>
+        <button id="clearCanvasAdminBtn" style="padding:10px; background:rgba(255,170,0,0.2); border:1px solid #ffaa00; color:#ffaa00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">Clear Canvas</button>
+        <button id="resetVisitorsBtn" style="padding:10px; background:rgba(0,255,255,0.2); border:1px solid #00ffff; color:#00ffff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">Reset Total Visitors Count</button>
+        <button id="logoutAdminBtn" style="padding:10px; background:rgba(255,0,255,0.2); border:1px solid #ff00ff; color:#ff00ff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">Logout</button>
+      </div>
+    </div>
+    <div id="adminPassword" style="">
+      <label style="display:block; margin-bottom:8px; color:#00ffff;">Enter Admin Password:</label>
+      <input type="password" id="adminPasswordInput" placeholder="Password" style="width:100%; padding:8px; border:1px solid #00ffff; background:rgba(0,255,255,0.05); color:#00ffff; border-radius:2px; box-sizing:border-box; margin-bottom:10px;">
+      <button id="adminLoginBtn" style="width:100%; padding:8px; background:rgba(255,0,255,0.2); border:1px solid #ff00ff; color:#ff00ff; border-radius:2px; cursor:pointer; font-weight:600;">Login</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================ NEW: drawing modal (hidden by default) ================ -->
 <div id="drawingModal" aria-hidden="true">
   <div class="modalInner" role="dialog" aria-modal="true" aria-label="Shared Drawing Canvas">
@@ -448,15 +472,22 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     <div id="sharedCanvasContainer" style="position:relative;">
       <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
         <button id="toggleCanvasBtn">Open/Close Canvas</button>
+        
+        <div style="display:flex; gap:6px; align-items:center; padding:6px 8px; background:rgba(0,255,255,0.1); border-radius:2px; border:1px solid rgba(0,255,255,0.3);">
+          <button id="brushToolBtn" title="Brush Tool" style="padding:6px 10px; border:2px solid #00ffff; background:rgba(0,255,255,0.3); color:#00ffff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">✏ Brush</button>
+          <button id="eraserToolBtn" title="Eraser Tool" style="padding:6px 10px; border:2px solid rgba(255,170,0,0.3); background:transparent; color:#ffaa00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">🗑 Eraser</button>
+        </div>
+
         <label style="display:flex;align-items:center;gap:6px;">
-          <input id="colorPicker" type="color" value="#007bff">
+          <input id="colorPicker" type="color" value="#007bff" title="Brush Color">
         </label>
         <label style="display:flex;align-items:center;gap:6px;">
-          <input id="sizeSlider" type="range" min="1" max="30" value="4">
-          <small id="sizeLabel">4</small>
+          <span style="font-size:12px; color:#999;">Size:</span>
+          <input id="sizeSlider" type="range" min="1" max="50" value="4">
+          <small id="sizeLabel" style="min-width:25px;">4</small>
         </label>
-        <button id="clearCanvasBtn" style="padding:6px 8px;border-radius:8px;background:#ff4b4b;color:white;">Clear</button>
-        <div style="margin-left:auto; font-size:12px; color:#555;">Shared canvas (Realtime)</div>
+        <button id="clearCanvasBtn" style="padding:6px 8px;border-radius:2px;border:1px solid #ff0000;background:rgba(255,0,0,0.2);color:#ff0000;cursor:pointer;font-weight:600;">Clear</button>
+        <div style="margin-left:auto; font-size:12px; color:#777;">Shared canvas (Realtime)</div>
       </div>
 
       <div id="canvasArea" style="position:relative;">
@@ -724,6 +755,98 @@ popup.addEventListener('click', (e) => {
 
 function showPopup(){ popup.classList.add('show'); }
 
+// ================= Admin Panel =================
+const adminBtn = document.getElementById('adminBtn');
+const adminModal = document.getElementById('adminModal');
+const closeAdminBtn = document.getElementById('closeAdminBtn');
+const adminLoginBtn = document.getElementById('adminLoginBtn');
+const adminPasswordInput = document.getElementById('adminPasswordInput');
+const adminContent = document.getElementById('adminContent');
+const adminPassword = document.getElementById('adminPassword');
+const deleteChatHistoryBtn = document.getElementById('deleteChatHistoryBtn');
+const clearCanvasAdminBtn = document.getElementById('clearCanvasAdminBtn');
+const resetVisitorsBtn = document.getElementById('resetVisitorsBtn');
+const logoutAdminBtn = document.getElementById('logoutAdminBtn');
+
+const ADMIN_PASSWORD = '12344321';
+let isAdminAuthenticated = false;
+
+adminBtn.addEventListener('click', () => {
+  adminModal.style.display = 'flex';
+  adminPasswordInput.focus();
+});
+
+closeAdminBtn.addEventListener('click', () => {
+  adminModal.style.display = 'none';
+  isAdminAuthenticated = false;
+  adminContent.style.display = 'none';
+  adminPassword.style.display = '';
+  adminPasswordInput.value = '';
+});
+
+adminModal.addEventListener('click', (e) => {
+  if(e.target === adminModal) {
+    adminModal.style.display = 'none';
+    isAdminAuthenticated = false;
+    adminContent.style.display = 'none';
+    adminPassword.style.display = '';
+    adminPasswordInput.value = '';
+  }
+});
+
+adminLoginBtn.addEventListener('click', () => {
+  if(adminPasswordInput.value === ADMIN_PASSWORD) {
+    isAdminAuthenticated = true;
+    adminPassword.style.display = 'none';
+    adminContent.style.display = 'block';
+  } else {
+    alert('Incorrect password');
+    adminPasswordInput.value = '';
+  }
+});
+
+adminPasswordInput.addEventListener('keypress', (e) => {
+  if(e.key === 'Enter') {
+    adminLoginBtn.click();
+  }
+});
+
+deleteChatHistoryBtn.addEventListener('click', () => {
+  if(confirm('Delete all chat history? This cannot be undone.')) {
+    db.ref('chat').remove().then(() => {
+      alert('Chat history deleted');
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.innerHTML = '';
+    }).catch(err => alert('Error: ' + err.message));
+  }
+});
+
+clearCanvasAdminBtn.addEventListener('click', () => {
+  if(confirm('Clear the drawing canvas? This cannot be undone.')) {
+    db.ref('canvas/strokes').remove().then(() => {
+      db.ref('canvas/meta/clear').set({ by: 'admin', time: Date.now() });
+      setTimeout(() => { db.ref('canvas/meta/clear').remove(); }, 1500);
+      alert('Canvas cleared');
+    }).catch(err => alert('Error: ' + err.message));
+  }
+});
+
+resetVisitorsBtn.addEventListener('click', () => {
+  if(confirm('Reset total visitors count to 0?')) {
+    db.ref('totalVisitors').set(1).then(() => {
+      alert('Visitors count reset');
+    }).catch(err => alert('Error: ' + err.message));
+  }
+});
+
+logoutAdminBtn.addEventListener('click', () => {
+  isAdminAuthenticated = false;
+  adminContent.style.display = 'none';
+  adminPassword.style.display = '';
+  adminPasswordInput.value = '';
+  alert('Logged out');
+});
+
 // ---------------- Sparkles ----------------
 const canvas = document.getElementById('sparkleCanvas');
 const ctx = canvas.getContext('2d');
@@ -790,8 +913,11 @@ drawingModal.addEventListener('click', (e) => {
   const sizeSlider = document.getElementById('sizeSlider');
   const sizeLabel = document.getElementById('sizeLabel');
   const clearBtn = document.getElementById('clearCanvasBtn');
+  const brushToolBtn = document.getElementById('brushToolBtn');
+  const eraserToolBtn = document.getElementById('eraserToolBtn');
 
-  // Basic state
+  // Tool state
+  let currentTool = 'brush'; // 'brush' or 'eraser'
   let drawing = false;
   let currentStroke = [];
   let brushColor = colorPicker.value;
@@ -800,6 +926,28 @@ drawingModal.addEventListener('click', (e) => {
   const strokesRef = db.ref('canvas/strokes');
   const metaRef = db.ref('canvas/meta');
   const strokesCache = {}; // local cache of strokes by id to allow redraw on resize
+
+  // Tool switching
+  function selectTool(tool) {
+    currentTool = tool;
+    if(tool === 'brush') {
+      brushToolBtn.style.background = 'rgba(0,255,255,0.3)';
+      brushToolBtn.style.border = '2px solid #00ffff';
+      eraserToolBtn.style.background = 'transparent';
+      eraserToolBtn.style.border = '2px solid rgba(255,170,0,0.3)';
+      canvasEl.style.cursor = 'crosshair';
+    } else if(tool === 'eraser') {
+      brushToolBtn.style.background = 'transparent';
+      brushToolBtn.style.border = '2px solid rgba(0,255,255,0.3)';
+      eraserToolBtn.style.background = 'rgba(255,170,0,0.2)';
+      eraserToolBtn.style.border = '2px solid #ffaa00';
+      canvasEl.style.cursor = 'cell';
+    }
+  }
+
+  brushToolBtn.addEventListener('click', () => selectTool('brush'));
+  eraserToolBtn.addEventListener('click', () => selectTool('eraser'));
+  selectTool('brush');
 
   // Resize helper
   function resizeCanvasToDisplay() {
@@ -845,17 +993,35 @@ drawingModal.addEventListener('click', (e) => {
 
   function drawStrokeLocally(stroke, opts={}) {
     if(!stroke || !stroke.points || stroke.points.length===0) return;
-    ctx2.lineJoin = 'round';
-    ctx2.lineCap = 'round';
-    ctx2.strokeStyle = stroke.color;
-    ctx2.lineWidth = stroke.size;
-    ctx2.beginPath();
-    const pts = stroke.points;
-    ctx2.moveTo(pts[0].x, pts[0].y);
-    for(let i=1;i<pts.length;i++){
-      ctx2.lineTo(pts[i].x, pts[i].y);
+    
+    if(stroke.type === 'erase') {
+      ctx2.save();
+      ctx2.globalCompositeOperation = 'destination-out';
+      ctx2.strokeStyle = 'rgba(0,0,0,1)';
+      ctx2.lineJoin = 'round';
+      ctx2.lineCap = 'round';
+      ctx2.lineWidth = stroke.size;
+      ctx2.beginPath();
+      const pts = stroke.points;
+      ctx2.moveTo(pts[0].x, pts[0].y);
+      for(let i=1;i<pts.length;i++){
+        ctx2.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx2.stroke();
+      ctx2.restore();
+    } else {
+      ctx2.lineJoin = 'round';
+      ctx2.lineCap = 'round';
+      ctx2.strokeStyle = stroke.color;
+      ctx2.lineWidth = stroke.size;
+      ctx2.beginPath();
+      const pts = stroke.points;
+      ctx2.moveTo(pts[0].x, pts[0].y);
+      for(let i=1;i<pts.length;i++){
+        ctx2.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx2.stroke();
     }
-    ctx2.stroke();
   }
 
   // Redraw all strokes from the in-memory cache (sorted by time)
@@ -883,10 +1049,21 @@ drawingModal.addEventListener('click', (e) => {
     currentStroke = [];
     const p = getCanvasPoint(e);
     currentStroke.push(p);
-    ctx2.fillStyle = brushColor;
-    ctx2.beginPath();
-    ctx2.arc(p.x, p.y, Math.max(1, brushSize/2), 0, Math.PI*2);
-    ctx2.fill();
+    
+    if(currentTool === 'brush') {
+      ctx2.fillStyle = brushColor;
+      ctx2.beginPath();
+      ctx2.arc(p.x, p.y, Math.max(1, brushSize/2), 0, Math.PI*2);
+      ctx2.fill();
+    } else if(currentTool === 'eraser') {
+      ctx2.save();
+      ctx2.globalCompositeOperation = 'destination-out';
+      ctx2.fillStyle = 'rgba(0,0,0,1)';
+      ctx2.beginPath();
+      ctx2.arc(p.x, p.y, Math.max(1, brushSize/2), 0, Math.PI*2);
+      ctx2.fill();
+      ctx2.restore();
+    }
   });
 
   canvasEl.addEventListener('pointermove', (e) => {
@@ -896,14 +1073,29 @@ drawingModal.addEventListener('click', (e) => {
     const last = currentStroke[currentStroke.length-1];
     if(!last || last.x !== p.x || last.y !== p.y) {
       currentStroke.push(p);
-      ctx2.lineJoin = 'round';
-      ctx2.lineCap = 'round';
-      ctx2.strokeStyle = brushColor;
-      ctx2.lineWidth = brushSize;
-      ctx2.beginPath();
-      ctx2.moveTo(last.x, last.y);
-      ctx2.lineTo(p.x, p.y);
-      ctx2.stroke();
+      
+      if(currentTool === 'brush') {
+        ctx2.lineJoin = 'round';
+        ctx2.lineCap = 'round';
+        ctx2.strokeStyle = brushColor;
+        ctx2.lineWidth = brushSize;
+        ctx2.beginPath();
+        ctx2.moveTo(last.x, last.y);
+        ctx2.lineTo(p.x, p.y);
+        ctx2.stroke();
+      } else if(currentTool === 'eraser') {
+        ctx2.save();
+        ctx2.globalCompositeOperation = 'destination-out';
+        ctx2.strokeStyle = 'rgba(0,0,0,1)';
+        ctx2.lineJoin = 'round';
+        ctx2.lineCap = 'round';
+        ctx2.lineWidth = brushSize;
+        ctx2.beginPath();
+        ctx2.moveTo(last.x, last.y);
+        ctx2.lineTo(p.x, p.y);
+        ctx2.stroke();
+        ctx2.restore();
+      }
     }
   });
 
@@ -913,11 +1105,18 @@ drawingModal.addEventListener('click', (e) => {
     if(currentStroke.length > 0) {
       const strokeObj = {
         user: visitorId || ('anon_'+Date.now()),
-        color: brushColor,
         size: brushSize,
         points: currentStroke,
         time: Date.now()
       };
+      
+      if(currentTool === 'brush') {
+        strokeObj.color = brushColor;
+        strokeObj.type = 'brush';
+      } else if(currentTool === 'eraser') {
+        strokeObj.type = 'erase';
+      }
+      
       try {
         const pushRef = await strokesRef.push(strokeObj);
         drawnIds.add(pushRef.key);
