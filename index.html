@@ -222,6 +222,83 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 </style>
 </head>
 <body>
+<!-- Cool Intro Loading Screen -->
+<div id="introScreen">
+  <div class="introParticles"></div>
+  <div class="introContent">
+    <div class="logoBounce">
+      <img src="https://your-logo-url-here.png" alt="Logo" />
+    </div>
+    <div class="introText">Welcome to SHS Portal</div>
+    <div class="typingDots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<style>
+/* Fullscreen intro */
+#introScreen {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: linear-gradient(135deg, #1e90ff, #00bfff, #4682b4, #5f9ea0);
+    display:flex; justify-content:center; align-items:center;
+    z-index:99999; overflow:hidden;
+    flex-direction: column;
+}
+
+.introContent {
+    text-align:center;
+    color:white;
+    font-family:'Segoe UI', sans-serif;
+}
+
+.logoBounce img {
+    width:120px;
+    animation: bounce 1.5s infinite;
+    filter: drop-shadow(0 0 20px #fff);
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.introText {
+    font-size: 2rem;
+    margin-top:15px;
+    animation: fadeIn 2s ease-in-out forwards;
+    opacity:0;
+    text-shadow: 0 0 8px #fff, 0 0 16px #00f;
+}
+
+.typingDots {
+    margin-top:15px;
+    display:flex; justify-content:center; gap:8px;
+}
+
+.typingDots span {
+    width:10px; height:10px; border-radius:50%;
+    background:white; opacity:0.3;
+    animation: blink 1.5s infinite;
+}
+
+.typingDots span:nth-child(1){ animation-delay:0s; }
+.typingDots span:nth-child(2){ animation-delay:0.3s; }
+.typingDots span:nth-child(3){ animation-delay:0.6s; }
+
+@keyframes blink {
+    0%, 80%, 100% { opacity:0.3; }
+    40% { opacity:1; }
+}
+
+@keyframes fadeIn { 0% {opacity:0;} 100% {opacity:1;} }
+
+/* Particle effect background */
+.introParticles {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    pointer-events:none;
+}
+</style>
 
 <div id="visitorCounter">Visitors Online: 0 | Total Visitors: 0</div>
 
@@ -816,5 +893,56 @@ drawingModal.addEventListener('click', (e) => {
 
 })();
 </script>
+<script>
+// Particle effect
+const particleCanvas = document.createElement('canvas');
+particleCanvas.width = window.innerWidth;
+particleCanvas.height = window.innerHeight;
+document.querySelector('.introParticles').appendChild(particleCanvas);
+const ctx = particleCanvas.getContext('2d');
+
+let particles = [];
+for(let i=0;i<100;i++){
+    particles.push({
+        x:Math.random()*particleCanvas.width,
+        y:Math.random()*particleCanvas.height,
+        r:Math.random()*3+1,
+        vx:(Math.random()-0.5)*0.5,
+        vy:(Math.random()-0.5)*0.5,
+        color:['#fff','#00f','#0ff','#ff0'][Math.floor(Math.random()*4)]
+    });
+}
+
+function animateParticles(){
+    ctx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
+    for(let p of particles){
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fillStyle=p.color;
+        ctx.fill();
+        p.x += p.vx; p.y += p.vy;
+        if(p.x<0||p.x>particleCanvas.width)p.vx*=-1;
+        if(p.y<0||p.y>particleCanvas.height)p.vy*=-1;
+    }
+    requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// Hide intro after page loads
+window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+        document.getElementById('introScreen').style.transition='opacity 1s';
+        document.getElementById('introScreen').style.opacity='0';
+        setTimeout(()=>document.getElementById('introScreen').remove(),1000);
+    },3000); // 3 seconds minimum
+});
+
+window.addEventListener('resize', ()=>{
+    particleCanvas.width = window.innerWidth;
+    particleCanvas.height = window.innerHeight;
+});
+</script>
+
+
 </body>
 </html>
