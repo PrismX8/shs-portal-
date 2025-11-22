@@ -87,6 +87,31 @@ if (db) {
 const totalRef = db ? db.ref('totalVisitors') : null;
 const onlineDbRef = db ? db.ref('online') : null;
 
+// Utils object - must be defined before background effects and other features
+const Utils = {
+    debounce: function(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+    throttle: function(func, limit) {
+        let inThrottle;
+        return function(...args) {
+            if (!inThrottle) {
+                func.apply(this, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    }
+};
+
 function updateCounter() {
     if (!onlineDbRef || !totalRef) return;
     onlineDbRef.once('value').then(snap => {
@@ -4226,63 +4251,42 @@ class FormValidator {
     }
 }
 
-// Professional Debounce and Throttle Utilities
-const Utils = {
-    debounce: (func, wait) => {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    },
+// Utils is already defined earlier in the file - adding additional methods here
+Utils.formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
 
-    throttle: (func, limit) => {
-        let inThrottle;
-        return function(...args) {
-            if (!inThrottle) {
-                func.apply(this, args);
-                inThrottle = true;
-                setTimeout(() => inThrottle = false, limit);
-            }
-        };
-    },
+    if (seconds < 60) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+};
 
-    formatDate: (timestamp) => {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = now - date;
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
+Utils.formatNumber = (num) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+};
 
-        if (seconds < 60) return 'just now';
-        if (minutes < 60) return `${minutes}m ago`;
-        if (hours < 24) return `${hours}h ago`;
-        if (days < 7) return `${days}d ago`;
-        return date.toLocaleDateString();
-    },
-
-    formatNumber: (num) => {
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-        return num.toString();
-    },
-
-    copyToClipboard: async (text) => {
-        try {
-            await navigator.clipboard.writeText(text);
+Utils.copyToClipboard = async (text) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        if (typeof notifications !== 'undefined' && notifications.show) {
             notifications.show('Copied to clipboard!', 'success', 2000);
-            return true;
-        } catch (err) {
-            console.error('Failed to copy:', err);
-            notifications.show('Failed to copy', 'error');
-            return false;
         }
+        return true;
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        if (typeof notifications !== 'undefined' && notifications.show) {
+            notifications.show('Failed to copy', 'error');
+        }
+        return false;
     }
 };
 
