@@ -33,23 +33,56 @@
     <span class="status-indicator online" style="margin-left: 12px;"></span>
 </div>
 
-<header class="glass-effect animate-on-scroll">
-    <button id="adminBtn" title="Admin Panel" class="header-icon-btn hover-lift">
-        <i class="fas fa-cog"></i>
-    </button>
+<!-- Navigation -->
+<nav class="main-navigation">
+    <div class="nav-container">
+        <a href="index.html" class="nav-logo">
+            <i class="fas fa-gamepad"></i> SHS Game Hall
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link active">
+                <i class="fas fa-home"></i> Home
+            </a>
+            <a href="chat.html" class="nav-link">
+                <i class="fas fa-comments"></i> Chat
+            </a>
+            <a href="profile.html" class="nav-link">
+                <i class="fas fa-user-circle"></i> Profile
+            </a>
+            <a href="leaderboard.html" class="nav-link">
+                <i class="fas fa-medal"></i> Leaderboard
+            </a>
+            <a href="friends.html" class="nav-link">
+                <i class="fas fa-user-friends"></i> Friends
+            </a>
+            <a href="drawing.html" class="nav-link">
+                <i class="fas fa-paint-brush"></i> Drawing
+            </a>
+        </div>
+        <div class="nav-actions">
+            <button id="adminBtn" title="Admin Panel" class="nav-icon-btn">
+                <i class="fas fa-cog"></i>
+            </button>
+            <button id="youtubeWatcherBtn" title="Watch YouTube Videos Unblocked" class="nav-icon-btn">
+                <i class="fab fa-youtube"></i>
+            </button>
+            <button id="replayTutorialBtn" title="Replay Tutorial" class="nav-icon-btn">
+                <i class="fas fa-graduation-cap"></i>
+            </button>
+            <button id="themeBtn" title="Themes" class="nav-icon-btn">
+                <i class="fas fa-palette"></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<header class="glass-effect animate-on-scroll" style="margin-top: 70px;">
     <div class="headerContent">
         <div class="headerText gradient-text">
         SHS Game Hall <br>
             <small style="font-size: 12px; font-weight: 400; display: block; margin-top: 6px; color: rgba(255, 255, 255, 0.6);">SPS-devices Wi-Fi Password: 7&UI0)jk</small>
     </div>
-        <button id="youtubeWatcherBtn" title="Watch YouTube Videos Unblocked" class="youtube-watcher-btn hover-lift">
-            <i class="fab fa-youtube"></i>
-            <span class="youtube-btn-text">Watch YouTube Unblocked</span>
-        </button>
     </div>
-    <button id="replayTutorialBtn" title="Replay Tutorial" class="header-icon-btn hover-lift">
-        <i class="fas fa-graduation-cap"></i>
-    </button>
 </header>
 
 <div class="controls">
@@ -83,8 +116,8 @@
             <i class="fas fa-chevron-down"></i>
         </div>
         <div class="control-group">
-            <button id="openDrawingBtn"><i class="fas fa-paint-brush"></i> Drawing</button>
-            <button id="toggleChatBtn"><i class="fas fa-comments"></i> Chat</button>
+            <a href="drawing.html" class="control-btn"><i class="fas fa-paint-brush"></i> Drawing</a>
+            <a href="chat.html" class="control-btn"><i class="fas fa-comments"></i> Chat</a>
             <button id="themeBtn"><i class="fas fa-palette"></i> Themes</button>
             <button id="achievementsBtn"><i class="fas fa-trophy"></i> Achievements</button>
             <button id="statsBtn"><i class="fas fa-chart-bar"></i> Stats</button>
@@ -96,11 +129,11 @@
             <i class="fas fa-chevron-down"></i>
         </div>
         <div class="control-group">
-            <button id="profileBtn"><i class="fas fa-user-circle"></i> Profile</button>
-            <button id="leaderboardBtn"><i class="fas fa-medal"></i> Leaderboard</button>
-            <button id="friendsBtn"><i class="fas fa-user-friends"></i> Friends</button>
-            <button id="pollsBtn"><i class="fas fa-poll"></i> Polls</button>
-            <button id="filesBtn"><i class="fas fa-folder-open"></i> Files</button>
+            <a href="profile.html" class="control-btn"><i class="fas fa-user-circle"></i> Profile</a>
+            <a href="leaderboard.html" class="control-btn"><i class="fas fa-medal"></i> Leaderboard</a>
+            <a href="friends.html" class="control-btn"><i class="fas fa-user-friends"></i> Friends</a>
+            <a href="polls.html" class="control-btn"><i class="fas fa-poll"></i> Polls</a>
+            <a href="files.html" class="control-btn"><i class="fas fa-folder-open"></i> Files</a>
         </div>
     </div>
 </div>
