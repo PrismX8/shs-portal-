@@ -1081,37 +1081,98 @@ function initStars() {
   if (!starCanvas) return;
   
   const starCtx = starCanvas.getContext('2d');
-  let stars = [];
+  let particles = [];
+  const maxConnectionDistance = 150;
+  const mouseRepelRadius = 120;
+  const mouseRepelStrength = 0.8;
+  const particleCount = 80;
 
   function resizeStarCanvas() {
       starCanvas.width = window.innerWidth;
       starCanvas.height = window.innerHeight;
-      // Recreate stars on resize (reduced for performance)
-      stars = [];
-      for (let i = 0; i < 100; i++) {
-          stars.push(createStar());
+      // Recreate particles on resize
+      particles = [];
+      for (let i = 0; i < particleCount; i++) {
+          particles.push(createParticle());
       }
   }
   window.addEventListener('resize', Utils.debounce(resizeStarCanvas, 250));
   resizeStarCanvas();
 
-  function createStar() {
+  function createParticle() {
       return {
           x: Math.random() * starCanvas.width,
           y: Math.random() * starCanvas.height,
-          size: Math.random() * 2.5 + 0.5,
-          brightness: Math.random() * 0.6 + 0.4,
-          twinkle: Math.random() * 0.03 + 0.01,
-          baseBrightness: Math.random() * 0.6 + 0.4,
-          depth: Math.random() * 0.8 + 0.2,
-          color: Math.random() > 0.8 ? '#FFD700' : '#FFFFFF' // Some gold stars
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          radius: Math.random() * 1.5 + 0.5,
+          connections: [] // Array of particle indices this particle is connected to
       };
+  }
+
+  function updateParticles() {
+      for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          
+          // Mouse repulsion
+          const dx = mouseX - p.x;
+          const dy = mouseY - p.y;
+          const distSq = dx * dx + dy * dy;
+          const dist = Math.sqrt(distSq);
+          
+          if (dist < mouseRepelRadius && dist > 0) {
+              const force = (mouseRepelRadius - dist) / mouseRepelRadius;
+              const angle = Math.atan2(dy, dx);
+              p.vx -= Math.cos(angle) * force * mouseRepelStrength;
+              p.vy -= Math.sin(angle) * force * mouseRepelStrength;
+          }
+          
+          // Update position
+          p.x += p.vx;
+          p.y += p.vy;
+          
+          // Boundary wrapping
+          if (p.x < 0) p.x = starCanvas.width;
+          if (p.x > starCanvas.width) p.x = 0;
+          if (p.y < 0) p.y = starCanvas.height;
+          if (p.y > starCanvas.height) p.y = 0;
+          
+          // Friction
+          p.vx *= 0.98;
+          p.vy *= 0.98;
+          
+          // Limit velocity
+          const maxVel = 2;
+          const vel = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+          if (vel > maxVel) {
+              p.vx = (p.vx / vel) * maxVel;
+              p.vy = (p.vy / vel) * maxVel;
+          }
+      }
+      
+      // Update connections
+      for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          p1.connections = [];
+          
+          for (let j = i + 1; j < particles.length; j++) {
+              const p2 = particles[j];
+              const dx = p2.x - p1.x;
+              const dy = p2.y - p1.y;
+              const distSq = dx * dx + dy * dy;
+              const dist = Math.sqrt(distSq);
+              
+              if (dist < maxConnectionDistance) {
+                  p1.connections.push(j);
+              }
+          }
+      }
   }
 
   let lastStarFrame = 0;
   function animateStars() {
       const now = performance.now();
-      // Throttle to ~30fps for stars
+      // Throttle to ~30fps
       if (now - lastStarFrame < 33) {
           requestAnimationFrame(animateStars);
           return;
@@ -1119,50 +1180,59 @@ function initStars() {
       lastStarFrame = now;
       
       starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
-      const centerX = starCanvas.width / 2;
-      const centerY = starCanvas.height / 2;
-      const time = Date.now();
       
-      for (let star of stars) {
-          // Enhanced parallax with mouse interaction
-          const offsetX = (mouseX - centerX) * star.depth * 0.03;
-          const offsetY = (mouseY - centerY) * star.depth * 0.03;
-          let drawX = star.x + offsetX;
-          let drawY = star.y + offsetY;
-
-          // Wrap around edges
-          if (drawX < 0) drawX += starCanvas.width;
-          if (drawX > starCanvas.width) drawX -= starCanvas.width;
-          if (drawY < 0) drawY += starCanvas.height;
-          if (drawY > starCanvas.height) drawY -= starCanvas.height;
-
-          // Enhanced mouse interaction - stars glow when mouse is near (optimized)
-          const dx = mouseX - drawX;
-          const dy = mouseY - drawY;
+      // Update particles
+      updateParticles();
+      
+      // Draw connections
+      starCtx.strokeStyle = 'rgba(255, 215, 0, 0.2)';
+      starCtx.lineWidth = 1;
+      
+      for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          for (let j of p1.connections) {
+              const p2 = particles[j];
+              const dx = p2.x - p1.x;
+              const dy = p2.y - p1.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              
+              // Opacity based on distance
+              const opacity = 1 - (dist / maxConnectionDistance);
+              starCtx.strokeStyle = `rgba(255, 215, 0, ${opacity * 0.3})`;
+              
+              starCtx.beginPath();
+              starCtx.moveTo(p1.x, p1.y);
+              starCtx.lineTo(p2.x, p2.y);
+              starCtx.stroke();
+          }
+      }
+      
+      // Draw particles
+      for (let p of particles) {
+          // Mouse proximity glow
+          const dx = mouseX - p.x;
+          const dy = mouseY - p.y;
           const distSq = dx * dx + dy * dy;
-          const mouseEffect = distSq < 22500 ? Math.max(0, 1 - Math.sqrt(distSq) / 150) : 0; // 150^2
-          star.brightness = star.baseBrightness + mouseEffect * 0.7;
+          const mouseEffect = distSq < mouseRepelRadius * mouseRepelRadius 
+              ? Math.max(0, 1 - Math.sqrt(distSq) / mouseRepelRadius) 
+              : 0;
           
-          // Twinkle animation
-          star.brightness += Math.sin(time * star.twinkle) * 0.15;
-          star.brightness = Math.max(0.2, Math.min(1, star.brightness));
+          const glowSize = p.radius * (1 + mouseEffect * 0.5);
+          const brightness = 0.6 + mouseEffect * 0.4;
           
-          // Simplified drawing (no gradient for better performance)
-          const color = star.color === '#FFD700' ? '255, 215, 0' : '255, 255, 255';
-          const glowSize = star.size * (1 + mouseEffect);
-          
-          // Simple glow
+          // Glow
           starCtx.beginPath();
-          starCtx.arc(drawX, drawY, glowSize * 1.5, 0, Math.PI * 2);
-          starCtx.fillStyle = `rgba(${color}, ${star.brightness * 0.3})`;
+          starCtx.arc(p.x, p.y, glowSize * 2, 0, Math.PI * 2);
+          starCtx.fillStyle = `rgba(255, 215, 0, ${brightness * 0.2})`;
           starCtx.fill();
           
-          // Core star
+          // Core particle
           starCtx.beginPath();
-          starCtx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
-          starCtx.fillStyle = `rgba(${color}, ${star.brightness})`;
+          starCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          starCtx.fillStyle = `rgba(255, 215, 0, ${brightness})`;
           starCtx.fill();
       }
+      
       requestAnimationFrame(animateStars);
   }
   animateStars();
