@@ -3524,7 +3524,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ---------------- Polls/Voting ----------------
 const pollsBtn = document.getElementById('pollsBtn');
 const pollsModal = document.getElementById('pollsModal');
-const closePollsBtn = document.getElementById('closePollsBtn');
 const pollsList = document.getElementById('pollsList');
 const createPollBtn = document.getElementById('createPollBtn');
 const createPollForm = document.getElementById('createPollForm');
