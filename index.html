@@ -125,21 +125,177 @@
     </div>
 </div>
 
-<div id="chatContainer" style="display:none;">
-    <header>
-        Chat <span id="changeNameBtn" style="color:#FFD700; cursor:pointer;">Change Name/Color</span>
-        <span id="typingIndicator" style="font-size:12px;color:rgba(255,255,255,0.6);float:right;"></span>
-    </header>
-    <div id="chatMessages" style="max-height:300px; overflow-y:auto; padding:5px;"></div>
-    <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
-        <button id="emojiBtn" style="padding:8px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; cursor:pointer; color:#FFD700; font-size:18px;" title="Emoji Picker">😀</button>
-        <button id="voiceChatBtn" style="padding:8px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; cursor:pointer; color:#FFD700;" title="Hold to record voice message"><i class="fas fa-microphone"></i></button>
-        <button id="attachLinkBtn" style="padding:8px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; cursor:pointer; color:#FFD700;" title="Attach Link"><i class="fas fa-link"></i></button>
-        <input type="text" id="chatInput" placeholder="Type a message..." style="flex:1;">
-        <button id="sendFileBtn" style="padding:8px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; cursor:pointer; color:#FFD700;" title="Send File"><i class="fas fa-paperclip"></i></button>
+<!-- ================= Modern Expandable Chat System ================= -->
+<div id="chatContainer" class="chat-container" style="display:none;">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <div class="chat-header-left">
+            <div class="chat-icon-wrapper">
+                <i class="fas fa-comments"></i>
+            </div>
+            <div>
+                <h3 class="chat-title">Chat</h3>
+                <span id="typingIndicator" class="typing-indicator"></span>
+            </div>
+        </div>
+        <div class="chat-header-right">
+            <button id="chatSettingsBtn" class="chat-header-btn" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+            <button id="expandChatBtn" class="chat-header-btn" title="Expand Chat">
+                <i class="fas fa-expand"></i>
+            </button>
+            <button id="minimizeChatBtn" class="chat-header-btn" title="Minimize Chat">
+                <i class="fas fa-compress"></i>
+            </button>
+        </div>
     </div>
-    <div id="emojiPicker" style="display:none; position:absolute; bottom:50px; right:20px; background:rgba(15,15,25,0.95); border:1px solid rgba(255,215,0,0.2); border-radius:12px; padding:15px; max-width:300px; max-height:200px; overflow-y:auto; z-index:10001;">
-        <div style="display:grid; grid-template-columns:repeat(8,1fr); gap:8px;">
+
+    <!-- Chat Messages Area -->
+    <div id="chatMessages" class="chat-messages"></div>
+
+    <!-- Chat Input Area -->
+    <div class="chat-input-area">
+        <div class="chat-toolbar">
+            <button id="emojiBtn" class="chat-toolbar-btn" title="Emoji Picker">
+                <i class="fas fa-smile"></i>
+            </button>
+            <button id="voiceChatBtn" class="chat-toolbar-btn" title="Hold to record voice message">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button id="attachLinkBtn" class="chat-toolbar-btn" title="Attach Link">
+                <i class="fas fa-link"></i>
+            </button>
+            <button id="sendFileBtn" class="chat-toolbar-btn" title="Send File">
+                <i class="fas fa-paperclip"></i>
+            </button>
+            <button id="changeNameBtn" class="chat-toolbar-btn" title="Change Name/Color">
+                <i class="fas fa-user-edit"></i>
+            </button>
+        </div>
+        <div class="chat-input-wrapper">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Type a message...">
+            <button id="sendChatBtn" class="chat-send-btn" title="Send">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Emoji Picker -->
+    <div id="emojiPicker" class="emoji-picker">
+        <div class="emoji-grid">
+            <span class="emoji-option">😀</span>
+            <span class="emoji-option">😂</span>
+            <span class="emoji-option">❤️</span>
+            <span class="emoji-option">👍</span>
+            <span class="emoji-option">👎</span>
+            <span class="emoji-option">🔥</span>
+            <span class="emoji-option">🎉</span>
+            <span class="emoji-option">💯</span>
+            <span class="emoji-option">😊</span>
+            <span class="emoji-option">😍</span>
+            <span class="emoji-option">🤔</span>
+            <span class="emoji-option">😎</span>
+            <span class="emoji-option">🙌</span>
+            <span class="emoji-option">👏</span>
+            <span class="emoji-option">🎊</span>
+            <span class="emoji-option">✨</span>
+        </div>
+    </div>
+    <div id="voiceIndicator" class="voice-indicator">
+        <i class="fas fa-microphone"></i> Recording... (Release to send)
+    </div>
+</div>
+
+<!-- ================= Full-Screen Chat Modal ================= -->
+<div id="fullScreenChatModal" class="fullscreen-chat-modal" style="display:none;">
+    <div class="fullscreen-chat-container">
+        <!-- Full Screen Chat Header -->
+        <div class="fullscreen-chat-header">
+            <div class="fullscreen-chat-header-left">
+                <div class="fullscreen-chat-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div>
+                    <h1 class="fullscreen-chat-title">Chat</h1>
+                    <p class="fullscreen-chat-subtitle">Connect with other users</p>
+                </div>
+            </div>
+            <div class="fullscreen-chat-header-right">
+                <button id="fullscreenChatSettingsBtn" class="fullscreen-chat-btn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button id="fullscreenChatSearchBtn" class="fullscreen-chat-btn" title="Search Messages">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button id="fullscreenChatUsersBtn" class="fullscreen-chat-btn" title="Online Users">
+                    <i class="fas fa-users"></i>
+                    <span class="fullscreen-chat-badge" id="onlineUsersCount">0</span>
+                </button>
+                <button id="closeFullscreenChatBtn" class="fullscreen-chat-btn fullscreen-chat-close" title="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Full Screen Chat Content -->
+        <div class="fullscreen-chat-content">
+            <!-- Sidebar (optional) -->
+            <div class="fullscreen-chat-sidebar" id="fullscreenChatSidebar">
+                <div class="fullscreen-chat-sidebar-header">
+                    <h3>Online Users</h3>
+                    <button id="toggleSidebarBtn" class="sidebar-toggle-btn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
+                <div id="fullscreenChatOnlineUsers" class="fullscreen-chat-online-users"></div>
+            </div>
+
+            <!-- Main Chat Area -->
+            <div class="fullscreen-chat-main">
+                <!-- Search Bar (when active) -->
+                <div id="fullscreenChatSearchBar" class="fullscreen-chat-search-bar" style="display:none;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="fullscreenChatSearchInput" placeholder="Search messages...">
+                    <button id="closeSearchBtn" class="close-search-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Messages Area -->
+                <div id="fullscreenChatMessages" class="fullscreen-chat-messages"></div>
+
+                <!-- Input Area -->
+                <div class="fullscreen-chat-input-area">
+                    <div class="fullscreen-chat-toolbar">
+                        <button id="fullscreenEmojiBtn" class="fullscreen-chat-toolbar-btn" title="Emoji">
+                            <i class="fas fa-smile"></i>
+                        </button>
+                        <button id="fullscreenVoiceBtn" class="fullscreen-chat-toolbar-btn" title="Voice Message">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button id="fullscreenLinkBtn" class="fullscreen-chat-toolbar-btn" title="Attach Link">
+                            <i class="fas fa-link"></i>
+                        </button>
+                        <button id="fullscreenFileBtn" class="fullscreen-chat-toolbar-btn" title="Send File">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button id="fullscreenNameBtn" class="fullscreen-chat-toolbar-btn" title="Change Name/Color">
+                            <i class="fas fa-user-edit"></i>
+                        </button>
+                    </div>
+                    <div class="fullscreen-chat-input-wrapper">
+                        <input type="text" id="fullscreenChatInput" class="fullscreen-chat-input" placeholder="Type a message...">
+                        <button id="fullscreenSendBtn" class="fullscreen-chat-send-btn" title="Send">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div id="fullscreenTypingIndicator" class="fullscreen-typing-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div><div style="display:grid; grid-template-columns:repeat(8,1fr); gap:8px;">
             <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">😀</span>
             <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">😂</span>
             <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">❤️</span>
