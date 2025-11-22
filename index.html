@@ -8,6 +8,7 @@
      crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="styles.css">
+<link rel="ads.txt" href="ads.txt">
 
 </head>
 <body>
@@ -27,15 +28,18 @@
 
 
 
-<div id="visitorCounter">Visitors Online: 0 | Total Visitors: 0</div>
+<div id="visitorCounter" class="animate-on-scroll">
+    <span id="onlineCount">0</span> Online | <span id="totalCount">0</span> Total
+    <span class="status-indicator online" style="margin-left: 12px;"></span>
+</div>
 
-<header>
-    <button id="adminBtn" title="Admin Panel" style="position:absolute; top:15px; left:15px; width:35px; height:35px; font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #FFD700; background: #FFD700; cursor:pointer; transition: all 0.3s ease; color: #000000;">⚙</button>
-    <div class="headerText">
+<header class="glass-effect animate-on-scroll">
+    <button id="adminBtn" title="Admin Panel" class="hover-lift" style="position:absolute; top:15px; left:15px; width:35px; height:35px; font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #FFD700; background: #FFD700; cursor:pointer; transition: all 0.3s ease; color: #000000;">⚙</button>
+    <div class="headerText gradient-text">
         SHS Game Hall <br>
-        <small>SPS-devices Wi-Fi Password: 7&UI0)jk</small>
+        <small style="font-size: 12px; font-weight: 400; display: block; margin-top: 6px; color: rgba(255, 255, 255, 0.6);">SPS-devices Wi-Fi Password: 7&UI0)jk</small>
     </div>
-    <button id="replayTutorialBtn" title="Replay Tutorial">T</button>
+    <button id="replayTutorialBtn" title="Replay Tutorial" class="hover-lift">T</button>
 </header>
 
 <div class="controls">
