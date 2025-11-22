@@ -67,12 +67,23 @@ header {
     justify-content: center;
     align-items: center;
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+    min-height: 80px;
+}
+
+header .headerContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    max-width: 800px;
 }
 
 header .headerText { 
     line-height: 1.5; 
     text-align: center; 
     letter-spacing: -0.5px;
+    margin: 0;
 }
 header small { 
     font-size: 12px; 
@@ -102,43 +113,57 @@ header small {
 
 /* YouTube Watcher Button */
 #youtubeWatcherBtn {
-    position: absolute;
-    top: 50%;
-    right: 60px;
-    transform: translateY(-50%);
-    padding: 10px 20px;
+    position: relative;
+    padding: 10px 24px;
     border-radius: 12px;
     border: 2px solid rgba(255, 0, 0, 0.4);
-    background: linear-gradient(135deg, rgba(255, 0, 0, 0.15), rgba(200, 0, 0, 0.1));
+    background: linear-gradient(135deg, rgba(255, 0, 0, 0.2), rgba(200, 0, 0, 0.15));
     cursor: pointer;
     transition: all 0.3s ease;
     color: #ff0000;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
+    gap: 10px;
+    font-weight: 700;
     font-size: 14px;
-    box-shadow: 0 4px 15px rgba(255, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(255, 0, 0, 0.25);
     backdrop-filter: blur(10px);
+    white-space: nowrap;
 }
 
 #youtubeWatcherBtn:hover {
-    background: linear-gradient(135deg, rgba(255, 0, 0, 0.25), rgba(200, 0, 0, 0.2));
+    background: linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(200, 0, 0, 0.25));
     border-color: rgba(255, 0, 0, 0.6);
-    transform: translateY(-50%) translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 0, 0, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(255, 0, 0, 0.5);
+}
+
+#youtubeWatcherBtn:active {
+    transform: translateY(0);
 }
 
 #youtubeWatcherBtn .youtube-btn-text {
     font-family: 'Inter', 'Segoe UI', sans-serif;
     font-weight: 700;
-    letter-spacing: 0.5px;
-    text-shadow: 0 2px 8px rgba(255, 0, 0, 0.3);
-    white-space: nowrap;
+    letter-spacing: 0.8px;
+    text-shadow: 0 2px 8px rgba(255, 0, 0, 0.4);
+    font-size: 13px;
 }
 
 #youtubeWatcherBtn i {
-    filter: drop-shadow(0 2px 4px rgba(255, 0, 0, 0.4));
+    font-size: 22px;
+    filter: drop-shadow(0 2px 6px rgba(255, 0, 0, 0.5));
+    animation: youtubePulse 2s ease-in-out infinite;
+}
+
+@keyframes youtubePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 /* YouTube Modal Styles */
@@ -181,18 +206,37 @@ header small {
 }
 
 @media (max-width: 768px) {
+    header {
+        padding: 15px 20px;
+        min-height: auto;
+    }
+    
+    header .headerContent {
+        gap: 10px;
+    }
+    
     #youtubeWatcherBtn {
-        right: 50px;
-        padding: 8px 12px;
+        padding: 8px 16px;
         font-size: 12px;
     }
     
     #youtubeWatcherBtn .youtube-btn-text {
-        display: none;
+        font-size: 11px;
+        letter-spacing: 0.5px;
     }
     
     #youtubeWatcherBtn i {
-        margin-right: 0;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    #youtubeWatcherBtn .youtube-btn-text {
+        display: none;
+    }
+    
+    #youtubeWatcherBtn {
+        padding: 10px 14px;
     }
 }
 
