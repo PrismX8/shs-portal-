@@ -3521,6 +3521,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
 });
 
+// ================= ONE-TIME USER DATA CLEAR =================
+// THIS WILL CLEAR ALL USERS, PROFILES, FRIENDS, REQUESTS, AND BLOCKED USERS
+// Run this ONCE to start from scratch, then DELETE this entire section
+(function clearAllUsersOneTime() {
+    // Check if we've already run this
+    if (localStorage.getItem('userClearExecuted') === 'true') {
+        console.log('User clear already executed. Remove this section if you want to run it again.');
+        return;
+    }
+    
+    if (!db) {
+        console.error('Firebase not initialized. Cannot clear users.');
+        return;
+    }
+    
+    // Confirm before clearing
+    const confirmed = confirm(
+        '⚠️ WARNING: This will DELETE ALL users, profiles, friends, requests, and blocked users from the database.\n\n' +
+        'This action CANNOT be undone!\n\n' +
+        'Click OK to proceed, or Cancel to abort.'
+    );
+    
+    if (!confirmed) {
+        console.log('User clear cancelled by user.');
+        return;
+    }
+    
+    console.log('Starting one-time user data clear...');
+    
+    // Clear all data
+    Promise.all([
+        db.ref('profiles').remove(),
+        db.ref('online').remove(),
+        db.ref('friends').remove(),
+        db.ref('friendRequests').remove(),
+        db.ref('blocked').remove(),
+        db.ref('totalVisitors').set(127349) // Reset to initial count
+    ]).then(() => {
+        console.log('✅ Successfully cleared all user data!');
+        console.log('✅ Reset visitor count to 127,349');
+        
+        // Mark as executed so it won't run again
+        localStorage.setItem('userClearExecuted', 'true');
+        
+        alert('✅ All user data has been cleared!\n\n' +
+              'The database is now empty and ready for new users.\n\n' +
+              'Visitor count reset to 127,349.\n\n' +
+              'This script will not run again automatically.\n' +
+              'Remove this section from script.js if you want to run it again in the future.');
+        
+        // Reload the page to reflect changes
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    }).catch(error => {
+        console.error('❌ Error clearing user data:', error);
+        alert('❌ Error clearing user data. Check console for details.');
+    });
+})();
+// ================= END ONE-TIME USER DATA CLEAR =================
+
 // ---------------- Polls/Voting ----------------
 const pollsBtn = document.getElementById('pollsBtn');
 const pollsModal = document.getElementById('pollsModal');
@@ -4291,6 +4352,9 @@ Utils.copyToClipboard = async (text) => {
 
 // Professional Error Handler (only show notifications for critical errors)
 window.addEventListener('error', (event) => {
+    // Prevent default error handling for filtered errors
+    event.preventDefault();
+    
     // Ignore errors from extensions, scripts from other origins, AdSense, or expected errors
     if (event.filename && (
         event.filename.includes('chrome-extension://') ||
@@ -4299,13 +4363,19 @@ window.addEventListener('error', (event) => {
         event.filename.includes('googlesyndication.com') ||
         event.filename.includes('doubleclick.net') ||
         event.filename.includes('googleads.g.doubleclick.net') ||
-        event.message && (
-            event.message.includes('Script error') ||
-            event.message.includes('Non-Error promise rejection') ||
-            event.message.includes('ResizeObserver loop') ||
-            event.message.includes('Failed to fetch') ||
-            event.message.includes('ERR_BLOCKED_BY_CLIENT')
-        )
+        event.filename.includes('<anonymous>') // Firebase/AdSense anonymous scripts
+    )) {
+        return; // Ignore these common non-critical errors
+    }
+    
+    if (event.message && (
+        event.message.includes('Script error') ||
+        event.message.includes('Non-Error promise rejection') ||
+        event.message.includes('ResizeObserver loop') ||
+        event.message.includes('Failed to fetch') ||
+        event.message.includes('TypeError: Failed to fetch') ||
+        event.message.includes('ERR_BLOCKED_BY_CLIENT') ||
+        event.message.includes('NetworkError')
     )) {
         return; // Ignore these common non-critical errors
     }
@@ -4329,58 +4399,78 @@ window.addEventListener('error', (event) => {
 });
 
 window.addEventListener('unhandledrejection', (event) => {
+    // Prevent default error handling for filtered errors
+    event.preventDefault();
+    
+    const reason = event.reason;
+    const reasonStr = reason?.toString() || '';
+    const reasonMsg = reason?.message || '';
+    
     // Ignore AdSense-related promise rejections
-    if (event.reason && (
-        (typeof event.reason === 'string' && (
-            event.reason.includes('googlesyndication.com') ||
-            event.reason.includes('doubleclick.net') ||
-            event.reason.includes('ERR_BLOCKED_BY_CLIENT') ||
-            event.reason.includes('Failed to fetch')
-        )) ||
-        (event.reason && event.reason.message && (
-            event.reason.message.includes('googlesyndication.com') ||
-            event.reason.message.includes('doubleclick.net') ||
-            event.reason.message.includes('ERR_BLOCKED_BY_CLIENT') ||
-            event.reason.message.includes('Failed to fetch')
-        ))
-    )) {
+    if (reasonStr.includes('googlesyndication.com') ||
+        reasonStr.includes('doubleclick.net') ||
+        reasonStr.includes('googleads.g.doubleclick.net') ||
+        reasonStr.includes('ERR_BLOCKED_BY_CLIENT') ||
+        reasonStr.includes('Failed to fetch') ||
+        reasonStr.includes('TypeError: Failed to fetch') ||
+        reasonMsg.includes('googlesyndication.com') ||
+        reasonMsg.includes('doubleclick.net') ||
+        reasonMsg.includes('ERR_BLOCKED_BY_CLIENT') ||
+        reasonMsg.includes('Failed to fetch') ||
+        reasonMsg.includes('TypeError: Failed to fetch')) {
         return; // Ignore AdSense-related promise rejections
     }
     
     // Ignore common promise rejections that are expected
-    const reason = event.reason;
-    if (reason && (
-        typeof reason === 'string' && (
-            reason.includes('aborted') ||
-            reason.includes('cancelled') ||
-            reason.includes('user')
-        ) ||
-        reason && reason.message && (
-            reason.message.includes('aborted') ||
-            reason.message.includes('cancelled')
-        )
-    )) {
+    if (reasonStr.includes('aborted') ||
+        reasonStr.includes('cancelled') ||
+        reasonStr.includes('user') ||
+        reasonMsg.includes('aborted') ||
+        reasonMsg.includes('cancelled')) {
         return; // Ignore expected rejections
     }
     
-    console.error('Unhandled promise rejection:', event.reason);
+    // Only log actual errors (not filtered ones)
+    if (reason && !reasonStr.includes('Failed to fetch')) {
+        console.error('Unhandled promise rejection:', event.reason);
+    }
     // Don't show notification for every rejection - only log it
-    // Uncomment the line below if you want to see rejection notifications
 });
 
 // Suppress AdSense-related console errors (they're expected and harmless)
 const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
 console.error = function(...args) {
     const message = args.join(' ');
-    // Filter out AdSense-related errors
+    // Filter out AdSense-related errors and common non-critical errors
     if (message.includes('googlesyndication.com') ||
         message.includes('doubleclick.net') ||
         message.includes('googleads.g.doubleclick.net') ||
         message.includes('ERR_BLOCKED_BY_CLIENT') ||
-        message.includes('Failed to fetch') && message.includes('ads')) {
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('TypeError: Failed to fetch') ||
+        message.includes('ads') && message.includes('fetch')) {
         return; // Suppress these errors
     }
     originalConsoleError.apply(console, args);
+};
+
+// Suppress CSP violation warnings (they're just warnings and harmless)
+console.warn = function(...args) {
+    const message = args.join(' ');
+    // Filter out CSP violations and other non-critical warnings
+    if (message.includes('Content Security Policy') ||
+        message.includes('CSP') ||
+        message.includes('frame-ancestors') ||
+        message.includes('violates') ||
+        message.includes('report-only') ||
+        message.includes('Failed to fetch') ||
+        message.includes('googlesyndication.com') ||
+        message.includes('doubleclick.net')) {
+        return; // Suppress these warnings
+    }
+    originalConsoleWarn.apply(console, args);
 };
 
 // Note: AdSense errors in the Network tab are normal and expected
