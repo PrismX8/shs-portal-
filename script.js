@@ -1243,6 +1243,115 @@ const fullscreenNameBtn = document.getElementById('fullscreenNameBtn');
 // Connect fullscreen name button now that it's declared
 fullscreenNameBtn?.addEventListener('click', openNameColorPopup);
 
+// Chat Settings Button
+const chatSettingsBtn = document.getElementById('chatSettingsBtn');
+const fullscreenChatSettingsBtn = document.getElementById('fullscreenChatSettingsBtn');
+
+function openChatSettings() {
+    // Create or show settings modal
+    let settingsModal = document.getElementById('chatSettingsModal');
+    if (!settingsModal) {
+        settingsModal = document.createElement('div');
+        settingsModal.id = 'chatSettingsModal';
+        settingsModal.className = 'chat-settings-modal';
+        settingsModal.innerHTML = `
+            <div class="chat-settings-content">
+                <div class="chat-settings-header">
+                    <h2><i class="fas fa-cog"></i> Chat Settings</h2>
+                    <button class="chat-settings-close" id="closeChatSettingsBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="chat-settings-body">
+                    <div class="chat-setting-item">
+                        <label>
+                            <input type="checkbox" id="chatSoundEnabled" checked>
+                            <span>Enable notification sounds</span>
+                        </label>
+                    </div>
+                    <div class="chat-setting-item">
+                        <label>
+                            <input type="checkbox" id="chatAutoScroll" checked>
+                            <span>Auto-scroll to new messages</span>
+                        </label>
+                    </div>
+                    <div class="chat-setting-item">
+                        <label>
+                            <input type="checkbox" id="chatShowTimestamps">
+                            <span>Show message timestamps</span>
+                        </label>
+                    </div>
+                    <div class="chat-setting-item">
+                        <label>
+                            <span>Messages per page:</span>
+                            <select id="chatMessagesPerPage" class="chat-setting-select">
+                                <option value="50">50</option>
+                                <option value="100" selected>100</option>
+                                <option value="200">200</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(settingsModal);
+        
+        // Close button
+        document.getElementById('closeChatSettingsBtn')?.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+        });
+        
+        // Close on backdrop click
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.style.display = 'none';
+            }
+        });
+        
+        // Load saved settings
+        const soundEnabled = localStorage.getItem('chatSoundEnabled') !== 'false';
+        const autoScroll = localStorage.getItem('chatAutoScroll') !== 'false';
+        const showTimestamps = localStorage.getItem('chatShowTimestamps') === 'true';
+        const messagesPerPage = localStorage.getItem('chatMessagesPerPage') || '100';
+        
+        const soundCheckbox = document.getElementById('chatSoundEnabled');
+        const autoScrollCheckbox = document.getElementById('chatAutoScroll');
+        const timestampsCheckbox = document.getElementById('chatShowTimestamps');
+        const messagesSelect = document.getElementById('chatMessagesPerPage');
+        
+        if (soundCheckbox) soundCheckbox.checked = soundEnabled;
+        if (autoScrollCheckbox) autoScrollCheckbox.checked = autoScroll;
+        if (timestampsCheckbox) timestampsCheckbox.checked = showTimestamps;
+        if (messagesSelect) messagesSelect.value = messagesPerPage;
+        
+        // Save settings on change
+        soundCheckbox?.addEventListener('change', (e) => {
+            localStorage.setItem('chatSoundEnabled', e.target.checked);
+        });
+        autoScrollCheckbox?.addEventListener('change', (e) => {
+            localStorage.setItem('chatAutoScroll', e.target.checked);
+        });
+        timestampsCheckbox?.addEventListener('change', (e) => {
+            localStorage.setItem('chatShowTimestamps', e.target.checked);
+        });
+        messagesSelect?.addEventListener('change', (e) => {
+            localStorage.setItem('chatMessagesPerPage', e.target.value);
+        });
+    }
+    
+    settingsModal.style.display = 'flex';
+}
+
+chatSettingsBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openChatSettings();
+});
+
+fullscreenChatSettingsBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openChatSettings();
+});
+
 // Expand chat to full screen
 expandChatBtn?.addEventListener('click', () => {
     if (!fullScreenChatModal) {
