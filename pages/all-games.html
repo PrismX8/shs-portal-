@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>All Games - SHS Game Hall</title>
+<meta name="description" content="Browse all games available on SHS Game Hall. Search, filter, and discover your next favorite game.">
+<link rel="icon" type="image/png" href="../images/logoshs.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page-container">
+    <header class="page-header">
+        <a href="../index.html" class="back-home-btn">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+        <h1><i class="fas fa-th"></i> All Games</h1>
+    </header>
+    
+    <div id="gamesGridContainer" class="games-grid-container">
+        <div class="games-search-container">
+            <div class="games-search-wrapper">
+                <i class="fas fa-search games-search-icon"></i>
+                <input type="text" id="gamesSearchInput" class="games-search-input" placeholder="Search games...">
+                <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="games-categories">
+            <button class="category-btn active" data-category="all">
+                <i class="fas fa-th"></i> All Games
+            </button>
+            <button class="category-btn" data-category="trending">
+                <i class="fas fa-chart-line"></i> Trending
+            </button>
+            <button class="category-btn" data-category="popular">
+                <i class="fas fa-fire"></i> Most Popular
+            </button>
+            <button class="category-btn" data-category="new">
+                <i class="fas fa-star"></i> New
+            </button>
+            <button class="category-btn" data-category="racing">
+                <i class="fas fa-car"></i> Racing
+            </button>
+            <button class="category-btn" data-category="puzzle">
+                <i class="fas fa-puzzle-piece"></i> Puzzle
+            </button>
+            <button class="category-btn" data-category="action">
+                <i class="fas fa-crosshairs"></i> Action
+            </button>
+            <button class="category-btn" data-category="shooting">
+                <i class="fas fa-gun"></i> Shooting
+            </button>
+        </div>
+        <div id="gamesGrid" class="games-grid">
+            <!-- Games will be dynamically loaded here -->
+        </div>
+    </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+// Initialize games grid when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('All-games page loaded, initializing...');
+    
+    // Function to initialize games with retry logic
+    function tryInitGames(attempt = 0) {
+        const maxAttempts = 10;
+        
+        if (attempt >= maxAttempts) {
+            console.error('Failed to initialize games after', maxAttempts, 'attempts');
+            return;
+        }
+        
+        if (typeof initGamesGrid === 'function') {
+            console.log('Calling initGamesGrid...');
+            initGamesGrid();
+        } else if (typeof filterGamesByCategory === 'function' && typeof gameSites !== 'undefined' && gameSites.length > 0) {
+            // If initGamesGrid doesn't exist but games are loaded, filter directly
+            console.log('Games loaded, calling filterGamesByCategory...');
+            filterGamesByCategory('all');
+        } else {
+            // Retry after a short delay if functions aren't ready yet
+            console.log('Waiting for games to load, attempt', attempt + 1);
+            setTimeout(() => tryInitGames(attempt + 1), 300);
+        }
+    }
+    
+    // Start initialization after a short delay to ensure script.js is loaded
+    setTimeout(() => tryInitGames(0), 100);
+});
+</script>
+</body>
+</html>
+
