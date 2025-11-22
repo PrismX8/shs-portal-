@@ -2979,12 +2979,13 @@ if (loadingParticlesContainer) {
         requestAnimationFrame(animateParticles);
     }
     animateParticles();
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        particleCanvas.width = window.innerWidth;
+        particleCanvas.height = window.innerHeight;
+    });
 }
-
-window.addEventListener('resize', ()=>{
-  particleCanvas.width = window.innerWidth;
-  particleCanvas.height = window.innerHeight;
-});
 
 // ================= NEW FEATURES =================
 
