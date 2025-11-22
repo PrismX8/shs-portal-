@@ -6865,6 +6865,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ================= Back to Top Button =================
+const backToTopBtn = document.getElementById('backToTopBtn');
+
+// Show/hide button based on scroll position
+function handleScroll() {
+    if (window.pageYOffset > 300) {
+        backToTopBtn?.classList.add('show');
+    } else {
+        backToTopBtn?.classList.remove('show');
+    }
+}
+
+// Scroll to top when button is clicked
+backToTopBtn?.addEventListener('click', () => {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+});
+
+// Listen for scroll events
+window.addEventListener('scroll', Utils.throttle(handleScroll, 100));
+
+// Check initial scroll position
+handleScroll();
+
 // Navigation button handlers
 document.addEventListener('DOMContentLoaded', () => {
     // Chat button in navigation
