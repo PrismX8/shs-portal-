@@ -39,6 +39,10 @@
         SHS Game Hall <br>
         <small style="font-size: 12px; font-weight: 400; display: block; margin-top: 6px; color: rgba(255, 255, 255, 0.6);">SPS-devices Wi-Fi Password: 7&UI0)jk</small>
     </div>
+    <button id="youtubeWatcherBtn" title="Watch YouTube Videos Unblocked" class="youtube-watcher-btn hover-lift">
+        <i class="fab fa-youtube" style="margin-right: 8px; font-size: 20px;"></i>
+        <span class="youtube-btn-text">Watch Any YouTube Video Unblocked</span>
+    </button>
     <button id="replayTutorialBtn" title="Replay Tutorial" class="hover-lift">T</button>
 </header>
 
@@ -591,6 +595,40 @@
       <p style="margin:10px 0 0 0; font-size:12px; color:rgba(255,255,255,0.6);">Drag and drop files here or click to browse</p>
     </div>
     <div id="filesList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:15px;"></div>
+  </div>
+</div>
+
+<!-- ================ YouTube Video Watcher Modal ================ -->
+<div id="youtubeWatcherModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); backdrop-filter:blur(15px); z-index:17000; align-items:center; justify-content:center;">
+  <div class="youtube-modal-content" style="width:min(600px, 95%); background:rgba(15,15,25,0.98); backdrop-filter:blur(30px); border-radius:24px; padding:40px; box-shadow:0 25px 60px rgba(0,0,0,0.7); border:2px solid rgba(255,0,0,0.3); color:rgba(255,255,255,0.9); position:relative;">
+    <button id="closeYoutubeWatcherBtn" style="position:absolute; top:15px; right:15px; border:none; background:rgba(255,0,0,0.2); color:#ff0000; font-size:24px; cursor:pointer; width:40px; height:40px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,0,0,0.3); display:flex; align-items:center; justify-content:center;">&times;</button>
+    
+    <div style="text-align:center; margin-bottom:30px;">
+      <i class="fab fa-youtube" style="font-size:64px; color:#ff0000; margin-bottom:15px; display:block; text-shadow:0 0 20px rgba(255,0,0,0.5);"></i>
+      <h2 style="margin:0; color:#ffffff; font-weight:700; font-size:28px; text-shadow:0 2px 10px rgba(0,0,0,0.5); letter-spacing:1px;">YouTube Video Watcher</h2>
+      <p style="margin:10px 0 0 0; color:rgba(255,255,255,0.7); font-size:16px;">Watch any YouTube video unblocked</p>
+    </div>
+
+    <div style="margin-bottom:25px;">
+      <label style="display:block; margin-bottom:12px; color:#FFD700; font-weight:600; font-size:16px;">
+        <i class="fas fa-link" style="margin-right:8px;"></i>Enter YouTube URL
+      </label>
+      <input type="text" id="youtubeUrlInput" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ" style="width:100%; padding:16px 20px; border-radius:12px; border:2px solid rgba(255,0,0,0.3); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); font-size:16px; transition:all 0.3s ease; box-sizing:border-box; font-family:'Inter', sans-serif;">
+      <p style="margin:10px 0 0 0; font-size:13px; color:rgba(255,255,255,0.5); font-style:italic;">
+        <i class="fas fa-info-circle" style="margin-right:6px;"></i>Example: https://www.youtube.com/watch?v=VIDEO_ID
+      </p>
+    </div>
+
+    <button id="watchYoutubeBtn" style="width:100%; padding:16px; background:linear-gradient(135deg, #ff0000, #cc0000); border:none; border-radius:12px; color:#ffffff; cursor:pointer; font-weight:700; font-size:18px; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(255,0,0,0.4); text-transform:uppercase; letter-spacing:1px;">
+      <i class="fas fa-play" style="margin-right:10px;"></i>Watch Video
+    </button>
+
+    <div style="margin-top:20px; padding:15px; background:rgba(255,0,0,0.1); border-radius:10px; border-left:4px solid #ff0000;">
+      <p style="margin:0; font-size:13px; color:rgba(255,255,255,0.7); line-height:1.6;">
+        <i class="fas fa-shield-alt" style="margin-right:8px; color:#ff0000;"></i>
+        <strong>Privacy Note:</strong> Videos will open in a new tab using an unblocked domain for your convenience.
+      </p>
+    </div>
   </div>
 </div>
 
