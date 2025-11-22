@@ -578,16 +578,107 @@
   </div>
 </div>
 
-<!-- ================ Friends Modal ================ -->
-<div id="friendsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
-  <div style="width:min(600px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
-      <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;"><i class="fas fa-user-friends"></i> Friends</h2>
-      <button id="closeFriendsBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
+<!-- ================ Friends System (Full Featured UI) ================ -->
+<div id="friendsModal" class="friends-full-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.96); backdrop-filter:blur(20px); z-index:16000; overflow-y:auto;">
+  <div class="friends-container">
+    <!-- Header Section -->
+    <div class="friends-header-section">
+      <div class="friends-header-content">
+        <div class="friends-header-title">
+          <div class="friends-icon-wrapper">
+            <i class="fas fa-user-friends"></i>
+          </div>
+          <div>
+            <h1 class="friends-main-title">Friends</h1>
+            <p class="friends-subtitle">Connect, chat, and stay in touch</p>
+          </div>
+        </div>
+        <button id="closeFriendsBtn" class="friends-close-button">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
     </div>
-    <div id="friendsList" style="margin-bottom:20px;"></div>
-    <input type="text" id="searchFriendsInput" placeholder="Search for users..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9);">
-    <div id="searchResults" style="margin-top:15px;"></div>
+
+    <!-- Tabs Navigation -->
+    <div class="friends-tabs-container">
+      <button class="friends-tab-btn active" data-tab="friends">
+        <i class="fas fa-users"></i>
+        <span>My Friends</span>
+        <span class="friends-badge" id="friendsCountBadge">0</span>
+      </button>
+      <button class="friends-tab-btn" data-tab="requests">
+        <i class="fas fa-user-plus"></i>
+        <span>Requests</span>
+        <span class="friends-badge friends-badge-alert" id="requestsCountBadge" style="display:none;">0</span>
+      </button>
+      <button class="friends-tab-btn" data-tab="search">
+        <i class="fas fa-search"></i>
+        <span>Find Friends</span>
+      </button>
+      <button class="friends-tab-btn" data-tab="blocked">
+        <i class="fas fa-ban"></i>
+        <span>Blocked</span>
+        <span class="friends-badge" id="blockedCountBadge" style="display:none;">0</span>
+      </button>
+    </div>
+
+    <!-- Tab Content Areas -->
+    <div class="friends-content-wrapper">
+      <!-- Friends Tab -->
+      <div id="friendsTabContent" class="friends-tab-panel active">
+        <div class="friends-toolbar">
+          <div class="friends-search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="filterFriendsInput" placeholder="Search your friends..." class="friends-search-input">
+          </div>
+          <select id="friendsSortSelect" class="friends-sort-select">
+            <option value="online">🟢 Online First</option>
+            <option value="name">👤 Name (A-Z)</option>
+            <option value="recent">🕐 Recently Active</option>
+          </select>
+        </div>
+        <div id="friendsList" class="friends-grid-container"></div>
+      </div>
+
+      <!-- Requests Tab -->
+      <div id="requestsTabContent" class="friends-tab-panel">
+        <div class="requests-split-view">
+          <div class="requests-column">
+            <div class="requests-column-header">
+              <i class="fas fa-paper-plane"></i>
+              <h3>Sent Requests</h3>
+            </div>
+            <div id="sentRequestsList" class="requests-list"></div>
+          </div>
+          <div class="requests-column">
+            <div class="requests-column-header">
+              <i class="fas fa-inbox"></i>
+              <h3>Received Requests</h3>
+            </div>
+            <div id="receivedRequestsList" class="requests-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Tab -->
+      <div id="searchTabContent" class="friends-tab-panel">
+        <div class="friends-search-header">
+          <div class="friends-search-box-large">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchFriendsInput" placeholder="Search by username..." class="friends-search-input-large">
+            <button class="friends-search-clear" id="clearSearchBtn" style="display:none;">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        <div id="searchResults" class="friends-grid-container"></div>
+      </div>
+
+      <!-- Blocked Tab -->
+      <div id="blockedTabContent" class="friends-tab-panel">
+        <div id="blockedList" class="friends-grid-container"></div>
+      </div>
+    </div>
   </div>
 </div>
 
