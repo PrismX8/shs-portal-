@@ -3298,17 +3298,8 @@ input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
 }
 
 /* ================= Modern Tooltip Styling ================= */
-[title] {
-    position: relative;
-    cursor: help;
-}
-
-[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: calc(100% + 12px);
-    left: 50%;
-    transform: translateX(-50%);
+.custom-tooltip {
+    position: fixed;
     padding: 10px 16px;
     background: linear-gradient(135deg, rgba(15, 15, 25, 0.98), rgba(20, 20, 30, 0.98));
     backdrop-filter: blur(20px);
@@ -3319,23 +3310,29 @@ input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
     border-radius: 10px;
     border: 2px solid rgba(255, 215, 0, 0.4);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.2);
-    z-index: 100000;
+    z-index: 999999;
     pointer-events: none;
     animation: tooltipFadeIn 0.2s ease-out;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     letter-spacing: 0.3px;
 }
 
-[title]:hover::before {
+.custom-tooltip::after {
     content: '';
     position: absolute;
-    bottom: calc(100% + 2px);
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
     border: 8px solid transparent;
     border-top-color: rgba(255, 215, 0, 0.4);
-    z-index: 100001;
-    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.custom-tooltip.tooltip-below::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: rgba(255, 215, 0, 0.4);
     filter: drop-shadow(0 -2px 4px rgba(0, 0, 0, 0.3));
 }
 
