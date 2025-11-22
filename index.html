@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>SHS Gamesite</title>
+<title>SHS Game Hall</title>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
      crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -17,12 +17,32 @@
 body {
     margin: 0;
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
     color: #ffffff;
     position: relative;
     overflow-x: hidden;
     min-height: 100vh;
     line-height: 1.6;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Interactive background overlay */
+#interactiveBackground {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.6;
 }
 
 /* Visitor Counter Top Bar */
@@ -316,6 +336,17 @@ header small {
     z-index: -1;
 }
 
+/* Interactive Background */
+#interactiveBackground {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+}
+
 /* Sparkles */
 #sparkleCanvas {
     position: absolute;
@@ -463,13 +494,32 @@ header small {
 }
 #sharedCanvasContainer {
   width: 100%;
-  background: #f9f9f9;
-  border-radius: 4px;
-  padding:15px;
+  background: rgba(15, 15, 25, 0.4);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding:20px;
   box-sizing:border-box;
+  border: 1px solid rgba(255,215,0,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
-#canvasArea { border: 1px solid #ccc; border-radius: 4px; overflow:hidden; background: #ffffff; display:block; }
-#sharedCanvas { width:100%; height:500px; display:block; background: #ffffff; touch-action:none; }
+#canvasArea { 
+  border: 2px solid rgba(255,215,0,0.2); 
+  border-radius: 12px; 
+  overflow:hidden; 
+  background: rgba(255,255,255,0.05); 
+  display:block;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+}
+#sharedCanvas { 
+  width:100%; 
+  height:500px; 
+  display:block; 
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  touch-action:none; 
+  border-radius:12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6);
+  border: 2px solid rgba(255,215,0,0.2);
+}
 #toggleCanvasBtn { padding: 8px 16px; border-radius: 4px; cursor:pointer; border: 1px solid #007bff; background: #007bff; color: #ffffff; font-weight: 500; transition: all 0.2s ease; }
 #toggleCanvasBtn:hover { background: #0056b3; }
 
@@ -801,6 +851,7 @@ header small {
 </head>
 <body>
 <canvas id="starCanvas"></canvas>
+<canvas id="interactiveBackground"></canvas>
 <!-- Cool Intro Loading Screen -->
 <div id="introScreen">
   <div class="introParticles"></div>
@@ -808,7 +859,7 @@ header small {
     <div class="logoBounce">
       <img src="logoshs.png" alt="Logo" />
     </div>
-    <div class="introText">Welcome to gooner gamesite</div>
+    <div class="introText">Welcome to SHS Game Hall</div>
     <div class="typingDots"><span></span><span></span><span></span></div>
   </div>
 </div>
@@ -883,7 +934,7 @@ header small {
 <header>
     <button id="adminBtn" title="Admin Panel" style="position:absolute; top:15px; left:15px; width:35px; height:35px; font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #FFD700; background: #FFD700; cursor:pointer; transition: all 0.3s ease; color: #000000;">⚙</button>
     <div class="headerText">
-        SHS - Gooner Gamesite <br>
+        SHS Game Hall <br>
         <small>SPS-devices Wi-Fi Password: 7&UI0)jk</small>
     </div>
     <button id="replayTutorialBtn" title="Replay Tutorial">T</button>
@@ -927,6 +978,19 @@ header small {
             <button id="statsBtn"><i class="fas fa-chart-bar"></i> Stats</button>
         </div>
     </div>
+    <div class="control-section active">
+        <div class="control-section-header">
+            <h3><i class="fas fa-users"></i> Social</h3>
+            <i class="fas fa-chevron-down"></i>
+        </div>
+        <div class="control-group">
+            <button id="profileBtn"><i class="fas fa-user-circle"></i> Profile</button>
+            <button id="leaderboardBtn"><i class="fas fa-medal"></i> Leaderboard</button>
+            <button id="friendsBtn"><i class="fas fa-user-friends"></i> Friends</button>
+            <button id="pollsBtn"><i class="fas fa-poll"></i> Polls</button>
+            <button id="filesBtn"><i class="fas fa-folder-open"></i> Files</button>
+        </div>
+    </div>
 </div>
 
 <div id="iframeContainer">
@@ -943,7 +1007,7 @@ header small {
 <div id="fullscreenPopup">
     <div class="popupContent" id="popupContent">
         <button class="closeBtn">&times;</button>
-        <h1>Welcome to SHS Gamesite</h1>
+        <h1>Welcome to SHS Game Hall</h1>
         <p>Discover unblocked games, browse freely, and enjoy our interactive features.<br>Let's get started!</p>
         <canvas id="sparkleCanvas"></canvas>
     </div>
@@ -951,11 +1015,32 @@ header small {
 
 <div id="chatContainer" style="display:none;">
     <header>
-        Chat <span id="changeNameBtn" style="color:#000000;">Change Name/Color</span>
-        <span id="typingIndicator" style="font-size:12px;color:#555;float:right;"></span>
+        Chat <span id="changeNameBtn" style="color:#FFD700; cursor:pointer;">Change Name/Color</span>
+        <span id="typingIndicator" style="font-size:12px;color:rgba(255,255,255,0.6);float:right;"></span>
     </header>
     <div id="chatMessages" style="max-height:300px; overflow-y:auto; padding:5px;"></div>
-    <input type="text" id="chatInput" placeholder="Type a message...">
+    <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+        <button id="emojiBtn" style="padding:8px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; cursor:pointer; color:#FFD700; font-size:18px;" title="Emoji Picker">😀</button>
+        <button id="voiceChatBtn" style="padding:8px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; cursor:pointer; color:#FFD700;" title="Hold to record voice message"><i class="fas fa-microphone"></i></button>
+        <button id="attachLinkBtn" style="padding:8px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; cursor:pointer; color:#FFD700;" title="Attach Link"><i class="fas fa-link"></i></button>
+        <input type="text" id="chatInput" placeholder="Type a message..." style="flex:1;">
+        <button id="sendFileBtn" style="padding:8px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; cursor:pointer; color:#FFD700;" title="Send File"><i class="fas fa-paperclip"></i></button>
+    </div>
+    <div id="emojiPicker" style="display:none; position:absolute; bottom:50px; right:20px; background:rgba(15,15,25,0.95); border:1px solid rgba(255,215,0,0.2); border-radius:12px; padding:15px; max-width:300px; max-height:200px; overflow-y:auto; z-index:10001;">
+        <div style="display:grid; grid-template-columns:repeat(8,1fr); gap:8px;">
+            <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">😀</span>
+            <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">😂</span>
+            <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">❤️</span>
+            <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">👍</span>
+            <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">👎</span>
+            <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">🔥</span>
+            <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">🎉</span>
+            <span class="emoji-option" style="cursor:pointer; font-size:20px; padding:5px; text-align:center; border-radius:4px; transition:background 0.2s;">💯</span>
+        </div>
+    </div>
+    <div id="voiceIndicator" style="display:none; position:absolute; bottom:50px; left:20px; background:rgba(220,53,69,0.9); color:white; padding:10px 15px; border-radius:8px; font-weight:bold;">
+        <i class="fas fa-microphone"></i> Recording... (Release to send)
+    </div>
 </div>
 
 
@@ -973,17 +1058,26 @@ header small {
 
 <!-- Admin Panel -->
 <div id="adminModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:20001; align-items:center; justify-content:center;">
-  <div style="width:min(550px, 96%); background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border:1px solid rgba(255,215,0,0.2); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); color:rgba(255,255,255,0.9);">
+  <div style="width:min(800px, 96%); max-height:90vh; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border:1px solid rgba(255,215,0,0.2); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); color:rgba(255,255,255,0.9);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
       <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;">Admin Panel</h2>
       <button id="closeAdminBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
     </div>
     <div id="adminContent" style="display:none;">
-      <div style="display:grid; gap:10px;">
+      <div style="display:grid; gap:10px; margin-bottom:20px;">
         <button id="deleteChatHistoryBtn" style="padding:10px; background:#dc3545; border:1px solid #dc3545; color:#ffffff; border-radius:4px; cursor:pointer; font-weight:500;">Delete All Chat History</button>
         <button id="clearCanvasAdminBtn" style="padding:10px; background:#ffc107; border:1px solid #ffc107; color:#000; border-radius:4px; cursor:pointer; font-weight:500;">Clear Canvas</button>
         <button id="resetVisitorsBtn" style="padding:10px; background:#007bff; border:1px solid #007bff; color:#ffffff; border-radius:4px; cursor:pointer; font-weight:500;">Reset Total Visitors Count</button>
         <button id="logoutAdminBtn" style="padding:10px; background:#6c757d; border:1px solid #6c757d; color:#ffffff; border-radius:4px; cursor:pointer; font-weight:500;">Logout</button>
+      </div>
+      <div style="border-top:1px solid rgba(255,215,0,0.1); padding-top:20px; margin-top:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h3 style="color:#FFD700; font-size:16px; margin:0;">Manage Chat Messages</h3>
+          <button id="refreshChatListBtn" style="padding:6px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); color:#FFD700; border-radius:4px; cursor:pointer; font-size:12px;"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+        <div id="adminChatList" style="max-height:400px; overflow-y:auto; background:rgba(255,255,255,0.05); border-radius:8px; padding:10px;">
+          <p style="text-align:center; color:rgba(255,255,255,0.5);">Loading chat messages...</p>
+        </div>
       </div>
     </div>
     <div id="adminPassword">
@@ -1040,10 +1134,13 @@ header small {
         <div style="margin-left:auto; font-size:12px; color:#777;">Shared canvas (Realtime)</div>
       </div>
 
-      <div id="canvasArea" style="position:relative;">
+      <div id="canvasArea" style="position:relative; background:rgba(255,255,255,0.05); border-radius:12px; padding:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
         <canvas id="sharedCanvas" width="800" height="500" style="display:block; touch-action:none;"></canvas>
-        <canvas id="cursorOverlay" width="800" height="500" style="position:absolute; top:0; left:0; cursor:crosshair; background:transparent;"></canvas>
-        <div style="padding:8px; font-size:12px; color:#777;">Draw and everyone currently connected will see it. Cursors show where others are drawing.</div>
+        <canvas id="cursorOverlay" width="800" height="500" style="position:absolute; top:15px; left:15px; cursor:crosshair; background:transparent; border-radius:12px;"></canvas>
+        <div style="padding:12px; margin-top:10px; font-size:13px; color:rgba(255,255,255,0.7); background:rgba(255,215,0,0.1); border-radius:8px; border-left:3px solid rgba(255,215,0,0.5);">
+          <i class="fas fa-info-circle" style="color:#FFD700; margin-right:8px;"></i>
+          <strong style="color:#FFD700;">Shared Canvas:</strong> Draw and everyone will see it in real-time. Your drawings are saved permanently across all devices and sessions.
+        </div>
       </div>
     </div>
     <!-- end shared UI -->
@@ -1296,11 +1393,141 @@ header small {
 </div>
 <!-- ====================================================================== -->
 
+<!-- ================ User Profile Modal ================ -->
+<div id="profileModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
+  <div style="width:min(600px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
+      <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;"><i class="fas fa-user-circle"></i> <span id="profileModalTitle">My Profile</span></h2>
+      <button id="closeProfileBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
+    </div>
+    <div style="text-align:center; margin-bottom:20px;">
+      <div id="profileAvatarContainer" style="position:relative; display:inline-block; margin-bottom:15px;">
+        <div id="profileAvatar" style="width:120px; height:120px; border-radius:50%; background:linear-gradient(135deg, #FFD700, #FFA500); margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:48px; cursor:pointer; border:3px solid rgba(255,215,0,0.5); background-size:cover; background-position:center; background-repeat:no-repeat; position:relative;" title="Click to upload profile picture">
+          <span id="profileAvatarEmoji" style="display:block;">👤</span>
+          <button id="removePfpBtn" style="display:none; position:absolute; top:-5px; right:-5px; width:28px; height:28px; border-radius:50%; background:rgba(255,0,0,0.8); border:2px solid rgba(255,255,255,0.9); color:white; cursor:pointer; font-size:14px; font-weight:bold; z-index:10;" title="Remove photo">&times;</button>
+        </div>
+        <input type="file" id="profilePictureInput" accept="image/*" style="display:none;">
+        <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
+          <button id="uploadPfpBtn" style="padding:8px 16px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer; font-size:12px;"><i class="fas fa-camera"></i> Upload Photo</button>
+        </div>
+      </div>
+      <input type="text" id="profileUsername" placeholder="Enter your username..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:10px; font-size:16px; font-weight:500;" required>
+      <input type="text" id="profileStatus" placeholder="Set your status message (optional)..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:10px;">
+      <button id="saveProfileBtn" style="width:100%; padding:12px; background:rgba(255,215,0,0.2); border:1px solid rgba(255,215,0,0.4); border-radius:8px; color:#FFD700; cursor:pointer; font-weight:500; margin-bottom:15px;"><i class="fas fa-save"></i> Save Profile</button>
+      <div id="activityHistory" style="margin-top:20px; text-align:left;">
+        <h3 style="color:#FFD700; margin-bottom:15px;">Activity History</h3>
+        <div id="activityList" style="max-height:200px; overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================ Leaderboard Modal ================ -->
+<div id="leaderboardModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
+  <div style="width:min(800px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
+      <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;"><i class="fas fa-medal"></i> Leaderboard</h2>
+      <button id="closeLeaderboardBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
+    </div>
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
+      <button class="leaderboardTab" data-tab="chatters" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Top Chatters</button>
+      <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Most Active</button>
+      <button class="leaderboardTab" data-tab="achievements" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Achievements</button>
+      <button class="leaderboardTab" data-tab="stats" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Daily/Weekly</button>
+    </div>
+    <div id="leaderboardContent"></div>
+  </div>
+</div>
+
+<!-- ================ Friends Modal ================ -->
+<div id="friendsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
+  <div style="width:min(600px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
+      <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;"><i class="fas fa-user-friends"></i> Friends</h2>
+      <button id="closeFriendsBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
+    </div>
+    <div id="friendsList" style="margin-bottom:20px;"></div>
+    <input type="text" id="searchFriendsInput" placeholder="Search for users..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9);">
+    <div id="searchResults" style="margin-top:15px;"></div>
+  </div>
+</div>
+
+<!-- ================ Polls Modal ================ -->
+<div id="pollsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
+  <div style="width:min(700px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
+      <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;"><i class="fas fa-poll"></i> Polls</h2>
+      <button id="closePollsBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
+    </div>
+    <button id="createPollBtn" style="width:100%; padding:12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer; margin-bottom:20px; font-weight:500;"><i class="fas fa-plus"></i> Create New Poll</button>
+    <div id="pollsList"></div>
+    <div id="createPollForm" style="display:none; margin-top:20px; padding:20px; background:rgba(255,255,255,0.05); border-radius:12px;">
+      <input type="text" id="pollQuestion" placeholder="Poll question..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:10px;">
+      <div id="pollOptions">
+        <input type="text" class="pollOption" placeholder="Option 1" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:8px;">
+        <input type="text" class="pollOption" placeholder="Option 2" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:8px;">
+      </div>
+      <button id="addPollOptionBtn" style="padding:8px 15px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:6px; color:#FFD700; cursor:pointer; margin-bottom:10px;"><i class="fas fa-plus"></i> Add Option</button>
+      <div style="display:flex; gap:10px;">
+        <button id="submitPollBtn" style="flex:1; padding:10px; background:rgba(255,215,0,0.2); border:1px solid rgba(255,215,0,0.4); border-radius:8px; color:#FFD700; cursor:pointer; font-weight:500;">Create Poll</button>
+        <button id="cancelPollBtn" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================ File Sharing Modal ================ -->
+<div id="filesModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
+  <div style="width:min(800px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
+      <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;"><i class="fas fa-folder-open"></i> File Sharing</h2>
+      <button id="closeFilesBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
+    </div>
+    <div style="margin-bottom:20px; padding:20px; background:rgba(255,255,255,0.05); border-radius:12px; border:2px dashed rgba(255,215,0,0.3); text-align:center;">
+      <input type="file" id="fileUploadInput" multiple style="display:none;">
+      <button id="uploadFileBtn" style="padding:12px 24px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer; font-weight:500;"><i class="fas fa-upload"></i> Upload Files</button>
+      <p style="margin:10px 0 0 0; font-size:12px; color:rgba(255,255,255,0.6);">Drag and drop files here or click to browse</p>
+    </div>
+    <div id="filesList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:15px;"></div>
+  </div>
+</div>
+
+<!-- ====================================================================== -->
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+// ================= Loading Screen Removal (RUN FIRST) =================
+// Remove loading screen immediately - don't wait for anything
+(function() {
+    function removeLoadingScreen() {
+        const introScreen = document.getElementById('introScreen');
+        if (introScreen) {
+            introScreen.style.transition = 'opacity 0.5s ease';
+            introScreen.style.opacity = '0';
+            setTimeout(function() {
+                if (introScreen && introScreen.parentNode) {
+                    introScreen.remove();
+                }
+            }, 500);
+        }
+    }
+    
+    // Try immediately
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(removeLoadingScreen, 1500);
+    } else {
+        window.addEventListener('load', function() {
+            setTimeout(removeLoadingScreen, 1500);
+        });
+    }
+    
+    // Safety fallback - always remove after 3 seconds
+    setTimeout(removeLoadingScreen, 3000);
+})();
+
 // ---------------- Firebase ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyBn1apVsFafY2-2a2QPeslX17XR0gWE9qs",
@@ -1368,7 +1595,9 @@ if (onlineDbRef && totalRef) {
 }
 
 // ---------------- Chat ----------------
-let username = 'Guest' + Math.floor(Math.random()*1000);
+// Load username from profile if it exists, otherwise use default
+let userProfileData = JSON.parse(localStorage.getItem('userProfile')) || { profileCreated: false };
+let username = (userProfileData.profileCreated && userProfileData.username) ? userProfileData.username : ('Guest' + Math.floor(Math.random()*1000));
 let userColor = ['#007bff','#ff4500','#32cd32','#ffa500','#9932cc'][Math.floor(Math.random()*5)];
 
 const chatMessages = document.getElementById('chatMessages');
@@ -1403,48 +1632,139 @@ chatInput.addEventListener('keypress', e => {
             text: chatInput.value,
             color: userColor,
             time: Date.now(),
-            uid: visitorId
+            uid: visitorId,
+            avatar: userProfile.avatar || '👤',
+            avatarImage: userProfile.avatarImage || null
         };
         db.ref('chat').push(msgData).catch(error => console.error('Error sending message:', error));
         trackActivity('chat', 1);
+        addActivity('Sent a chat message');
         chatInput.value='';
     }
 });
 
-// Listen to chat messages
+// Helper function to render a chat message
+function renderChatMessage(msg, msgId, snapshot) {
+    const msgDiv = document.createElement('div');
+    msgDiv.setAttribute('data-msg-id', msgId);
+    msgDiv.style.marginBottom='6px';
+    msgDiv.style.display='flex';
+    msgDiv.style.gap='10px';
+    msgDiv.style.alignItems='flex-start';
+    
+    // Profile picture
+    const avatarDiv = document.createElement('div');
+    avatarDiv.style.width='32px';
+    avatarDiv.style.height='32px';
+    avatarDiv.style.borderRadius='50%';
+    avatarDiv.style.flexShrink='0';
+    avatarDiv.style.overflow='hidden';
+    avatarDiv.style.display='flex';
+    avatarDiv.style.alignItems='center';
+    avatarDiv.style.justifyContent='center';
+    avatarDiv.style.fontSize='20px';
+    avatarDiv.style.background='linear-gradient(135deg, #FFD700, #FFA500)';
+    if(msg.avatarImage) {
+        avatarDiv.style.backgroundImage = `url(${msg.avatarImage})`;
+        avatarDiv.style.backgroundSize = 'cover';
+        avatarDiv.style.backgroundPosition = 'center';
+        avatarDiv.textContent = '';
+    } else {
+        avatarDiv.textContent = msg.avatar || '👤';
+    }
+    msgDiv.appendChild(avatarDiv);
+    
+    const leftDiv = document.createElement('div');
+    leftDiv.style.flex='1';
+    let content = msg.text;
+    if(msg.file) {
+        if(msg.file.type && msg.file.type.startsWith('image/')) {
+            content = `<img src="${msg.file.data}" style="max-width:200px; max-height:200px; border-radius:8px; margin-top:5px;" /><br>${msg.text}`;
+        } else {
+            content = `${msg.text} <a href="${msg.file.data}" download="${msg.file.name}" style="color:#FFD700;">Download</a>`;
+        }
+    }
+    // Handle links
+    if(msg.link) {
+        content = `${content}<br><a href="${msg.link}" target="_blank" rel="noopener noreferrer" style="color:#FFD700; text-decoration:underline;">${msg.link}</a>`;
+    }
+    
+    leftDiv.innerHTML = `<span style="color:${msg.color}; font-weight:bold;">${msg.user}</span>: ${content} 
+                         <small style="color:rgba(255,255,255,0.5); font-size:11px;">${new Date(msg.time).toLocaleTimeString()}</small>`;
+    leftDiv.style.maxWidth='85%';
+    leftDiv.style.wordWrap='break-word';
+    
+    // Delete button if owner
+    if(msg.uid === visitorId && snapshot){
+        const delBtn = document.createElement('button');
+        delBtn.innerHTML='✖';
+        delBtn.style.border='none';
+        delBtn.style.background='transparent';
+        delBtn.style.color='rgba(255,255,255,0.5)';
+        delBtn.style.cursor='pointer';
+        delBtn.title='Delete';
+        delBtn.onclick = () => snapshot.ref.remove();
+        leftDiv.appendChild(delBtn);
+    }
+
+    msgDiv.appendChild(leftDiv);
+    
+    // Add emoji reactions section
+    const reactionsDiv = document.createElement('div');
+    reactionsDiv.className = 'emoji-reactions';
+    reactionsDiv.style.cssText = 'display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; width:100%;';
+    msgDiv.appendChild(reactionsDiv);
+    
+    chatMessages.appendChild(msgDiv);
+
+    // Auto-scroll if near bottom
+    if(chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 50){
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Load reactions
+    if(msg.reactions) {
+        updateMessageReactions(msgId, msg.reactions);
+    }
+}
+
+// Listen to chat messages - optimized loading
 if (db) {
-  db.ref('chat').limitToLast(100).on('child_added', snapshot => {
+  // Load initial messages in bulk for faster display
+  db.ref('chat').limitToLast(50).once('value').then(snap => {
+      const initialMessages = snap.val() || {};
+      const messageArray = Object.entries(initialMessages)
+          .map(([id, msg]) => ({ id, ...msg }))
+          .sort((a, b) => (a.time || 0) - (b.time || 0));
+      
+      // Render all initial messages at once
+      messageArray.forEach(({id, ...msg}) => {
+          renderChatMessage(msg, id, null);
+      });
+      
+      // Now listen for new messages only
+      const lastMessageTime = messageArray.length > 0 ? messageArray[messageArray.length - 1].time : 0;
+      db.ref('chat').limitToLast(100).on('child_added', snapshot => {
+          const msg = snapshot.val();
+          // Only render if it's a new message (not in initial load)
+          if(msg && msg.time > lastMessageTime) {
+              renderChatMessage(msg, snapshot.key, snapshot);
+          }
+      });
+  }).catch(err => {
+      console.error('Error loading initial chat:', err);
+      // Fallback to original method if bulk load fails
+      db.ref('chat').limitToLast(100).on('child_added', snapshot => {
+          const msg = snapshot.val();
+          renderChatMessage(msg, snapshot.key, snapshot);
+      });
+  });
+  
+  // Listen for reaction changes
+  db.ref('chat').on('child_changed', snapshot => {
       const msg = snapshot.val();
-      const msgDiv = document.createElement('div');
-      msgDiv.style.marginBottom='6px';
-      msgDiv.style.display='flex';
-      msgDiv.style.justifyContent = 'space-between';
-      
-      const leftDiv = document.createElement('div');
-      leftDiv.innerHTML = `<span style="color:${msg.color}; font-weight:bold;">${msg.user}</span>: ${msg.text} 
-                           <small style="color:#888; font-size:11px;">${new Date(msg.time).toLocaleTimeString()}</small>`;
-      leftDiv.style.maxWidth='85%';
-      leftDiv.style.wordWrap='break-word';
-      
-      // Delete button if owner
-      if(msg.uid === visitorId){
-          const delBtn = document.createElement('button');
-          delBtn.innerHTML='✖';
-          delBtn.style.border='none';
-          delBtn.style.background='transparent';
-          delBtn.style.color='#888';
-          delBtn.style.cursor='pointer';
-          delBtn.title='Delete';
-          delBtn.onclick = () => snapshot.ref.remove();
-          leftDiv.appendChild(delBtn);
-      }
-
-      msgDiv.appendChild(leftDiv);
-      chatMessages.appendChild(msgDiv);
-
-      // Auto-scroll if near bottom
-      if(chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 50){
-          chatMessages.scrollTop = chatMessages.scrollHeight;
+      if(msg.reactions) {
+          updateMessageReactions(snapshot.key, msg.reactions);
       }
   });
 
@@ -1457,6 +1777,36 @@ if (db) {
           typingIndicator.innerText = '';
       }
   });
+}
+
+function updateMessageReactions(msgId, reactions) {
+    const msgDiv = document.querySelector(`[data-msg-id="${msgId}"]`);
+    if(!msgDiv) return;
+    let reactionsDiv = msgDiv.querySelector('.emoji-reactions');
+    if(!reactionsDiv) {
+        reactionsDiv = document.createElement('div');
+        reactionsDiv.className = 'emoji-reactions';
+        reactionsDiv.style.cssText = 'display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; width:100%;';
+        msgDiv.appendChild(reactionsDiv);
+    }
+    reactionsDiv.innerHTML = Object.entries(reactions).map(([emoji, count]) => 
+        `<button class="reactBtn" data-msg="${msgId}" data-emoji="${emoji}" style="padding:4px 8px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:4px; color:#FFD700; cursor:pointer; font-size:12px;">${emoji} ${count}</button>`
+    ).join('') + `<button class="addReactionBtn" data-msg="${msgId}" style="padding:4px 8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:4px; color:rgba(255,255,255,0.7); cursor:pointer; font-size:12px;">+ React</button>`;
+    
+    reactionsDiv.querySelectorAll('.reactBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if(db) {
+                db.ref(`chat/${btn.dataset.msg}/reactions/${btn.dataset.emoji}`).transaction(count => (count || 0) + 1);
+            }
+        });
+    });
+    
+    reactionsDiv.querySelector('.addReactionBtn')?.addEventListener('click', () => {
+        const emoji = prompt('Enter emoji:');
+        if(emoji && db) {
+            db.ref(`chat/${msgId}/reactions/${emoji}`).transaction(count => (count || 0) + 1);
+        }
+    });
 }
 
 // Change Name/Color popup
@@ -1631,6 +1981,7 @@ adminLoginBtn.addEventListener('click', () => {
     isAdminAuthenticated = true;
     adminPassword.style.display = 'none';
     adminContent.style.display = 'block';
+    loadAdminChatMessages(); // Load chat messages when admin logs in
   } else {
     alert('Incorrect password');
     adminPasswordInput.value = '';
@@ -1671,6 +2022,114 @@ resetVisitorsBtn.addEventListener('click', () => {
   }
 });
 
+// Refresh button for chat list
+const refreshChatListBtn = document.getElementById('refreshChatListBtn');
+refreshChatListBtn?.addEventListener('click', () => {
+  loadAdminChatMessages();
+});
+
+// Load chat messages for admin panel (including voice messages)
+function loadAdminChatMessages() {
+  const adminChatList = document.getElementById('adminChatList');
+  if(!db || !adminChatList) return;
+  
+  adminChatList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Loading chat messages...</p>';
+  
+  // Load both regular chat messages and voice messages
+  Promise.all([
+    db.ref('chat').limitToLast(50).once('value'),
+    db.ref('voiceMessages').limitToLast(50).once('value')
+  ]).then(([chatSnap, voiceSnap]) => {
+    const chatMessages = chatSnap.val() || {};
+    const voiceMessages = voiceSnap.val() || {};
+    
+    // Combine all messages into one array
+    const allMessages = [];
+    
+    // Add regular chat messages
+    Object.entries(chatMessages).forEach(([id, msg]) => {
+      if(msg) {
+        allMessages.push({
+          id,
+          type: 'chat',
+          user: msg.user || 'Unknown',
+          text: msg.text || '(no text)',
+          time: msg.time || Date.now(),
+          data: msg
+        });
+      }
+    });
+    
+    // Add voice messages
+    Object.entries(voiceMessages).forEach(([id, msg]) => {
+      if(msg && msg.audio) {
+        allMessages.push({
+          id,
+          type: 'voice',
+          user: msg.user || 'Unknown',
+          text: '🎤 Voice Message',
+          time: msg.time || Date.now(),
+          data: msg
+        });
+      }
+    });
+    
+    // Sort by time (newest first)
+    allMessages.sort((a, b) => b.time - a.time);
+    
+    if(allMessages.length === 0) {
+      adminChatList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">No messages found.</p>';
+      return;
+    }
+    
+    adminChatList.innerHTML = allMessages.map((item) => {
+      const time = new Date(item.time).toLocaleString();
+      const user = item.user;
+      const isVoice = item.type === 'voice';
+      const preview = isVoice ? '🎤 Voice Message' : (item.text.length > 50 ? item.text.substring(0, 50) + '...' : item.text);
+      const borderColor = isVoice ? 'rgba(0,150,255,0.5)' : 'rgba(255,215,0,0.5)';
+      const refPath = isVoice ? 'voiceMessages' : 'chat';
+      
+      return `
+        <div style="display:flex; align-items:center; gap:10px; padding:10px; background:rgba(255,255,255,0.05); border-radius:6px; margin-bottom:8px; border-left:3px solid ${borderColor};">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:600; color:#FFD700; margin-bottom:4px; font-size:13px;">
+              ${user} ${isVoice ? '<i class="fas fa-microphone" style="color:rgba(0,150,255,0.8);"></i>' : ''}
+            </div>
+            <div style="font-size:12px; color:rgba(255,255,255,0.8); margin-bottom:4px; word-break:break-word;">${preview}</div>
+            <div style="font-size:10px; color:rgba(255,255,255,0.5);">${time} • ${isVoice ? 'Voice Message' : 'Text Message'}</div>
+          </div>
+          <button class="adminDeleteChatBtn" data-msg-id="${item.id}" data-msg-type="${item.type}" data-ref-path="${refPath}" style="padding:6px 12px; background:#dc3545; border:1px solid #dc3545; color:#ffffff; border-radius:4px; cursor:pointer; font-size:12px; white-space:nowrap; flex-shrink:0;">Delete</button>
+        </div>
+      `;
+    }).join('');
+    
+    // Attach event listeners to delete buttons
+    adminChatList.querySelectorAll('.adminDeleteChatBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const msgId = btn.dataset.msgId;
+        const msgType = btn.dataset.msgType;
+        const refPath = btn.dataset.refPath;
+        const msgTypeName = msgType === 'voice' ? 'voice message' : 'chat message';
+        
+        if(msgId && refPath && confirm(`Delete this ${msgTypeName}?`)) {
+          db.ref(`${refPath}/${msgId}`).remove().then(() => {
+            // Remove from UI
+            btn.closest('div').remove();
+            // Reload to refresh the list
+            loadAdminChatMessages();
+          }).catch(err => {
+            alert('Error deleting message: ' + err.message);
+          });
+        }
+      });
+    });
+  }).catch(err => {
+    console.error('Error loading messages:', err);
+    adminChatList.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading messages.</p>';
+  });
+}
+
 logoutAdminBtn.addEventListener('click', () => {
   isAdminAuthenticated = false;
   adminContent.style.display = 'none';
@@ -1679,173 +2138,338 @@ logoutAdminBtn.addEventListener('click', () => {
   alert('Logged out');
 });
 
-// ---------------- Sparkles ----------------
-const canvas = document.getElementById('sparkleCanvas');
-const ctx = canvas.getContext('2d');
-let sparkles=[];
-function resizeCanvas(){ canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight; }
-window.addEventListener('resize',resizeCanvas); resizeCanvas();
-function createSparkle(){ return { x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*3+1, vx:(Math.random()-0.5)*0.5, vy:(Math.random()-0.5)*0.5, alpha:Math.random(), color:['#007bff','#cccccc','#ffffff'][Math.floor(Math.random()*3)] }; }
-for(let i=0;i<150;i++) sparkles.push(createSparkle());
-function animateSparkles(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    for(let s of sparkles){
-        ctx.beginPath();
-        ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
-        ctx.fillStyle=`rgba(${parseInt(s.color.slice(1,3),16)},${parseInt(s.color.slice(3,5),16)},${parseInt(s.color.slice(5,7),16)},${s.alpha})`;
-        ctx.fill();
-        s.x+=s.vx; s.y+=s.vy;
-        if(s.x<0||s.x>canvas.width)s.vx*=-1;
-        if(s.y<0||s.y>canvas.height)s.vy*=-1;
+// ---------------- Enhanced Sparkles ----------------
+function initSparkles() {
+    const canvas = document.getElementById('sparkleCanvas');
+    if (!canvas) return; // Sparkle canvas is in popup, may not exist yet
+    
+    const ctx = canvas.getContext('2d');
+    let sparkles = [];
+    let ripples = [];
+
+    function resizeCanvas() { 
+        canvas.width = canvas.offsetWidth; 
+        canvas.height = canvas.offsetHeight; 
     }
-    requestAnimationFrame(animateSparkles);
-}
-animateSparkles();
+    window.addEventListener('resize', resizeCanvas); 
+    resizeCanvas();
 
-// ---------------- Stars ----------------
-const starCanvas = document.getElementById('starCanvas');
-const starCtx = starCanvas.getContext('2d');
-let stars = [];
-let mouseX = 0, mouseY = 0;
-
-function resizeStarCanvas() {
-    starCanvas.width = window.innerWidth;
-    starCanvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeStarCanvas);
-resizeStarCanvas();
-
-function createStar() {
-    return {
-        x: Math.random() * starCanvas.width,
-        y: Math.random() * starCanvas.height,
-        size: Math.random() * 2 + 1,
-        brightness: Math.random() * 0.5 + 0.5,
-        twinkle: Math.random() * 0.02,
-        baseBrightness: Math.random() * 0.5 + 0.5,
-        depth: Math.random() * 0.9 + 0.1 // Parallax depth factor
-    };
-}
-for (let i = 0; i < 200; i++) {
-    stars.push(createStar());
+function createSparkle() { 
+    return { 
+        x: Math.random() * canvas.width, 
+        y: Math.random() * canvas.height, 
+        r: Math.random() * 2 + 0.5, 
+        vx: (Math.random() - 0.5) * 0.8, 
+        vy: (Math.random() - 0.5) * 0.8, 
+        alpha: Math.random() * 0.5 + 0.3,
+        baseAlpha: Math.random() * 0.5 + 0.3,
+        color: ['#FFD700', '#FFFFFF', '#FFD700', '#FFFF99'][Math.floor(Math.random() * 4)],
+        twinkle: Math.random() * 0.05 + 0.01
+    }; 
 }
 
-function animateStars() {
-    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
-    const centerX = starCanvas.width / 2;
-    const centerY = starCanvas.height / 2;
-    for (let star of stars) {
-        // Parallax offset based on mouse position and depth
-        const offsetX = (mouseX - centerX) * star.depth * 0.02;
-        const offsetY = (mouseY - centerY) * star.depth * 0.02;
-        let drawX = star.x + offsetX;
-        let drawY = star.y + offsetY;
-
-        // Wrap around edges for seamless parallax
-        if (drawX < 0) drawX += starCanvas.width;
-        if (drawX > starCanvas.width) drawX -= starCanvas.width;
-        if (drawY < 0) drawY += starCanvas.height;
-        if (drawY > starCanvas.height) drawY -= starCanvas.height;
-
-        // Calculate distance to mouse for brightness effect
-        const dx = mouseX - drawX;
-        const dy = mouseY - drawY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        // Increase brightness if close to mouse
-        const mouseEffect = Math.max(0, 1 - distance / 100); // within 100px
-        star.brightness = star.baseBrightness + mouseEffect * 0.5;
-        // Twinkle
-        star.brightness += Math.sin(Date.now() * star.twinkle) * 0.1;
-        star.brightness = Math.max(0, Math.min(1, star.brightness));
-
-        starCtx.beginPath();
-        starCtx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
-        starCtx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`;
-        starCtx.fill();
-    }
-    requestAnimationFrame(animateStars);
+for(let i = 0; i < 200; i++) {
+    sparkles.push(createSparkle());
 }
-animateStars();
 
-// Track mouse
+// Add ripple effect on mouse move
 document.addEventListener('mousemove', (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
+    if (Math.random() > 0.95) { // Occasional ripples
+        ripples.push({
+            x: e.clientX,
+            y: e.clientY,
+            radius: 0,
+            maxRadius: 100 + Math.random() * 50,
+            alpha: 0.6,
+            speed: 2 + Math.random()
+        });
+    }
 });
 
-// Add floating particles that follow mouse
-const floatingParticles = [];
-for (let i = 0; i < 50; i++) {
-    floatingParticles.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 3 + 1,
-        color: ['#FFD700', '#FFFFFF', '#000000'][Math.floor(Math.random() * 3)],
-        life: Math.random() * 100 + 50
-    });
+function animateSparkles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw sparkles
+    for(let s of sparkles) {
+        // Twinkle effect
+        s.alpha = s.baseAlpha + Math.sin(Date.now() * s.twinkle) * 0.3;
+        s.alpha = Math.max(0.1, Math.min(0.8, s.alpha));
+        
+        // Mouse attraction
+        const dx = mouseX - s.x;
+        const dy = mouseY - s.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 200) {
+            s.vx += dx * 0.0001;
+            s.vy += dy * 0.0001;
+        }
+        
+        // Update position
+        s.x += s.vx;
+        s.y += s.vy;
+        
+        // Bounce off edges
+        if(s.x < 0 || s.x > canvas.width) s.vx *= -1;
+        if(s.y < 0 || s.y > canvas.height) s.vy *= -1;
+        
+        // Keep in bounds
+        s.x = Math.max(0, Math.min(canvas.width, s.x));
+        s.y = Math.max(0, Math.min(canvas.height, s.y));
+        
+        // Draw with glow
+        const gradient = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
+        const rgb = s.color === '#FFD700' ? [255, 215, 0] : 
+                    s.color === '#FFFF99' ? [255, 255, 153] : [255, 255, 255];
+        gradient.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${s.alpha})`);
+        gradient.addColorStop(1, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0)`);
+        
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        // Core sparkle
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${s.alpha})`;
+        ctx.fill();
+    }
+    
+    // Draw and update ripples
+    for (let i = ripples.length - 1; i >= 0; i--) {
+        const ripple = ripples[i];
+        ripple.radius += ripple.speed;
+        ripple.alpha -= 0.02;
+        
+        if (ripple.radius > ripple.maxRadius || ripple.alpha <= 0) {
+            ripples.splice(i, 1);
+            continue;
+        }
+        
+        ctx.strokeStyle = `rgba(255, 215, 0, ${ripple.alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    
+    requestAnimationFrame(animateSparkles);
+    }
+    animateSparkles();
 }
 
-function animateFloatingParticles() {
-    const particleCanvas = document.createElement('canvas');
-    particleCanvas.id = 'floatingParticlesCanvas';
-    particleCanvas.style.position = 'fixed';
-    particleCanvas.style.top = '0';
-    particleCanvas.style.left = '0';
-    particleCanvas.style.width = '100%';
-    particleCanvas.style.height = '100%';
-    particleCanvas.style.pointerEvents = 'none';
-    particleCanvas.style.zIndex = '0';
-    document.body.appendChild(particleCanvas);
+// Initialize sparkles when popup is shown (lazy init)
+// This will be called when popup opens, or we can init on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSparkles);
+} else {
+    // Try to init, but it's ok if canvas doesn't exist yet
+    setTimeout(initSparkles, 100);
+}
 
-    const ctx = particleCanvas.getContext('2d');
-    particleCanvas.width = window.innerWidth;
-    particleCanvas.height = window.innerHeight;
+// ---------------- Enhanced Interactive Background ----------------
+let mouseX = 0, mouseY = 0;
+let mouseTrail = [];
+let clickRipples = [];
+const maxTrailLength = 20;
 
-    function drawParticles() {
-        ctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+function initInteractiveBackground() {
+    const interactiveBg = document.getElementById('interactiveBackground');
+    if (!interactiveBg) return;
+    
+    const bgCtx = interactiveBg.getContext('2d');
+    
+    function resizeInteractiveBg() {
+        interactiveBg.width = window.innerWidth;
+        interactiveBg.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeInteractiveBg);
+    resizeInteractiveBg();
 
-        for (let p of floatingParticles) {
-            // Attract to mouse
-            const dx = mouseX - p.x;
-            const dy = mouseY - p.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 150) {
-                p.vx += dx * 0.0001;
-                p.vy += dy * 0.0001;
-            }
-
-            // Update position
-            p.x += p.vx;
-            p.y += p.vy;
-
-            // Bounce off edges
-            if (p.x < 0 || p.x > particleCanvas.width) p.vx *= -1;
-            if (p.y < 0 || p.y > particleCanvas.height) p.vy *= -1;
-
-            // Draw
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = p.life / 150;
-            ctx.fill();
-
-            p.life--;
-            if (p.life <= 0) {
-                p.x = Math.random() * particleCanvas.width;
-                p.y = Math.random() * particleCanvas.height;
-                p.life = Math.random() * 100 + 50;
-            }
+    // Track mouse with trail
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        mouseTrail.push({ x: mouseX, y: mouseY, time: Date.now() });
+        if (mouseTrail.length > maxTrailLength) {
+            mouseTrail.shift();
         }
+    });
 
-        requestAnimationFrame(drawParticles);
+    // Add click ripple effect
+    document.addEventListener('click', (e) => {
+        clickRipples.push({
+            x: e.clientX,
+            y: e.clientY,
+            radius: 0,
+            maxRadius: 300,
+            alpha: 0.8,
+            speed: 5
+        });
+    });
+
+    // Animate interactive background
+    function animateInteractiveBg() {
+        bgCtx.clearRect(0, 0, interactiveBg.width, interactiveBg.height);
+        
+        // Create radial gradient from mouse position (subtle glow)
+        const gradient = bgCtx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 500);
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.12)');
+        gradient.addColorStop(0.3, 'rgba(255, 215, 0, 0.06)');
+        gradient.addColorStop(0.6, 'rgba(255, 215, 0, 0.02)');
+        gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+        bgCtx.fillStyle = gradient;
+        bgCtx.fillRect(0, 0, interactiveBg.width, interactiveBg.height);
+        
+        // Draw mouse trail
+        for (let i = 0; i < mouseTrail.length; i++) {
+            const point = mouseTrail[i];
+            const age = Date.now() - point.time;
+            const alpha = Math.max(0, 1 - age / 800);
+            const size = 4 * alpha;
+            
+            bgCtx.beginPath();
+            bgCtx.arc(point.x, point.y, size, 0, Math.PI * 2);
+            bgCtx.fillStyle = `rgba(255, 215, 0, ${alpha * 0.5})`;
+            bgCtx.fill();
+        }
+        
+        // Draw and update click ripples
+        for (let i = clickRipples.length - 1; i >= 0; i--) {
+            const ripple = clickRipples[i];
+            ripple.radius += ripple.speed;
+            ripple.alpha -= 0.015;
+            
+            if (ripple.radius > ripple.maxRadius || ripple.alpha <= 0) {
+                clickRipples.splice(i, 1);
+                continue;
+            }
+            
+            // Draw ripple with gradient
+            const rippleGradient = bgCtx.createRadialGradient(ripple.x, ripple.y, ripple.radius - 10, ripple.x, ripple.y, ripple.radius);
+            rippleGradient.addColorStop(0, `rgba(255, 215, 0, ${ripple.alpha * 0.3})`);
+            rippleGradient.addColorStop(1, `rgba(255, 215, 0, 0)`);
+            
+            bgCtx.strokeStyle = `rgba(255, 215, 0, ${ripple.alpha})`;
+            bgCtx.lineWidth = 3;
+            bgCtx.beginPath();
+            bgCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+            bgCtx.stroke();
+            
+            // Inner glow
+            bgCtx.fillStyle = rippleGradient;
+            bgCtx.beginPath();
+            bgCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+            bgCtx.fill();
+        }
+        
+        // Remove old trail points
+        mouseTrail = mouseTrail.filter(p => Date.now() - p.time < 800);
+        
+        requestAnimationFrame(animateInteractiveBg);
+    }
+    animateInteractiveBg();
+}
+
+// Initialize after DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initInteractiveBackground);
+} else {
+    initInteractiveBackground();
+}
+
+// ---------------- Enhanced Stars ----------------
+function initStars() {
+    const starCanvas = document.getElementById('starCanvas');
+    if (!starCanvas) return;
+    
+    const starCtx = starCanvas.getContext('2d');
+    let stars = [];
+
+    function resizeStarCanvas() {
+        starCanvas.width = window.innerWidth;
+        starCanvas.height = window.innerHeight;
+        // Recreate stars on resize
+        stars = [];
+        for (let i = 0; i < 300; i++) {
+            stars.push(createStar());
+        }
+    }
+    window.addEventListener('resize', resizeStarCanvas);
+    resizeStarCanvas();
+
+    function createStar() {
+        return {
+            x: Math.random() * starCanvas.width,
+            y: Math.random() * starCanvas.height,
+            size: Math.random() * 2.5 + 0.5,
+            brightness: Math.random() * 0.6 + 0.4,
+            twinkle: Math.random() * 0.03 + 0.01,
+            baseBrightness: Math.random() * 0.6 + 0.4,
+            depth: Math.random() * 0.8 + 0.2,
+            color: Math.random() > 0.8 ? '#FFD700' : '#FFFFFF' // Some gold stars
+        };
     }
 
-    drawParticles();
+    function animateStars() {
+        starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+        const centerX = starCanvas.width / 2;
+        const centerY = starCanvas.height / 2;
+        
+        for (let star of stars) {
+            // Enhanced parallax with mouse interaction
+            const offsetX = (mouseX - centerX) * star.depth * 0.03;
+            const offsetY = (mouseY - centerY) * star.depth * 0.03;
+            let drawX = star.x + offsetX;
+            let drawY = star.y + offsetY;
+
+            // Wrap around edges
+            if (drawX < 0) drawX += starCanvas.width;
+            if (drawX > starCanvas.width) drawX -= starCanvas.width;
+            if (drawY < 0) drawY += starCanvas.height;
+            if (drawY > starCanvas.height) drawY -= starCanvas.height;
+
+            // Enhanced mouse interaction - stars glow when mouse is near
+            const dx = mouseX - drawX;
+            const dy = mouseY - drawY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const mouseEffect = Math.max(0, 1 - distance / 150);
+            star.brightness = star.baseBrightness + mouseEffect * 0.7;
+            
+            // Twinkle animation
+            star.brightness += Math.sin(Date.now() * star.twinkle) * 0.15;
+            star.brightness = Math.max(0.2, Math.min(1, star.brightness));
+            
+            // Draw star with glow effect
+            const glowSize = star.size * (1 + mouseEffect * 2);
+            const gradient = starCtx.createRadialGradient(drawX, drawY, 0, drawX, drawY, glowSize * 2);
+            gradient.addColorStop(0, star.color === '#FFD700' ? `rgba(255, 215, 0, ${star.brightness})` : `rgba(255, 255, 255, ${star.brightness})`);
+            gradient.addColorStop(0.5, star.color === '#FFD700' ? `rgba(255, 215, 0, ${star.brightness * 0.5})` : `rgba(255, 255, 255, ${star.brightness * 0.5})`);
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            starCtx.beginPath();
+            starCtx.arc(drawX, drawY, glowSize, 0, Math.PI * 2);
+            starCtx.fillStyle = gradient;
+            starCtx.fill();
+            
+            // Core star
+            starCtx.beginPath();
+            starCtx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
+            starCtx.fillStyle = star.color === '#FFD700' ? `rgba(255, 215, 0, ${star.brightness})` : `rgba(255, 255, 255, ${star.brightness})`;
+            starCtx.fill();
+        }
+        requestAnimationFrame(animateStars);
+    }
+    animateStars();
 }
 
-animateFloatingParticles();
+// Initialize after DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStars);
+} else {
+    initStars();
+}
+
 
 // ================= Custom Context Menu =================
 const contextMenu = document.createElement('div');
@@ -2362,6 +2986,7 @@ drawingModal.addEventListener('click', (e) => {
   const strokesRef = db.ref('canvas/strokes');
   const metaRef = db.ref('canvas/meta');
   const strokesCache = {}; // local cache of strokes by id to allow redraw on resize
+  let initialLoadComplete = false; // Flag to prevent duplicate rendering during initial load
 
   // Tool switching
   function resetToolStyles() {
@@ -2796,15 +3421,15 @@ drawingModal.addEventListener('click', (e) => {
 
   canvasEl.addEventListener('pointercancel', () => { drawing=false; currentStroke=[]; });
 
-  // Listen for strokes added by anyone
+  // Listen for strokes added by anyone (only new strokes after initial load)
   strokesRef.on('child_added', snapshot => {
     const strokeId = snapshot.key;
     const stroke = snapshot.val();
     if(!stroke) return;
     // Cache the stroke
     strokesCache[strokeId] = stroke;
-    // If not already drawn on current canvas, draw it
-    if(!drawnIds.has(strokeId)){
+    // Only draw if it's a new stroke (not from initial load) and initial load is complete
+    if(initialLoadComplete && !drawnIds.has(strokeId)){
       drawStrokeLocally(stroke);
       drawnIds.add(strokeId);
     }
@@ -2853,6 +3478,7 @@ drawingModal.addEventListener('click', (e) => {
   const ctxCursor = cursorOverlay.getContext('2d');
   const cursorsRef = db.ref('canvas/cursors');
   let activeCursors = {}; // { userId: { x, y, color, username, timestamp } }
+  const avatarImageCache = {}; // Cache for loaded avatar images
   
   // Sync cursor overlay to main canvas size
   function syncCursorOverlay() {
@@ -2884,6 +3510,8 @@ drawingModal.addEventListener('click', (e) => {
         y: p.y,
         color: brushColor,
         username: username,
+        avatar: userProfile.avatar || '👤',
+        avatarImage: userProfile.avatarImage || null,
         timestamp: Date.now()
       }).catch(err => console.warn('Cursor update failed', err));
       lastCursorUpdate = now;
@@ -2915,29 +3543,78 @@ drawingModal.addEventListener('click', (e) => {
       const y = cursor.y;
       const color = cursor.color || '#00ffff';
 
-      // Draw cursor dot
       ctxCursor.save();
-      ctxCursor.fillStyle = color;
-      ctxCursor.beginPath();
-      ctxCursor.arc(x, y, 5, 0, Math.PI * 2);
-      ctxCursor.fill();
+      
+      // Draw profile picture (small avatar)
+      const avatarSize = 20;
+      if(cursor.avatarImage) {
+          // Load and cache image
+          if(!avatarImageCache[cursor.avatarImage]) {
+              const img = new Image();
+              img.src = cursor.avatarImage;
+              avatarImageCache[cursor.avatarImage] = img;
+          }
+          const img = avatarImageCache[cursor.avatarImage];
+          
+          if(img.complete && img.naturalWidth > 0) {
+              // Draw circular avatar
+              ctxCursor.beginPath();
+              ctxCursor.arc(x, y, avatarSize/2, 0, Math.PI * 2);
+              ctxCursor.save();
+              ctxCursor.clip();
+              ctxCursor.drawImage(img, x - avatarSize/2, y - avatarSize/2, avatarSize, avatarSize);
+              ctxCursor.restore();
+          } else {
+              // Image still loading, show emoji fallback
+              ctxCursor.fillStyle = 'rgba(255,255,255,0.9)';
+              ctxCursor.beginPath();
+              ctxCursor.arc(x, y, avatarSize/2, 0, Math.PI * 2);
+              ctxCursor.fill();
+              ctxCursor.font = '14px Arial';
+              ctxCursor.textAlign = 'center';
+              ctxCursor.textBaseline = 'middle';
+              ctxCursor.fillStyle = '#000';
+              ctxCursor.fillText(cursor.avatar || '👤', x, y);
+          }
+          // Draw border around avatar
+          ctxCursor.strokeStyle = color;
+          ctxCursor.lineWidth = 2;
+          ctxCursor.beginPath();
+          ctxCursor.arc(x, y, avatarSize/2 + 1, 0, Math.PI * 2);
+          ctxCursor.stroke();
+      } else {
+          // Draw emoji avatar
+          ctxCursor.fillStyle = 'rgba(255,255,255,0.9)';
+          ctxCursor.beginPath();
+          ctxCursor.arc(x, y, avatarSize/2, 0, Math.PI * 2);
+          ctxCursor.fill();
+          ctxCursor.strokeStyle = color;
+          ctxCursor.lineWidth = 2;
+          ctxCursor.stroke();
+          ctxCursor.font = '14px Arial';
+          ctxCursor.textAlign = 'center';
+          ctxCursor.textBaseline = 'middle';
+          ctxCursor.fillStyle = '#000';
+          ctxCursor.fillText(cursor.avatar || '👤', x, y);
+      }
 
       // Draw cursor glow
       ctxCursor.strokeStyle = color;
       ctxCursor.lineWidth = 2;
       ctxCursor.globalAlpha = 0.5;
       ctxCursor.beginPath();
-      ctxCursor.arc(x, y, 8, 0, Math.PI * 2);
+      ctxCursor.arc(x, y, avatarSize/2 + 3, 0, Math.PI * 2);
       ctxCursor.stroke();
       ctxCursor.globalAlpha = 1;
 
       // Draw username label
       ctxCursor.fillStyle = color;
       ctxCursor.font = 'bold 11px Arial';
+      ctxCursor.textAlign = 'left';
       ctxCursor.textBaseline = 'top';
       ctxCursor.shadowColor = 'rgba(0, 0, 0, 0.5)';
       ctxCursor.shadowBlur = 3;
-      ctxCursor.fillText(cursor.username, x + 12, y + 2);
+      ctxCursor.fillText(cursor.username, x + avatarSize/2 + 5, y + 2);
       ctxCursor.restore();
     }
 
@@ -2968,54 +3645,39 @@ drawingModal.addEventListener('click', (e) => {
     try { presenceRef.update({ color: brushColor }); } catch (err) { /* ignore */ }
   });
 
-  // Initial load of existing strokes
-  // Initial load of existing strokes: populate local cache then redraw
-  strokesRef.limitToFirst(5000).once('value').then(snap => {
+  // Initial load of existing strokes - load ALL strokes to ensure persistence across sessions
+  strokesRef.once('value').then(snap => {
     const data = snap.val();
-    if(!data) return;
+    if(!data) {
+      console.log('No existing strokes found');
+      initialLoadComplete = true;
+      return;
+    }
     try {
+      // Load all strokes into cache
       Object.keys(data).forEach(k => {
         strokesCache[k] = data[k];
       });
-      // Draw cached strokes once (preserves order)
-      redrawAllStrokes();
+      // Sort and draw all strokes in order
+      const strokes = Object.keys(strokesCache).map(k => ({ id: k, s: strokesCache[k] }));
+      strokes.sort((a,b) => (a.s.time || 0) - (b.s.time || 0));
+      strokes.forEach(item => {
+        drawStrokeLocally(item.s);
+        drawnIds.add(item.id);
+      });
+      console.log(`Loaded ${strokes.length} strokes from Firebase - canvas restored`);
+      initialLoadComplete = true;
     } catch (err) {
       console.warn('initial strokes processing failed', err);
+      initialLoadComplete = true;
     }
-  }).catch(err => console.warn('initial strokes load failed', err));
+  }).catch(err => {
+    console.warn('initial strokes load failed', err);
+    initialLoadComplete = true;
+  });
 })();
 
-// ================= Loading Screen Removal =================
-// Remove loading screen after 3 seconds (don't wait for window load)
-setTimeout(function() {
-    const introScreen = document.getElementById('introScreen');
-    if (introScreen) {
-        console.log('Removing loading screen...');
-        introScreen.style.transition = 'opacity 1s ease';
-        introScreen.style.opacity = '0';
-        setTimeout(function() {
-            if (introScreen && introScreen.parentNode) {
-                introScreen.remove();
-                console.log('Loading screen removed');
-            }
-        }, 1000);
-    }
-}, 2000);
-
-// Safety fallback - remove loading screen after max 5 seconds
-setTimeout(function() {
-    const introScreen = document.getElementById('introScreen');
-    if (introScreen && introScreen.parentNode) {
-        console.log('Safety fallback: Removing loading screen');
-        introScreen.style.transition = 'opacity 0.5s ease';
-        introScreen.style.opacity = '0';
-        setTimeout(function() {
-            if (introScreen && introScreen.parentNode) {
-                introScreen.remove();
-            }
-        }, 500);
-    }
-}, 5000);
+// Loading screen removal is now handled at the top of the script
 
 // ================= Page Initialization =================
 // Initialize tutorial/popup when page loads
@@ -3066,6 +3728,1099 @@ window.addEventListener('resize', ()=>{
     particleCanvas.width = window.innerWidth;
     particleCanvas.height = window.innerHeight;
 });
+
+// ================= NEW FEATURES =================
+
+// ---------------- User Profiles ----------------
+let userProfile = JSON.parse(localStorage.getItem('userProfile')) || {
+    avatar: '👤',
+    avatarImage: null, // base64 or data URL for uploaded image
+    username: '',
+    status: '',
+    activity: [],
+    profileCreated: false
+};
+
+const profileBtn = document.getElementById('profileBtn');
+const profileModal = document.getElementById('profileModal');
+const closeProfileBtn = document.getElementById('closeProfileBtn');
+const profileAvatar = document.getElementById('profileAvatar');
+const profileAvatarEmoji = document.getElementById('profileAvatarEmoji');
+const profileUsername = document.getElementById('profileUsername');
+const profileStatus = document.getElementById('profileStatus');
+const activityList = document.getElementById('activityList');
+const profilePictureInput = document.getElementById('profilePictureInput');
+const uploadPfpBtn = document.getElementById('uploadPfpBtn');
+const removePfpBtn = document.getElementById('removePfpBtn');
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+const profileModalTitle = document.getElementById('profileModalTitle');
+
+let isFirstVisit = !userProfile.profileCreated;
+let isProfileModalLocked = false; // Lock modal on first visit
+
+// Check if profile is created on first visit
+if (isFirstVisit) {
+    // Lock the modal - user must create profile
+    isProfileModalLocked = true;
+    profileModalTitle.textContent = 'Create Your Profile';
+    if (closeProfileBtn) {
+        closeProfileBtn.style.display = 'none';
+    }
+    // Auto-open profile modal on first visit
+    setTimeout(() => {
+        if (profileModal) {
+            profileModal.style.display = 'flex';
+            updateProfileDisplay();
+        }
+    }, 500);
+}
+
+profileBtn?.addEventListener('click', () => {
+    isProfileModalLocked = false;
+    profileModalTitle.textContent = 'My Profile';
+    if (closeProfileBtn) {
+        closeProfileBtn.style.display = 'block';
+    }
+    profileModal.style.display = 'flex';
+    updateProfileDisplay();
+});
+
+closeProfileBtn?.addEventListener('click', () => {
+    if (!isProfileModalLocked) {
+        profileModal.style.display = 'none';
+    }
+});
+
+profileModal?.addEventListener('click', (e) => {
+    if(e.target === profileModal && !isProfileModalLocked) {
+        profileModal.style.display = 'none';
+    }
+});
+
+// Handle profile picture upload
+uploadPfpBtn?.addEventListener('click', () => {
+    profilePictureInput?.click();
+});
+
+profilePictureInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            alert('Image size must be less than 5MB');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            userProfile.avatarImage = event.target.result;
+            userProfile.avatar = '👤'; // Set default emoji
+            updateProfileDisplay();
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Handle remove profile picture
+removePfpBtn?.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent triggering avatar click
+    userProfile.avatarImage = null;
+    userProfile.avatar = '👤';
+    updateProfileDisplay();
+});
+
+// Allow clicking avatar to upload
+profileAvatar?.addEventListener('click', () => {
+    profilePictureInput?.click();
+});
+
+saveProfileBtn?.addEventListener('click', () => {
+    const usernameValue = profileUsername?.value.trim();
+    if (!usernameValue) {
+        alert('Please enter a username');
+        return;
+    }
+    
+    userProfile.username = usernameValue;
+    userProfile.status = profileStatus?.value || '';
+    userProfile.profileCreated = true;
+    
+    // Update global username everywhere
+    username = usernameValue;
+    const chatPopupUsername = document.getElementById('chatPopupUsername');
+    if (chatPopupUsername) {
+        chatPopupUsername.value = usernameValue;
+    }
+    
+    // Save to Firebase
+    if(db) {
+        const profileData = {
+            username: userProfile.username,
+            status: userProfile.status,
+            avatar: userProfile.avatar,
+            avatarImage: userProfile.avatarImage,
+            lastSeen: Date.now()
+        };
+        db.ref('profiles/' + visitorId).update(profileData);
+    }
+    
+    saveProfile();
+    addActivity('Profile created');
+    
+    // Unlock modal after profile is created
+    isProfileModalLocked = false;
+    profileModalTitle.textContent = 'My Profile';
+    if (closeProfileBtn) {
+        closeProfileBtn.style.display = 'block';
+    }
+    
+    alert('Profile saved successfully!');
+});
+
+profileStatus?.addEventListener('change', () => {
+    userProfile.status = profileStatus.value;
+    if(db && userProfile.profileCreated) {
+        db.ref('profiles/' + visitorId).update({
+            status: userProfile.status,
+            avatar: userProfile.avatar,
+            avatarImage: userProfile.avatarImage,
+            username: userProfile.username,
+            lastSeen: Date.now()
+        });
+    }
+    saveProfile();
+});
+
+profileUsername?.addEventListener('change', () => {
+    if (userProfile.profileCreated && profileUsername.value.trim()) {
+        userProfile.username = profileUsername.value.trim();
+        username = userProfile.username;
+        const chatPopupUsername = document.getElementById('chatPopupUsername');
+        if (chatPopupUsername) {
+            chatPopupUsername.value = userProfile.username;
+        }
+        if(db) {
+            db.ref('profiles/' + visitorId).update({
+                username: userProfile.username,
+                lastSeen: Date.now()
+            });
+        }
+        saveProfile();
+    }
+});
+
+function updateProfileDisplay() {
+    if (profileAvatar) {
+        if (userProfile.avatarImage) {
+            profileAvatar.style.backgroundImage = `url(${userProfile.avatarImage})`;
+            profileAvatar.style.backgroundSize = 'cover';
+            profileAvatar.style.backgroundPosition = 'center';
+            if (profileAvatarEmoji) profileAvatarEmoji.style.display = 'none';
+            if (removePfpBtn) removePfpBtn.style.display = 'block';
+        } else {
+            profileAvatar.style.backgroundImage = 'none';
+            if (profileAvatarEmoji) {
+                profileAvatarEmoji.style.display = 'block';
+                profileAvatarEmoji.textContent = userProfile.avatar || '👤';
+            }
+            if (removePfpBtn) removePfpBtn.style.display = 'none';
+        }
+    }
+    if (profileUsername) {
+        profileUsername.value = userProfile.username || '';
+    }
+    if (profileStatus) {
+        profileStatus.value = userProfile.status || '';
+    }
+    if (activityList) {
+        activityList.innerHTML = userProfile.activity.slice(-10).reverse().map(a => 
+            `<div style="padding:8px; background:rgba(255,255,255,0.05); border-radius:6px; margin-bottom:8px; font-size:13px;">
+                <strong>${a.action}</strong> - ${new Date(a.time).toLocaleString()}
+            </div>`
+        ).join('') || '<p style="color:rgba(255,255,255,0.5);">No activity yet</p>';
+    }
+}
+
+function saveProfile() {
+    localStorage.setItem('userProfile', JSON.stringify(userProfile));
+    updateProfileDisplay();
+}
+
+function addActivity(action) {
+    userProfile.activity.push({ action, time: Date.now() });
+    if(userProfile.activity.length > 50) userProfile.activity.shift();
+    saveProfile();
+    updateProfileDisplay();
+}
+
+// ---------------- Leaderboard ----------------
+const leaderboardBtn = document.getElementById('leaderboardBtn');
+const leaderboardModal = document.getElementById('leaderboardModal');
+const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+const leaderboardContent = document.getElementById('leaderboardContent');
+const leaderboardTabs = document.querySelectorAll('.leaderboardTab');
+let currentLeaderboardTab = 'chatters';
+
+leaderboardBtn?.addEventListener('click', () => {
+    leaderboardModal.style.display = 'flex';
+    loadLeaderboard('chatters');
+});
+
+closeLeaderboardBtn?.addEventListener('click', () => {
+    leaderboardModal.style.display = 'none';
+});
+
+leaderboardModal?.addEventListener('click', (e) => {
+    if(e.target === leaderboardModal) leaderboardModal.style.display = 'none';
+});
+
+leaderboardTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        currentLeaderboardTab = tab.dataset.tab;
+        leaderboardTabs.forEach(t => {
+            t.style.background = 'rgba(255,255,255,0.05)';
+            t.style.color = 'rgba(255,255,255,0.7)';
+        });
+        tab.style.background = 'rgba(255,215,0,0.1)';
+        tab.style.color = '#FFD700';
+        loadLeaderboard(currentLeaderboardTab);
+    });
+});
+
+function loadLeaderboard(type) {
+    if(!db || !leaderboardContent) return;
+    
+    leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Loading...</p>';
+    
+    if(type === 'chatters') {
+        // Load only recent messages (last 500) instead of all for better performance
+        Promise.all([
+            db.ref('chat').limitToLast(500).once('value'),
+            db.ref('profiles').once('value')
+        ]).then(([chatSnap, profilesSnap]) => {
+            const messages = chatSnap.val() || {};
+            const profiles = profilesSnap.val() || {};
+            const userCounts = {};
+            const userProfiles = {}; // Store profile data for each user
+            
+            // Count messages and get profiles from messages
+            Object.values(messages).forEach(msg => {
+                if(msg && msg.user) {
+                    userCounts[msg.user] = (userCounts[msg.user] || 0) + 1;
+                    if(msg.avatar || msg.avatarImage) {
+                        userProfiles[msg.user] = {
+                            avatar: msg.avatar || '👤',
+                            avatarImage: msg.avatarImage || null
+                        };
+                    }
+                }
+            });
+            
+            // Get profiles from profiles collection
+            Object.values(profiles).forEach(profile => {
+                if(profile && profile.username && !userProfiles[profile.username]) {
+                    userProfiles[profile.username] = {
+                        avatar: profile.avatar || '👤',
+                        avatarImage: profile.avatarImage || null
+                    };
+                }
+            });
+            
+            const sorted = Object.entries(userCounts).sort((a,b) => b[1] - a[1]).slice(0, 10);
+            displayLeaderboard(sorted.map(([user, count], i) => ({
+                rank: i + 1,
+                name: user,
+                value: count,
+                label: 'messages',
+                avatar: userProfiles[user]?.avatar || '👤',
+                avatarImage: userProfiles[user]?.avatarImage || null
+            })));
+        }).catch(err => {
+            console.error('Error loading leaderboard:', err);
+            leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading leaderboard.</p>';
+        });
+    } else if(type === 'active') {
+        // Load both in parallel for faster loading
+        Promise.all([
+            db.ref('online').once('value'),
+            db.ref('profiles').once('value')
+        ]).then(([onlineSnap, profilesSnap]) => {
+            const online = onlineSnap.val() || {};
+            const profiles = profilesSnap.val() || {};
+            const sorted = Object.entries(online).sort((a,b) => (b[1].timestamp || 0) - (a[1].timestamp || 0)).slice(0, 10);
+            
+            displayLeaderboard(sorted.map(([id, data], i) => {
+                const profile = profiles[id] || Object.values(profiles).find(p => p.username === (data.username || 'User')) || {};
+                return {
+                    rank: i + 1,
+                    name: data.username || profile.username || 'User',
+                    value: Math.floor((Date.now() - (data.timestamp || Date.now())) / 60000),
+                    label: 'min online',
+                    avatar: profile.avatar || '👤',
+                    avatarImage: profile.avatarImage || null
+                };
+            }));
+        }).catch(err => {
+            console.error('Error loading active leaderboard:', err);
+            leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading leaderboard.</p>';
+        });
+    } else if(type === 'achievements') {
+        // Get achievement data from localStorage of all users (simplified)
+        const stats = JSON.parse(localStorage.getItem('userStats')) || {};
+        const achievements = [
+            { name: 'Chat Master', value: Math.floor((stats.chatMessages || 0) / 10) },
+            { name: 'Artist', value: Math.floor((stats.drawTime || 0) / 30) },
+            { name: 'Gamer', value: Math.floor((stats.gameTime || 0) / 60) }
+        ];
+        displayLeaderboard(achievements.map((a, i) => ({
+            rank: i + 1,
+            name: a.name,
+            value: a.value,
+            label: 'completed',
+            avatar: '🏆',
+            avatarImage: null
+        })));
+    } else {
+        leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Daily/Weekly stats coming soon!</p>';
+    }
+}
+
+function displayLeaderboard(data) {
+    if(!leaderboardContent) return;
+    leaderboardContent.innerHTML = data.map(item => {
+        const avatarStyle = item.avatarImage 
+            ? `background-image: url(${item.avatarImage}); background-size: cover; background-position: center;`
+            : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+        const avatarContent = item.avatarImage ? '' : item.avatar || '👤';
+        return `
+        <div style="display:flex; align-items:center; padding:15px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:10px;">
+            <div style="width:40px; height:40px; border-radius:50%; ${avatarStyle} display:flex; align-items:center; justify-content:center; font-weight:bold; margin-right:15px; font-size:20px; flex-shrink:0;">
+                ${avatarContent}
+            </div>
+            <div style="width:35px; height:35px; border-radius:50%; background:rgba(255,215,0,0.2); display:flex; align-items:center; justify-content:center; font-weight:bold; margin-right:15px; flex-shrink:0;">
+                ${item.rank}
+            </div>
+            <div style="flex:1;">
+                <div style="font-weight:600; color:#FFD700;">${item.name}</div>
+                <div style="font-size:12px; color:rgba(255,255,255,0.6);">${item.value} ${item.label}</div>
+            </div>
+        </div>
+    `;
+    }).join('');
+}
+
+// ---------------- Friends System ----------------
+const friendsBtn = document.getElementById('friendsBtn');
+const friendsModal = document.getElementById('friendsModal');
+const closeFriendsBtn = document.getElementById('closeFriendsBtn');
+const friendsList = document.getElementById('friendsList');
+const searchFriendsInput = document.getElementById('searchFriendsInput');
+const searchResults = document.getElementById('searchResults');
+let friends = JSON.parse(localStorage.getItem('friends')) || [];
+
+
+closeFriendsBtn?.addEventListener('click', () => {
+    friendsModal.style.display = 'none';
+});
+
+friendsModal?.addEventListener('click', (e) => {
+    if(e.target === friendsModal) friendsModal.style.display = 'none';
+});
+
+// Load all profile users on friends modal open - optimized with parallel loading
+function loadAllProfileUsers() {
+    if(!db || !searchResults) return;
+    
+    // Load both in parallel for faster loading
+    Promise.all([
+        db.ref('profiles').once('value'),
+        db.ref('online').once('value')
+    ]).then(([profilesSnap, onlineSnap]) => {
+        const profiles = profilesSnap.val() || {};
+        const onlineData = onlineSnap.val() || {};
+        
+        // Show all profile users initially
+        const allUsers = Object.entries(profiles)
+            .filter(([id]) => id !== visitorId && profiles[id] && profiles[id].username)
+            .map(([id, profile]) => {
+                const isOnline = !!onlineData[id];
+                const avatarStyle = profile.avatarImage 
+                    ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+                    : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+                const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+                return { id, profile, isOnline, avatarStyle, avatarContent };
+            })
+            .sort((a, b) => {
+                // Sort online users first
+                if(a.isOnline !== b.isOnline) return b.isOnline - a.isOnline;
+                return (a.profile.username || '').localeCompare(b.profile.username || '');
+            });
+        
+        displayUserSearchResults(allUsers);
+    }).catch(err => {
+        console.error('Error loading profile users:', err);
+        if(searchResults) {
+            searchResults.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading users.</p>';
+        }
+    });
+}
+
+function displayUserSearchResults(users) {
+    if(!searchResults) return;
+    searchResults.innerHTML = users.map(({id, profile, isOnline, avatarStyle, avatarContent}) => `
+        <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:8px;">
+            <div style="width:35px; height:35px; border-radius:50%; ${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+                ${avatarContent}
+            </div>
+            <div style="flex:1;">
+                <div style="font-weight:500; color:rgba(255,255,255,0.9);">${profile.username || 'User'}</div>
+                <div style="font-size:11px; color:rgba(255,255,255,0.5);">${isOnline ? '🟢 Online' : '⚫ Offline'}</div>
+            </div>
+            <button class="addFriendBtn" data-id="${id}" style="padding:6px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:6px; color:#FFD700; cursor:pointer;">
+                ${friends.includes(id) ? '✓ Friend' : '+ Add'}
+            </button>
+        </div>
+    `).join('');
+    
+    document.querySelectorAll('.addFriendBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            if(!friends.includes(id)) {
+                friends.push(id);
+                localStorage.setItem('friends', JSON.stringify(friends));
+                updateFriendsList();
+                loadAllProfileUsers(); // Refresh the list
+            }
+        });
+    });
+}
+
+friendsBtn?.addEventListener('click', () => {
+    friendsModal.style.display = 'flex';
+    updateFriendsList();
+    loadAllProfileUsers(); // Load all users when modal opens
+});
+
+searchFriendsInput?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    if(!db || !searchResults) return;
+    
+    if(query.length === 0) {
+        // Show all users when search is empty
+        loadAllProfileUsers();
+        return;
+    }
+    
+    // Debounce search to avoid too many queries
+    clearTimeout(searchFriendsInput.searchTimeout);
+    searchFriendsInput.searchTimeout = setTimeout(() => {
+        // Search all profile users - parallel loading
+        Promise.all([
+            db.ref('profiles').once('value'),
+            db.ref('online').once('value')
+        ]).then(([profilesSnap, onlineSnap]) => {
+        const profiles = profilesSnap.val() || {};
+        const online = onlineSnap.val() || {};
+        const matches = Object.entries(profiles)
+            .filter(([id, profile]) => 
+                id !== visitorId && 
+                profile.username && 
+                profile.username.toLowerCase().includes(query)
+            )
+            .map(([id, profile]) => {
+                const isOnline = !!online[id];
+                const avatarStyle = profile.avatarImage 
+                    ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+                    : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+                const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+                return { id, profile, isOnline, avatarStyle, avatarContent };
+            })
+            .sort((a, b) => {
+                if(a.isOnline !== b.isOnline) return b.isOnline - a.isOnline;
+                return (a.profile.username || '').localeCompare(b.profile.username || '');
+            })
+            .slice(0, 20); // Limit to 20 results
+        
+        displayUserSearchResults(matches);
+        }).catch(err => {
+            console.error('Error searching users:', err);
+            if(searchResults) {
+                searchResults.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error searching users.</p>';
+            }
+        });
+    }, 300); // 300ms debounce
+});
+
+function updateFriendsList() {
+    if(!friendsList) return;
+    if(friends.length === 0) {
+        friendsList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">No friends yet. Search for users above!</p>';
+        return;
+    }
+    if(db) {
+        Promise.all([
+            db.ref('online').once('value'),
+            db.ref('profiles').once('value')
+        ]).then(([onlineSnap, profilesSnap]) => {
+            const online = onlineSnap.val() || {};
+            const profiles = profilesSnap.val() || {};
+            friendsList.innerHTML = friends.map(id => {
+                const user = online[id];
+                const profile = profiles[id] || {};
+                const avatarStyle = profile.avatarImage 
+                    ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+                    : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+                const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+                return `
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:10px;">
+                        <div style="width:40px; height:40px; border-radius:50%; ${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+                            ${avatarContent}
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600; color:#FFD700;">${user?.username || profile.username || 'User'}</div>
+                            <div style="font-size:12px; color:rgba(255,255,255,0.6);">
+                                ${user ? '🟢 Online' : '⚫ Offline'}
+                            </div>
+                        </div>
+                        <button class="removeFriendBtn" data-id="${id}" style="padding:6px 12px; background:rgba(220,53,69,0.2); border:1px solid rgba(220,53,69,0.4); border-radius:6px; color:#dc3545; cursor:pointer;">Remove</button>
+                    </div>
+                `;
+            }).join('');
+            document.querySelectorAll('.removeFriendBtn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    friends = friends.filter(id => id !== btn.dataset.id);
+                    localStorage.setItem('friends', JSON.stringify(friends));
+                    updateFriendsList();
+                });
+            });
+        });
+    }
+}
+
+// ---------------- Polls/Voting ----------------
+const pollsBtn = document.getElementById('pollsBtn');
+const pollsModal = document.getElementById('pollsModal');
+const closePollsBtn = document.getElementById('closePollsBtn');
+const pollsList = document.getElementById('pollsList');
+const createPollBtn = document.getElementById('createPollBtn');
+const createPollForm = document.getElementById('createPollForm');
+const pollQuestion = document.getElementById('pollQuestion');
+const pollOptions = document.getElementById('pollOptions');
+const addPollOptionBtn = document.getElementById('addPollOptionBtn');
+const submitPollBtn = document.getElementById('submitPollBtn');
+const cancelPollBtn = document.getElementById('cancelPollBtn');
+
+pollsBtn?.addEventListener('click', () => {
+    pollsModal.style.display = 'flex';
+    loadPolls();
+});
+
+closePollsBtn?.addEventListener('click', () => {
+    pollsModal.style.display = 'none';
+});
+
+pollsModal?.addEventListener('click', (e) => {
+    if(e.target === pollsModal) pollsModal.style.display = 'none';
+});
+
+createPollBtn?.addEventListener('click', () => {
+    createPollForm.style.display = createPollForm.style.display === 'none' ? 'block' : 'none';
+});
+
+addPollOptionBtn?.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'pollOption';
+    input.placeholder = `Option ${pollOptions.children.length + 1}`;
+    input.style.cssText = 'width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:8px;';
+    pollOptions.appendChild(input);
+});
+
+cancelPollBtn?.addEventListener('click', () => {
+    createPollForm.style.display = 'none';
+    pollQuestion.value = '';
+    pollOptions.innerHTML = `
+        <input type="text" class="pollOption" placeholder="Option 1" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:8px;">
+        <input type="text" class="pollOption" placeholder="Option 2" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:8px;">
+    `;
+});
+
+submitPollBtn?.addEventListener('click', () => {
+    const question = pollQuestion.value.trim();
+    const options = Array.from(pollOptions.querySelectorAll('.pollOption')).map(inp => inp.value.trim()).filter(v => v);
+    if(question && options.length >= 2) {
+        if(db) {
+            const poll = {
+                question,
+                options: options.map(opt => ({ text: opt, votes: 0, voters: {} })),
+                createdBy: username,
+                createdAt: Date.now()
+            };
+            db.ref('polls').push(poll);
+            cancelPollBtn.click();
+            loadPolls();
+        }
+    }
+});
+
+function loadPolls() {
+    if(!db || !pollsList) {
+        if(pollsList) pollsList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Loading polls...</p>';
+        return;
+    }
+    pollsList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Loading polls...</p>';
+    db.ref('polls').limitToLast(10).once('value').then(snap => {
+        const polls = snap.val() || {};
+        if(Object.keys(polls).length === 0) {
+            pollsList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">No polls yet. Create one to get started!</p>';
+            return;
+        }
+        pollsList.innerHTML = Object.entries(polls).reverse().map(([id, poll]) => {
+            if(!poll || !poll.options) return '';
+            const totalVotes = poll.options.reduce((sum, opt) => sum + (opt.votes || 0), 0);
+            return `
+                <div style="padding:20px; background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:15px;">
+                    <div style="font-weight:600; margin-bottom:15px; color:#FFD700;">${poll.question || 'Untitled Poll'}</div>
+                    ${poll.options.map((opt, i) => {
+                        if(!opt) return '';
+                        const percent = totalVotes > 0 ? (opt.votes || 0) / totalVotes * 100 : 0;
+                        const hasVoted = opt.voters && opt.voters[visitorId];
+                        return `
+                            <div style="margin-bottom:10px;">
+                                <button class="voteBtn" data-poll="${id}" data-option="${i}" style="width:100%; padding:10px; text-align:left; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:6px; color:rgba(255,255,255,0.9); cursor:pointer; margin-bottom:5px;">
+                                    ${opt.text || 'Option ' + (i + 1)} ${hasVoted ? '✓' : ''}
+                                </button>
+                                <div style="width:100%; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden;">
+                                    <div style="height:100%; background:#FFD700; width:${percent}%; transition:width 0.3s;"></div>
+                                </div>
+                                <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:4px;">${opt.votes || 0} votes (${percent.toFixed(1)}%)</div>
+                            </div>
+                        `;
+                    }).join('')}
+                    <div style="font-size:11px; color:rgba(255,255,255,0.5); margin-top:10px;">By ${poll.createdBy || 'Unknown'} • ${new Date(poll.createdAt || Date.now()).toLocaleString()}</div>
+                </div>
+            `;
+        }).join('');
+        
+        // Re-attach event listeners
+        document.querySelectorAll('.voteBtn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pollId = btn.dataset.poll;
+                const optionIndex = parseInt(btn.dataset.option);
+                if(db && pollId && !isNaN(optionIndex)) {
+                    db.ref(`polls/${pollId}/options/${optionIndex}`).transaction(opt => {
+                        if(!opt) return opt;
+                        if(!opt.voters) opt.voters = {};
+                        if(opt.voters[visitorId]) return opt; // Already voted
+                        opt.voters[visitorId] = true;
+                        opt.votes = (opt.votes || 0) + 1;
+                        return opt;
+                    }).then(() => {
+                        loadPolls(); // Reload to show updated votes
+                    });
+                }
+            });
+        });
+    }).catch(err => {
+        console.error('Error loading polls:', err);
+        if(pollsList) pollsList.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading polls. Please try again.</p>';
+    });
+}
+
+// ---------------- File Sharing ----------------
+const filesBtn = document.getElementById('filesBtn');
+const filesModal = document.getElementById('filesModal');
+const closeFilesBtn = document.getElementById('closeFilesBtn');
+const filesList = document.getElementById('filesList');
+const fileUploadInput = document.getElementById('fileUploadInput');
+const uploadFileBtn = document.getElementById('uploadFileBtn');
+
+filesBtn?.addEventListener('click', () => {
+    filesModal.style.display = 'flex';
+    loadFiles();
+});
+
+closeFilesBtn?.addEventListener('click', () => {
+    filesModal.style.display = 'none';
+});
+
+filesModal?.addEventListener('click', (e) => {
+    if(e.target === filesModal) filesModal.style.display = 'none';
+});
+
+uploadFileBtn?.addEventListener('click', () => {
+    fileUploadInput.click();
+});
+
+fileUploadInput?.addEventListener('change', (e) => {
+    Array.from(e.target.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if(db) {
+                const fileData = {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    data: event.target.result,
+                    uploadedBy: username,
+                    uploadedAt: Date.now()
+                };
+                db.ref('files').push(fileData);
+                loadFiles();
+            }
+        };
+        if(file.type.startsWith('image/')) {
+            reader.readAsDataURL(file);
+        } else {
+            reader.readAsText(file);
+        }
+    });
+});
+
+function loadFiles() {
+    if(!db || !filesList) return;
+    db.ref('files').limitToLast(20).once('value').then(snap => {
+        const files = snap.val() || {};
+        filesList.innerHTML = Object.entries(files).reverse().map(([id, file]) => {
+            const isImage = file.type && file.type.startsWith('image/');
+            return `
+                <div style="padding:15px; background:rgba(255,255,255,0.05); border-radius:12px; text-align:center;">
+                    ${isImage ? `<img src="${file.data}" style="max-width:100%; max-height:150px; border-radius:8px; margin-bottom:10px;" />` : '<div style="font-size:48px; margin-bottom:10px;">📄</div>'}
+                    <div style="font-size:12px; color:rgba(255,255,255,0.9); margin-bottom:5px; word-break:break-word;">${file.name}</div>
+                    <div style="font-size:11px; color:rgba(255,255,255,0.5); margin-bottom:10px;">${(file.size / 1024).toFixed(1)} KB</div>
+                    <button class="downloadFileBtn" data-id="${id}" style="padding:6px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:6px; color:#FFD700; cursor:pointer; font-size:12px;">Download</button>
+                </div>
+            `;
+        }).join('');
+        document.querySelectorAll('.downloadFileBtn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const fileId = btn.dataset.id;
+                db.ref(`files/${fileId}`).once('value').then(snap => {
+                    const file = snap.val();
+                    const a = document.createElement('a');
+                    a.href = file.data;
+                    a.download = file.name;
+                    a.click();
+                });
+            });
+        });
+    });
+}
+
+// ---------------- Emoji Reactions ----------------
+const emojiBtn = document.getElementById('emojiBtn');
+const emojiPicker = document.getElementById('emojiPicker');
+const emojiOptions = document.querySelectorAll('.emoji-option');
+
+emojiBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+});
+
+document.addEventListener('click', (e) => {
+    if(!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+        emojiPicker.style.display = 'none';
+    }
+});
+
+emojiOptions.forEach(emoji => {
+    emoji.addEventListener('click', () => {
+        if(chatInput) {
+            chatInput.value += emoji.textContent;
+            chatInput.focus();
+        }
+        emojiPicker.style.display = 'none';
+    });
+    emoji.addEventListener('mouseenter', () => {
+        emoji.style.background = 'rgba(255,215,0,0.2)';
+    });
+    emoji.addEventListener('mouseleave', () => {
+        emoji.style.background = 'transparent';
+    });
+});
+
+
+// File send button
+const sendFileBtn = document.getElementById('sendFileBtn');
+const chatFileInput = document.createElement('input');
+chatFileInput.type = 'file';
+chatFileInput.style.display = 'none';
+document.body.appendChild(chatFileInput);
+
+sendFileBtn?.addEventListener('click', () => {
+    chatFileInput.click();
+});
+
+chatFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(file && db) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            db.ref('chat').push({
+                user: username,
+                text: `📎 ${file.name}`,
+                color: userColor,
+                time: Date.now(),
+                uid: visitorId,
+                avatar: userProfile.avatar || '👤',
+                avatarImage: userProfile.avatarImage || null,
+                file: {
+                    name: file.name,
+                    type: file.type,
+                    data: event.target.result
+                }
+            });
+        };
+        if(file.type.startsWith('image/')) {
+            reader.readAsDataURL(file);
+        } else {
+            reader.readAsText(file);
+        }
+        chatFileInput.value = ''; // Reset input
+    }
+});
+
+// ---------------- Attach Link ----------------
+const attachLinkBtn = document.getElementById('attachLinkBtn');
+attachLinkBtn?.addEventListener('click', () => {
+    const url = prompt('Enter a URL to share:');
+    if(url && url.trim()) {
+        let linkUrl = url.trim();
+        // Add http:// if no protocol
+        if(!linkUrl.match(/^https?:\/\//i)) {
+            linkUrl = 'http://' + linkUrl;
+        }
+        // Validate URL
+        try {
+            new URL(linkUrl);
+            if(db) {
+                db.ref('chat').push({
+                    user: username,
+                    text: `🔗 Shared a link: ${linkUrl}`,
+                    color: userColor,
+                    time: Date.now(),
+                    uid: visitorId,
+                    avatar: userProfile.avatar || '👤',
+                    avatarImage: userProfile.avatarImage || null,
+                    link: linkUrl
+                });
+            }
+        } catch(e) {
+            alert('Invalid URL. Please enter a valid web address.');
+        }
+    }
+});
+
+// ---------------- Voice Chat ----------------
+const voiceChatBtn = document.getElementById('voiceChatBtn');
+const voiceIndicator = document.getElementById('voiceIndicator');
+let mediaRecorder = null;
+let audioChunks = [];
+
+let isRecording = false;
+let recordingStream = null;
+
+async function startRecording() {
+    if(isRecording) return;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordingStream = stream;
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        isRecording = true;
+        
+        mediaRecorder.ondataavailable = (e) => {
+            if(e.data.size > 0) {
+                audioChunks.push(e.data);
+            }
+        };
+        
+        mediaRecorder.onstop = () => {
+            if(audioChunks.length > 0) {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.onload = () => {
+                    if(db) {
+                        db.ref('voiceMessages').push({
+                            audio: reader.result,
+                            user: username,
+                            time: Date.now(),
+                            uid: visitorId,
+                            avatar: userProfile.avatar || '👤',
+                            avatarImage: userProfile.avatarImage || null
+                        });
+                    }
+                };
+                reader.readAsDataURL(audioBlob);
+            }
+            if(recordingStream) {
+                recordingStream.getTracks().forEach(track => track.stop());
+                recordingStream = null;
+            }
+            isRecording = false;
+            if(voiceIndicator) voiceIndicator.style.display = 'none';
+        };
+        
+        mediaRecorder.onerror = (e) => {
+            console.error('MediaRecorder error:', e);
+            isRecording = false;
+            if(voiceIndicator) voiceIndicator.style.display = 'none';
+        };
+        
+        mediaRecorder.start();
+        if(voiceIndicator) voiceIndicator.style.display = 'block';
+    } catch(err) {
+        console.error('Microphone access error:', err);
+        alert('Microphone access denied. Please allow microphone access to use voice chat.');
+        isRecording = false;
+    }
+}
+
+function stopRecording() {
+    if(mediaRecorder && mediaRecorder.state !== 'inactive' && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+    }
+}
+
+// Mouse events
+voiceChatBtn?.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    startRecording();
+});
+
+voiceChatBtn?.addEventListener('mouseup', (e) => {
+    e.preventDefault();
+    stopRecording();
+});
+
+voiceChatBtn?.addEventListener('mouseleave', (e) => {
+    e.preventDefault();
+    stopRecording();
+});
+
+// Touch events for mobile
+voiceChatBtn?.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    startRecording();
+});
+
+voiceChatBtn?.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    stopRecording();
+});
+
+voiceChatBtn?.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    stopRecording();
+});
+
+// Listen for voice messages
+if(db) {
+    db.ref('voiceMessages').limitToLast(10).on('child_added', snapshot => {
+        const voiceMsg = snapshot.val();
+        if(!voiceMsg || !voiceMsg.audio) return;
+        
+        const msgDiv = document.createElement('div');
+        msgDiv.setAttribute('data-voice-msg-id', snapshot.key);
+        msgDiv.style.cssText = 'display:flex; gap:10px; align-items:flex-start; padding:10px; background:rgba(255,215,0,0.1); border-radius:8px; margin-bottom:10px; position:relative;';
+        
+        // Profile picture
+        const avatarDiv = document.createElement('div');
+        avatarDiv.style.width='32px';
+        avatarDiv.style.height='32px';
+        avatarDiv.style.borderRadius='50%';
+        avatarDiv.style.flexShrink='0';
+        avatarDiv.style.overflow='hidden';
+        avatarDiv.style.display='flex';
+        avatarDiv.style.alignItems='center';
+        avatarDiv.style.justifyContent='center';
+        avatarDiv.style.fontSize='20px';
+        avatarDiv.style.background='linear-gradient(135deg, #FFD700, #FFA500)';
+        if(voiceMsg.avatarImage) {
+            avatarDiv.style.backgroundImage = `url(${voiceMsg.avatarImage})`;
+            avatarDiv.style.backgroundSize = 'cover';
+            avatarDiv.style.backgroundPosition = 'center';
+            avatarDiv.textContent = '';
+        } else {
+            avatarDiv.textContent = voiceMsg.avatar || '👤';
+        }
+        msgDiv.appendChild(avatarDiv);
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.style.flex='1';
+        contentDiv.innerHTML = `
+            <div style="font-weight:600; color:#FFD700; margin-bottom:5px;">${voiceMsg.user || 'User'} <i class="fas fa-microphone"></i></div>
+            <audio controls style="width:100%;"></audio>
+        `;
+        const audioEl = contentDiv.querySelector('audio');
+        audioEl.src = voiceMsg.audio;
+        msgDiv.appendChild(contentDiv);
+        
+        // Delete button if owner
+        if(voiceMsg.uid === visitorId) {
+            const delBtn = document.createElement('button');
+            delBtn.innerHTML='✖';
+            delBtn.style.border='none';
+            delBtn.style.background='transparent';
+            delBtn.style.color='rgba(255,255,255,0.5)';
+            delBtn.style.cursor='pointer';
+            delBtn.style.position='absolute';
+            delBtn.style.top='5px';
+            delBtn.style.right='5px';
+            delBtn.style.fontSize='16px';
+            delBtn.style.padding='4px 8px';
+            delBtn.title='Delete voice message';
+            delBtn.onclick = () => {
+                if(confirm('Delete this voice message?')) {
+                    snapshot.ref.remove();
+                    msgDiv.remove();
+                }
+            };
+            msgDiv.appendChild(delBtn);
+        }
+        
+        chatMessages.appendChild(msgDiv);
+        
+        // Auto-scroll if near bottom
+        if(chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 50){
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+    
+    // Handle voice message removal
+    db.ref('voiceMessages').on('child_removed', snapshot => {
+        const msgDiv = document.querySelector(`[data-voice-msg-id="${snapshot.key}"]`);
+        if(msgDiv) {
+            msgDiv.remove();
+        }
+    });
+}
+
+// Initialize profile on load
+if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if(db && userProfile.profileCreated) {
+            const profileData = {
+                avatar: userProfile.avatar,
+                avatarImage: userProfile.avatarImage,
+                status: userProfile.status,
+                username: userProfile.username || username,
+                lastSeen: Date.now()
+            };
+            db.ref('profiles/' + visitorId).update(profileData);
+        }
+    });
+} else {
+    if(db && userProfile.profileCreated) {
+        const profileData = {
+            avatar: userProfile.avatar,
+            avatarImage: userProfile.avatarImage,
+            status: userProfile.status,
+            username: userProfile.username || username,
+            lastSeen: Date.now()
+        };
+        db.ref('profiles/' + visitorId).update(profileData);
+    }
+}
 </script>
 
 </body>
