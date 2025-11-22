@@ -3,80 +3,112 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Google Docs</title>
+<title>SHS Gamesite</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
+     crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-/* ================= existing styles (unchanged) ================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #0a0e27;
-    color: #e0e0e0;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #000000;
+    color: #ffffff;
     position: relative;
     overflow-x: hidden;
+    min-height: 100vh;
 }
+
 
 /* Visitor Counter Top Bar */
 #visitorCounter {
-    width: 100%; 
-    text-align: center; 
-    background: #050812;
-    padding: 6px 0; 
-    font-size: 13px; 
-    color: #00ff88; 
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    width: 100%;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 12px 0;
+    font-size: 14px;
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     position: relative;
     z-index: 1000;
-    font-weight: 500;
-    border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Header */
 header {
-    background: linear-gradient(90deg, #0f0f1e, #1a1a2e);
-    color: #00ffff;
-    padding: 24px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: #ffffff;
+    padding: 25px 20px;
     text-align: center;
     font-size: 28px;
     font-weight: 700;
-    border-bottom: 2px solid #00ffff;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), inset 0 0 20px rgba(0, 255, 255, 0.05);
-    border-radius: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 header .headerText { line-height: 1.4; text-align: center; }
-header small { font-size:16px; font-weight:normal; display:block; margin-top:4px; color:#00ff88; text-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
+header small { font-size:14px; font-weight:normal; display:block; margin-top:4px; color:#cccccc; }
 
 #replayTutorialBtn {
     position:absolute; top:15px; right:15px; width:35px; height:35px;
-    font-weight:bold; font-size:16px; border-radius: 2px; border: 2px solid #00ffff;
-    background: rgba(0, 255, 255, 0.1); cursor:pointer;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4); transition: all 0.3s ease;
-    color: #00ffff;
+    font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #007bff;
+    background: #007bff; cursor:pointer;
+    transition: all 0.3s ease;
+    color: #ffffff;
 }
-#replayTutorialBtn:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
+#replayTutorialBtn:hover { background: #0056b3; }
 
 /* Controls */
 .controls {
-    background: #0f0f1e; padding: 16px; display:flex; flex-wrap:wrap;
-    justify-content:center; gap:10px; border-bottom: 1px solid #00ffff;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+    background: linear-gradient(135deg, #1a1a2a, #2a2a3a);
+    padding: 25px 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 0 15px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
+
+.control-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
 .controls button {
-    padding: 10px 18px; border: 2px solid; color:white; cursor:pointer;
-    border-radius: 2px; font-size: 13px; display:flex; align-items:center; gap:8px;
-    transition: all 0.15s ease;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    padding: 12px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    cursor: pointer;
+    border-radius: 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    min-width: 120px;
+    justify-content: center;
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
+
 .controls button::before {
     content: '';
     position: absolute;
@@ -84,116 +116,88 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     left: -100%;
     width: 100%;
     height: 100%;
-    transition: left 0.15s ease;
-    z-index: -1;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s ease;
 }
-.controls button:hover::before { left: 0; }
+
+.controls button:hover::before {
+    left: 100%;
+}
+
 .controls button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 15px currentColor;
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
-#reloadBtn { border-color: #00ccff; color: #00ccff; background: rgba(0, 204, 255, 0.1); }
-#reloadBtn::before { background: rgba(0, 204, 255, 0.2); }
-#reloadBtn:hover { background: rgba(0, 204, 255, 0.3); box-shadow: 0 0 20px rgba(0, 204, 255, 0.6); }
-
-#fullscreenBtn { border-color: #ff00ff; color: #ff00ff; background: rgba(255, 0, 255, 0.1); }
-#fullscreenBtn::before { background: rgba(255, 0, 255, 0.2); }
-#fullscreenBtn:hover { background: rgba(255, 0, 255, 0.3); box-shadow: 0 0 20px rgba(255, 0, 255, 0.6); }
-
-#zoomInBtn { border-color: #00ff88; color: #00ff88; background: rgba(0, 255, 136, 0.1); }
-#zoomInBtn::before { background: rgba(0, 255, 136, 0.2); }
-#zoomInBtn:hover { background: rgba(0, 255, 136, 0.3); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
-
-#zoomOutBtn { border-color: #00ff88; color: #00ff88; background: rgba(0, 255, 136, 0.1); }
-#zoomOutBtn::before { background: rgba(0, 255, 136, 0.2); }
-#zoomOutBtn:hover { background: rgba(0, 255, 136, 0.3); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
-
-#hideIframeBtn { border-color: #ffaa00; color: #ffaa00; background: rgba(255, 170, 0, 0.1); }
-#hideIframeBtn::before { background: rgba(255, 170, 0, 0.2); }
-#hideIframeBtn:hover { background: rgba(255, 170, 0, 0.3); box-shadow: 0 0 20px rgba(255, 170, 0, 0.6); }
-
-#showIframeBtn { border-color: #ffaa00; color: #ffaa00; background: rgba(255, 170, 0, 0.1); }
-#showIframeBtn::before { background: rgba(255, 170, 0, 0.2); }
-#showIframeBtn:hover { background: rgba(255, 170, 0, 0.3); box-shadow: 0 0 20px rgba(255, 170, 0, 0.6); }
-
-#extraSiteBtn { border-color: #ff1493; color: #ff1493; background: rgba(255, 20, 147, 0.1); }
-#extraSiteBtn::before { background: rgba(255, 20, 147, 0.2); }
-#extraSiteBtn:hover { background: rgba(255, 20, 147, 0.3); box-shadow: 0 0 20px rgba(255, 20, 147, 0.6); }
-
-#backBtn { border-color: #ff1493; color: #ff1493; background: rgba(255, 20, 147, 0.1); }
-#backBtn::before { background: rgba(255, 20, 147, 0.2); }
-#backBtn:hover { background: rgba(255, 20, 147, 0.3); box-shadow: 0 0 20px rgba(255, 20, 147, 0.6); }
-
-#privacyBtn { border-color: #00ffaa; color: #00ffaa; background: rgba(0, 255, 170, 0.1); font-weight: 600; }
-#privacyBtn::before { background: rgba(0, 255, 170, 0.2); }
-#privacyBtn:hover { background: rgba(0, 255, 170, 0.3); box-shadow: 0 0 20px rgba(0, 255, 170, 0.6); }
-
-#toggleChatBtn { border-color: #00ffff; color: #00ffff; background: rgba(0, 255, 255, 0.1); }
-#toggleChatBtn::before { background: rgba(0, 255, 255, 0.2); }
-#toggleChatBtn:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
-
-#openDrawingBtn { border-color: #ff00ff !important; color: #ff00ff !important; background: rgba(255, 0, 255, 0.1) !important; }
-#openDrawingBtn::before { background: rgba(255, 0, 255, 0.2) !important; }
-#openDrawingBtn:hover { background: rgba(255, 0, 255, 0.3) !important; box-shadow: 0 0 20px rgba(255, 0, 255, 0.6) !important; }
-
-#clearCanvasBtn { border-color: #ff0000 !important; color: #ff0000 !important; background: rgba(255, 0, 0, 0.1) !important; }
-#clearCanvasBtn:hover { background: rgba(255, 0, 0, 0.3) !important; box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important; }
 
 /* Iframe */
-#iframeContainer { position: relative; }
+#iframeContainer {
+    position: relative;
+    margin: 20px 15px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
 #embeddedSite {
-    width: 100%; height: calc(100vh - 140px); border: 2px solid #00ffff;
-    border-radius: 0; box-sizing:border-box; transition: all 0.3s ease;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.05);
+    width: 100%;
+    height: calc(100vh - 200px);
+    border: none;
+    border-radius: 20px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.1);
 }
 
 /* Tutorial Bubble */
-#tutorialOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); z-index:9999; display:none; }
+#tutorialOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); backdrop-filter:blur(3px); z-index:9999; display:none; }
 .tutorialBubble {
-    position: absolute; max-width:280px; background: rgba(15, 15, 30, 0.98); color:#00ffff;
-    padding:18px 20px; border-radius: 2px; border: 1px solid #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-    text-align:center; font-size:15px; opacity:0;
+    position: absolute; max-width:350px; background: rgba(255, 255, 255, 0.95); backdrop-filter:blur(15px); color:#333;
+    padding:25px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    text-align:center; font-size:16px; opacity:0;
     transform: translate(-50%, -20px); transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 .tutorialBubble.show { opacity:1; transform: translate(-50%,0); }
-.tutorialBubble button { margin-top:12px; padding:8px 14px; border: 1px solid #00ffff; background: rgba(0, 255, 255, 0.1); color:#00ffff; border-radius: 2px; cursor:pointer; font-weight: 600; }
-.tutorialBubble button:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); transform:translateY(-2px); }
+.tutorialBubble button { margin-top:15px; padding:10px 20px; border: none; background: rgba(0, 123, 255, 0.8); color:#ffffff; border-radius: 10px; cursor:pointer; font-weight: 600; backdrop-filter:blur(10px); }
+.tutorialBubble button:hover { background: rgba(0, 123, 255, 1); }
 
 #tutorialArrow {
     position:absolute; width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent;
-    border-bottom:18px solid rgba(15, 15, 30, 0.98); z-index:10000; transition: all 0.4s ease;
-    filter: drop-shadow(0 4px 8px rgba(0, 255, 255, 0.3));
+    border-bottom:18px solid #ffffff; z-index:10000; transition: all 0.4s ease;
 }
 
-/* Cinematic Fullscreen Popup */
+/* Fullscreen Popup */
 #fullscreenPopup {
     position: fixed; top:0; left:0; width:100%; height:100%; display:flex;
     justify-content:center; align-items:center; z-index:10001; opacity:0; pointer-events:none;
-    background: linear-gradient(135deg, #0a0e27, #1a1a3e);
-    flex-direction: column; color:#00ffff; text-align:center; overflow:hidden;
+    background: rgba(0,0,0,0.8); backdrop-filter:blur(5px);
+    flex-direction: column; color:#ffffff; text-align:center;
 }
-#fullscreenPopup.show { opacity:1; pointer-events:auto; animation: cinematicFade 1.5s ease forwards; }
-#fullscreenPopup.show .popupContent {
-    animation: cinematicScale 1.5s forwards ease-out;
-}
+#fullscreenPopup.show { opacity:1; pointer-events:auto; }
 #fullscreenPopup .popupContent {
-    width: 100%; height: 100%; display:flex; justify-content:center; align-items:center; flex-direction:column;
-    background: rgba(0,0,0,0.9); box-shadow: 0 0 50px rgba(0, 255, 255, 0.2);
-    transform: scale(0.6); opacity:0;
+    max-width: 550px; padding: 50px; background: rgba(255, 255, 255, 0.95); backdrop-filter:blur(20px); border-radius: 20px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #333;
 }
-#fullscreenPopup h1 { font-size:4vw; margin:0; text-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
-#fullscreenPopup p { font-size:1.5vw; margin-top:20px; }
-#fullscreenPopup .extraSiteHighlight { font-weight:bold; color: #ff00ff; text-shadow: 0 0 10px rgba(255, 0, 255, 0.6); }
+#fullscreenPopup h1 { font-size:32px; margin:0 0 25px 0; font-weight: 700; }
+#fullscreenPopup p { font-size:18px; margin:0; line-height: 1.5; }
 #fullscreenPopup .closeBtn {
-    position:absolute; top:15px; right:15px; border: 2px solid #00ffff; background: rgba(0, 255, 255, 0.1);
-    font-size:28px; cursor:pointer; color:#00ffff; transition: all 0.3s ease;
-    width: 40px; height: 40px; border-radius: 2px;
+    position:absolute; top:15px; right:15px; border: none; background: rgba(0, 123, 255, 0.8); color:#ffffff;
+    font-size:24px; cursor:pointer; width: 40px; height: 40px; border-radius: 12px; backdrop-filter:blur(10px);
 }
-#fullscreenPopup .closeBtn:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
+#fullscreenPopup .closeBtn:hover { background: rgba(0, 123, 255, 1); }
 
-/* Cinematic Animations */
-@keyframes cinematicFade { 0% { opacity:0; } 100% { opacity:1; } }
-@keyframes cinematicScale { 0% { transform: scale(0.6) translateY(-100px); opacity:0; } 60% { transform: scale(1.05) translateY(20px); opacity:1; } 100% { transform: scale(1) translateY(0); opacity:1; } }
+
+/* Stars */
+#starCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+}
 
 /* Sparkles */
 #sparkleCanvas {
@@ -208,91 +212,389 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 /* Chat Box */
 #chatContainer {
     position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 300px;
-    max-height: 400px;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    max-height: 450px;
     overflow-y: auto;
-    background: rgba(15, 15, 30, 0.95);
-    padding: 10px;
-    border-radius: 2px;
-    border: 1px solid #00ffff;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     font-size: 14px;
-    color: #e0e0e0;
+    color: #333;
 }
 #chatContainer input {
     width: calc(100% - 20px);
     margin-top: 10px;
-    padding: 5px 8px;
-    border-radius: 2px;
-    border: 1px solid #00ffff;
-    background: rgba(0, 255, 255, 0.05);
-    color: #00ffff;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    color: #333;
 }
 #chatContainer header {
     font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 14px;
+    margin-bottom: 10px;
+    font-size: 16px;
     display: flex;
     justify-content: space-between;
-    color: #00ffff;
+    color: #333;
 }
 #changeNameBtn {
     font-size: 12px;
     cursor: pointer;
-    color: #00ff88;
+    color: #007bff;
 }
 
-/* ================= new drawing modal styles ================= */
+/* Drawing Modal */
 #drawingModal {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(5px);
   z-index: 20000;
   display: none;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 20px;
 }
 #drawingModal .modalInner {
-  width: min(1100px, 96%);
+  width: min(1200px, 96%);
   max-height: 92%;
   overflow: auto;
-  border-radius: 2px;
-  background: #0f0f1e;
-  border: 1px solid #00ffff;
-  box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
-  padding: 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  padding: 25px;
   position: relative;
-  color: #e0e0e0;
+  color: #333;
 }
 #drawingModal .closeDrawing {
   position: absolute;
   top: 10px; right: 10px;
-  border: none; background: transparent; font-size: 20px; cursor: pointer;
-  color: #00ffff;
+  border: none; background: #007bff; color:#ffffff; font-size: 20px; cursor: pointer;
+  width:30px; height:30px; border-radius:4px;
 }
 #sharedCanvasContainer {
   width: 100%;
-  background: rgba(20, 20, 40, 0.95);
-  border-radius: 2px;
-  padding:10px;
+  background: #f9f9f9;
+  border-radius: 4px;
+  padding:15px;
   box-sizing:border-box;
 }
-#canvasArea { border: 1px solid #00ffff; border-radius: 2px; overflow:hidden; background: #0a0a15; display:block; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); }
-#sharedCanvas { width:100%; height:500px; display:block; background: #0a0a15; touch-action:none; }
-#toggleCanvasBtn { padding: 8px 14px; border-radius: 2px; cursor:pointer; border: 1px solid #00ffff; background: rgba(0, 255, 255, 0.1); color: #00ffff; font-weight: 600; transition: all 0.15s ease; }
-#toggleCanvasBtn:hover { background: rgba(0, 255, 255, 0.3); box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); }
+#canvasArea { border: 1px solid #ccc; border-radius: 4px; overflow:hidden; background: #ffffff; display:block; }
+#sharedCanvas { width:100%; height:500px; display:block; background: #ffffff; touch-action:none; }
+#toggleCanvasBtn { padding: 8px 16px; border-radius: 4px; cursor:pointer; border: 1px solid #007bff; background: #007bff; color: #ffffff; font-weight: 500; transition: all 0.2s ease; }
+#toggleCanvasBtn:hover { background: #0056b3; }
 
-/* small responsive tweaks */
-@media (max-width:700px) {
-  #sharedCanvas { height:360px; }
-  .controls { gap:8px; }
+/* ================= THEME STYLES ================= */
+
+/* Light Theme */
+.theme-light body {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  color: #212529;
+  animation: none;
+}
+.theme-light #visitorCounter {
+  background: linear-gradient(90deg, #ffffff, #f8f9fa);
+  color: #007bff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-bottom: 1px solid #dee2e6;
+  text-shadow: none;
+}
+.theme-light header {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  color: #007bff;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-shadow: none;
+}
+.theme-light .controls {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-bottom: 1px solid #dee2e6;
+}
+.theme-light .controls button {
+  border-color: #007bff;
+  background: #007bff;
+  color: #ffffff;
+}
+.theme-light .controls button:hover {
+  background: #0056b3;
+}
+.theme-light #chatContainer {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  color: #212529;
+}
+.theme-light #drawingModal .modalInner {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+}
+
+/* Neon Theme */
+.theme-neon body {
+  background: linear-gradient(135deg, #0a0e27, #1a1a3e);
+  color: #ffffff;
+  animation: neonPulse 3s ease-in-out infinite;
+}
+@keyframes neonPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.1); }
+}
+.theme-neon #visitorCounter {
+  background: linear-gradient(90deg, #1a1a3e, #2a2a5e);
+  color: #ff00ff;
+  box-shadow: 0 0 20px rgba(255,0,255,0.5);
+  border-bottom: 2px solid #ff00ff;
+  text-shadow: 0 0 10px rgba(255,0,255,0.8);
+}
+.theme-neon header {
+  background: linear-gradient(135deg, #1e1e4e, #2a2a6e);
+  color: #00ffff;
+  border-bottom: 2px solid #00ffff;
+  box-shadow: 0 0 30px rgba(0,255,255,0.4);
+  text-shadow: 0 0 15px rgba(0,255,255,0.8);
+}
+.theme-neon .controls {
+  background: linear-gradient(135deg, #1a1a3e, #2a2a5e);
+  border-bottom: 1px solid #00ffff;
+}
+.theme-neon .controls button {
+  border-color: #ff00ff;
+  background: rgba(255,0,255,0.2);
+  color: #ff00ff;
+  box-shadow: 0 0 10px rgba(255,0,255,0.3);
+}
+.theme-neon .controls button:hover {
+  background: rgba(255,0,255,0.4);
+  box-shadow: 0 0 20px rgba(255,0,255,0.6);
+}
+.theme-neon #iframeContainer #embeddedSite {
+  border-color: #00ffff;
+  box-shadow: 0 0 30px rgba(0,255,255,0.5);
+}
+.theme-neon #chatContainer {
+  background: rgba(26,26,62,0.95);
+  border: 1px solid #00ffff;
+  box-shadow: 0 0 20px rgba(0,255,255,0.3);
+  color: #ffffff;
+}
+.theme-neon #drawingModal .modalInner {
+  background: #1a1a3e;
+  border: 1px solid #00ffff;
+  box-shadow: 0 0 30px rgba(0,255,255,0.3);
+  color: #ffffff;
+}
+
+/* Ocean Theme */
+.theme-ocean body {
+  background: linear-gradient(135deg, #001122, #003344);
+  color: #00ffff;
+  animation: oceanWave 8s ease-in-out infinite;
+}
+@keyframes oceanWave {
+  0%, 100% { background: linear-gradient(135deg, #001122, #003344); }
+  50% { background: linear-gradient(135deg, #002233, #004455); }
+}
+.theme-ocean #visitorCounter {
+  background: linear-gradient(90deg, #002244, #003355);
+  color: #00ffff;
+  box-shadow: 0 0 15px rgba(0,255,255,0.4);
+  border-bottom: 1px solid #00ffff;
+  text-shadow: 0 0 8px rgba(0,255,255,0.6);
+}
+.theme-ocean header {
+  background: linear-gradient(135deg, #001133, #002244);
+  color: #00ffff;
+  border-bottom: 2px solid #00ffff;
+  box-shadow: 0 0 25px rgba(0,255,255,0.3);
+  text-shadow: 0 0 12px rgba(0,255,255,0.7);
+}
+.theme-ocean .controls {
+  background: linear-gradient(135deg, #001122, #002233);
+  border-bottom: 1px solid #00ffff;
+}
+.theme-ocean .controls button {
+  border-color: #00ffff;
+  background: rgba(0,255,255,0.1);
+  color: #00ffff;
+}
+.theme-ocean .controls button:hover {
+  background: rgba(0,255,255,0.3);
+  box-shadow: 0 0 15px rgba(0,255,255,0.5);
+}
+
+/* Forest Theme */
+.theme-forest body {
+  background: linear-gradient(135deg, #0a1a0a, #1a2a1a);
+  color: #00ff88;
+}
+.theme-forest #visitorCounter {
+  background: linear-gradient(90deg, #1a2a1a, #2a3a2a);
+  color: #00ff88;
+  box-shadow: 0 0 15px rgba(0,255,136,0.4);
+  border-bottom: 1px solid #00ff88;
+  text-shadow: 0 0 8px rgba(0,255,136,0.6);
+}
+.theme-forest header {
+  background: linear-gradient(135deg, #0a1a0a, #1a2a1a);
+  color: #00ff88;
+  border-bottom: 2px solid #00ff88;
+  box-shadow: 0 0 25px rgba(0,255,136,0.3);
+  text-shadow: 0 0 12px rgba(0,255,136,0.7);
+}
+.theme-forest .controls {
+  background: linear-gradient(135deg, #1a2a1a, #2a3a2a);
+  border-bottom: 1px solid #00ff88;
+}
+.theme-forest .controls button {
+  border-color: #00ff88;
+  background: rgba(0,255,136,0.1);
+  color: #00ff88;
+}
+.theme-forest .controls button:hover {
+  background: rgba(0,255,136,0.3);
+  box-shadow: 0 0 15px rgba(0,255,136,0.5);
+}
+
+/* Sunset Theme */
+.theme-sunset body {
+  background: linear-gradient(135deg, #2a1810, #3a2415);
+  color: #ffaa00;
+}
+.theme-sunset #visitorCounter {
+  background: linear-gradient(90deg, #3a2415, #4a301a);
+  color: #ffaa00;
+  box-shadow: 0 0 15px rgba(255,170,0,0.4);
+  border-bottom: 1px solid #ffaa00;
+  text-shadow: 0 0 8px rgba(255,170,0,0.6);
+}
+.theme-sunset header {
+  background: linear-gradient(135deg, #2a1810, #3a2415);
+  color: #ffaa00;
+  border-bottom: 2px solid #ffaa00;
+  box-shadow: 0 0 25px rgba(255,170,0,0.3);
+  text-shadow: 0 0 12px rgba(255,170,0,0.7);
+}
+.theme-sunset .controls {
+  background: linear-gradient(135deg, #3a2415, #4a301a);
+  border-bottom: 1px solid #ffaa00;
+}
+.theme-sunset .controls button {
+  border-color: #ffaa00;
+  background: rgba(255,170,0,0.1);
+  color: #ffaa00;
+}
+.theme-sunset .controls button:hover {
+  background: rgba(255,170,0,0.3);
+  box-shadow: 0 0 15px rgba(255,170,0,0.5);
+}
+
+/* Seasonal Themes */
+.seasonal-christmas body {
+  background: linear-gradient(135deg, #1a0a0a, #2a1a1a);
+}
+.seasonal-christmas body::before {
+  content: '🎄❄️🎅';
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 1000;
+}
+.seasonal-halloween body {
+  background: linear-gradient(135deg, #1a0a0a, #2a1a0a);
+}
+.seasonal-halloween body::before {
+  content: '🎃👻🕷️';
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 1000;
+}
+.seasonal-spring body {
+  background: linear-gradient(135deg, #0a1a0a, #1a2a1a);
+}
+.seasonal-spring body::before {
+  content: '🌸🌼🌻';
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 1000;
+}
+.seasonal-summer body {
+  background: linear-gradient(135deg, #1a2a0a, #2a3a1a);
+}
+.seasonal-summer body::before {
+  content: '☀️🏖️🌴';
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .controls {
+    padding: 15px 10px;
+    gap: 15px;
+  }
+  .control-group {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .controls button {
+    min-width: 120px;
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+  #chatContainer {
+    width: 280px;
+    right: 5px;
+  }
+  #sharedCanvas { height: 400px; }
+  header {
+    padding: 15px;
+    font-size: 20px;
+  }
+  header small {
+    font-size: 12px;
+  }
+}
+@media (max-width: 480px) {
+  .controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  .control-group {
+    flex-direction: row;
+    justify-content: center;
+  }
+  #chatContainer {
+    width: 250px;
+  }
+  #sharedCanvas { height: 300px; }
 }
 </style>
 </head>
 <body>
+<canvas id="starCanvas"></canvas>
 <!-- Cool Intro Loading Screen -->
 <div id="introScreen">
   <div class="introParticles"></div>
@@ -311,7 +613,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     position: fixed;
     top:0; left:0;
     width:100%; height:100%;
-    background: linear-gradient(135deg, #0a0e27, #1a1a3e, #0f0f1e);
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
     display:flex; justify-content:center; align-items:center;
     z-index:99999; overflow:hidden;
     flex-direction: column;
@@ -319,14 +621,13 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 
 .introContent {
     text-align:center;
-    color:white;
+    color:#ffffff;
     font-family:'Segoe UI', sans-serif;
 }
 
 .logoBounce img {
     width:120px;
     animation: bounce 1.5s infinite;
-    filter: drop-shadow(0 0 20px #fff);
 }
 
 @keyframes bounce {
@@ -339,8 +640,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
     margin-top:15px;
     animation: fadeIn 2s ease-in-out forwards;
     opacity:0;
-    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ff88;
-    color: #00ffff;
+    color: #ffffff;
 }
 
 .typingDots {
@@ -350,9 +650,8 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 
 .typingDots span {
     width:10px; height:10px; border-radius: 2px;
-    background: #00ffff; opacity:0.3;
+    background: #007bff; opacity:0.3;
     animation: blink 1.5s infinite;
-    box-shadow: 0 0 5px #00ffff;
 }
 
 .typingDots span:nth-child(1){ animation-delay:0s; }
@@ -376,7 +675,7 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 <div id="visitorCounter">Visitors Online: 0 | Total Visitors: 0</div>
 
 <header>
-    <button id="adminBtn" title="Admin Panel" style="position:absolute; top:15px; left:15px; width:35px; height:35px; font-weight:bold; font-size:16px; border-radius: 2px; border: 2px solid #ff00ff; background: rgba(255, 0, 255, 0.1); cursor:pointer; box-shadow: 0 0 10px rgba(255, 0, 255, 0.4); transition: all 0.3s ease; color: #ff00ff;">⚙</button>
+    <button id="adminBtn" title="Admin Panel" style="position:absolute; top:15px; left:15px; width:35px; height:35px; font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #007bff; background: #007bff; cursor:pointer; transition: all 0.3s ease; color: #ffffff;">⚙</button>
     <div class="headerText">
         SHS - Gooner Gamesite <br>
         <small>SPS-devices Wi-Fi Password: 7&UI0)jk</small>
@@ -385,17 +684,29 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 </header>
 
 <div class="controls">
-    <button id="reloadBtn"><i class="fas fa-redo"></i> Reload</button>
-    <button id="fullscreenBtn"><i class="fas fa-expand"></i> Fullscreen</button>
-    <button id="zoomInBtn"><i class="fas fa-search-plus"></i> Zoom In</button>
-    <button id="zoomOutBtn"><i class="fas fa-search-minus"></i> Zoom Out</button>
-    <button id="hideIframeBtn"><i class="fas fa-eye-slash"></i> Hide</button>
-    <button id="showIframeBtn"><i class="fas fa-eye"></i> Show</button>
-    <button id="extraSiteBtn"><i class="fas fa-gamepad"></i> Extra Site</button>
-    <button id="privacyBtn"><i class="fas fa-shield-alt"></i> Browser</button>
-    <!-- NEW Drawing button (opens modal overlay) -->
-    <button id="openDrawingBtn" style="background:#6a5acd;"><i class="fas fa-paint-brush"></i> Global Drawing</button>
-    <button id="toggleChatBtn" title="Toggle Chat">💬 global chat</button>
+    <div class="control-group">
+        <button id="reloadBtn"><i class="fas fa-redo"></i> Reload</button>
+        <button id="fullscreenBtn"><i class="fas fa-expand"></i> Fullscreen</button>
+    </div>
+    <div class="control-group">
+        <button id="zoomInBtn"><i class="fas fa-search-plus"></i> Zoom In</button>
+        <button id="zoomOutBtn"><i class="fas fa-search-minus"></i> Zoom Out</button>
+    </div>
+    <div class="control-group">
+        <button id="hideIframeBtn"><i class="fas fa-eye-slash"></i> Hide</button>
+        <button id="showIframeBtn"><i class="fas fa-eye"></i> Show</button>
+    </div>
+    <div class="control-group">
+        <button id="extraSiteBtn"><i class="fas fa-gamepad"></i> Extra Site</button>
+        <button id="privacyBtn"><i class="fas fa-shield-alt"></i> Browser</button>
+    </div>
+    <div class="control-group">
+        <button id="openDrawingBtn"><i class="fas fa-paint-brush"></i> Drawing</button>
+        <button id="toggleChatBtn"><i class="fas fa-comments"></i> Chat</button>
+        <button id="themeBtn"><i class="fas fa-palette"></i> Themes</button>
+        <button id="achievementsBtn"><i class="fas fa-trophy"></i> Achievements</button>
+        <button id="statsBtn"><i class="fas fa-chart-bar"></i> Stats</button>
+    </div>
 </div>
 
 <div id="iframeContainer">
@@ -429,36 +740,36 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 
 
 
-<div id="chatNameColorPopup" style="display:none; position:fixed; bottom:80px; right:10px; width:280px; background:#0f0f1e; padding:15px; border-radius: 2px; border: 1px solid #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); z-index:10000; color: #e0e0e0;">
-    <label style="font-weight:bold; color: #00ffff;">Name:</label>
-    <input type="text" id="chatPopupUsername" style="width:100%; padding:5px; margin-bottom:10px; border-radius: 2px; border: 1px solid #00ffff; background: rgba(0, 255, 255, 0.05); color: #00ffff;" placeholder="Enter name">
+<div id="chatNameColorPopup" style="display:none; position:fixed; bottom:80px; right:10px; width:280px; background:#ffffff; padding:15px; border-radius: 8px; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index:10000; color: #333;">
+    <label style="font-weight:bold;">Name:</label>
+    <input type="text" id="chatPopupUsername" style="width:100%; padding:8px; margin-bottom:10px; border-radius: 4px; border: 1px solid #ccc; background: #f9f9f9;" placeholder="Enter name">
 
-    <label style="font-weight:bold; color: #00ffff;">Color:</label>
-    <input type="color" id="chatPopupColor" value="#007bff" style="width:100%; padding:5px; border-radius: 2px; border: 1px solid #00ffff;">
+    <label style="font-weight:bold;">Color:</label>
+    <input type="color" id="chatPopupColor" value="#007bff" style="width:100%; padding:8px; border-radius: 4px; border: 1px solid #ccc;">
 
-    <button id="chatSaveNameColor" style="margin-top:10px; width:100%; padding:8px; background: rgba(0, 255, 255, 0.1); color:#00ffff; border: 1px solid #00ffff; border-radius: 2px; cursor:pointer; font-weight: 600; transition: all 0.15s ease;">Save</button>
+    <button id="chatSaveNameColor" style="margin-top:10px; width:100%; padding:10px; background: #007bff; color:#ffffff; border: none; border-radius: 4px; cursor:pointer; font-weight: 500;">Save</button>
 </div>
 
 
-<!-- ================ ADMIN PANEL ================ -->
-<div id="adminModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:20001; align-items:center; justify-content:center;">
-  <div style="width:min(500px, 96%); background:#0f0f1e; border:2px solid #ff00ff; border-radius:2px; padding:20px; box-shadow:0 0 30px rgba(255,0,255,0.3); color:#e0e0e0;">
+<!-- Admin Panel -->
+<div id="adminModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:20001; align-items:center; justify-content:center;">
+  <div style="width:min(550px, 96%); background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:25px; box-shadow:0 15px 35px rgba(0,0,0,0.2); color:#333;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-      <h2 style="margin:0; color:#ff00ff;">Admin Panel</h2>
-      <button id="closeAdminBtn" style="border:none; background:transparent; color:#ff00ff; font-size:24px; cursor:pointer;">&times;</button>
+      <h2 style="margin:0;">Admin Panel</h2>
+      <button id="closeAdminBtn" style="border:none; background:#007bff; color:#ffffff; font-size:20px; cursor:pointer; width:30px; height:30px; border-radius:4px;">&times;</button>
     </div>
     <div id="adminContent" style="display:none;">
       <div style="display:grid; gap:10px;">
-        <button id="deleteChatHistoryBtn" style="padding:10px; background:rgba(255,0,0,0.2); border:1px solid #ff0000; color:#ff0000; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">Delete All Chat History</button>
-        <button id="clearCanvasAdminBtn" style="padding:10px; background:rgba(255,170,0,0.2); border:1px solid #ffaa00; color:#ffaa00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">Clear Canvas</button>
-        <button id="resetVisitorsBtn" style="padding:10px; background:rgba(0,255,255,0.2); border:1px solid #00ffff; color:#00ffff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">Reset Total Visitors Count</button>
-        <button id="logoutAdminBtn" style="padding:10px; background:rgba(255,0,255,0.2); border:1px solid #ff00ff; color:#ff00ff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">Logout</button>
+        <button id="deleteChatHistoryBtn" style="padding:10px; background:#dc3545; border:1px solid #dc3545; color:#ffffff; border-radius:4px; cursor:pointer; font-weight:500;">Delete All Chat History</button>
+        <button id="clearCanvasAdminBtn" style="padding:10px; background:#ffc107; border:1px solid #ffc107; color:#000; border-radius:4px; cursor:pointer; font-weight:500;">Clear Canvas</button>
+        <button id="resetVisitorsBtn" style="padding:10px; background:#007bff; border:1px solid #007bff; color:#ffffff; border-radius:4px; cursor:pointer; font-weight:500;">Reset Total Visitors Count</button>
+        <button id="logoutAdminBtn" style="padding:10px; background:#6c757d; border:1px solid #6c757d; color:#ffffff; border-radius:4px; cursor:pointer; font-weight:500;">Logout</button>
       </div>
     </div>
     <div id="adminPassword" style="">
-      <label style="display:block; margin-bottom:8px; color:#00ffff;">Enter Admin Password:</label>
-      <input type="password" id="adminPasswordInput" placeholder="Password" style="width:100%; padding:8px; border:1px solid #00ffff; background:rgba(0,255,255,0.05); color:#00ffff; border-radius:2px; box-sizing:border-box; margin-bottom:10px;">
-      <button id="adminLoginBtn" style="width:100%; padding:8px; background:rgba(255,0,255,0.2); border:1px solid #ff00ff; color:#ff00ff; border-radius:2px; cursor:pointer; font-weight:600;">Login</button>
+      <label style="display:block; margin-bottom:8px;">Enter Admin Password:</label>
+      <input type="password" id="adminPasswordInput" placeholder="Password" style="width:100%; padding:8px; border:1px solid #ccc; background:#f9f9f9; border-radius:4px; box-sizing:border-box; margin-bottom:10px;">
+      <button id="adminLoginBtn" style="width:100%; padding:10px; background:#007bff; border:1px solid #007bff; color:#ffffff; border-radius:4px; cursor:pointer; font-weight:500;">Login</button>
     </div>
   </div>
 </div>
@@ -473,13 +784,13 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
       <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
         <button id="toggleCanvasBtn">Open/Close Canvas</button>
 
-        <div style="display:flex; gap:6px; align-items:center; padding:6px 8px; background:rgba(0,255,255,0.1); border-radius:2px; border:1px solid rgba(0,255,255,0.3);">
-          <button id="brushToolBtn" title="Brush Tool" style="padding:6px 10px; border:2px solid #00ffff; background:rgba(0,255,255,0.3); color:#00ffff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">✏ Brush</button>
-          <button id="eraserToolBtn" title="Eraser Tool" style="padding:6px 10px; border:2px solid rgba(255,170,0,0.3); background:transparent; color:#ffaa00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">🗑 Eraser</button>
-          <button id="rectangleToolBtn" title="Rectangle Tool" style="padding:6px 10px; border:2px solid rgba(255,0,255,0.3); background:transparent; color:#ff00ff; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">▭ Rectangle</button>
-          <button id="circleToolBtn" title="Circle Tool" style="padding:6px 10px; border:2px solid rgba(0,255,0,0.3); background:transparent; color:#00ff00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">○ Circle</button>
-          <button id="lineToolBtn" title="Line Tool" style="padding:6px 10px; border:2px solid rgba(255,255,0,0.3); background:transparent; color:#ffff00; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">━ Line</button>
-          <button id="textToolBtn" title="Text Tool" style="padding:6px 10px; border:2px solid rgba(255,165,0,0.3); background:transparent; color:#ffa500; border-radius:2px; cursor:pointer; font-weight:600; transition:all 0.15s ease;">T Text</button>
+        <div style="display:flex; gap:6px; align-items:center; padding:6px 8px; background:#f0f0f0; border-radius:4px; border:1px solid #ccc;">
+          <button id="brushToolBtn" title="Brush Tool" style="padding:6px 10px; border:1px solid #007bff; background:#007bff; color:#ffffff; border-radius:4px; cursor:pointer; font-weight:500; transition:all 0.2s ease;">✏ Brush</button>
+          <button id="eraserToolBtn" title="Eraser Tool" style="padding:6px 10px; border:1px solid #ccc; background:#ffffff; color:#333; border-radius:4px; cursor:pointer; font-weight:500; transition:all 0.2s ease;">🗑 Eraser</button>
+          <button id="rectangleToolBtn" title="Rectangle Tool" style="padding:6px 10px; border:1px solid #ccc; background:#ffffff; color:#333; border-radius:4px; cursor:pointer; font-weight:500; transition:all 0.2s ease;">▭ Rectangle</button>
+          <button id="circleToolBtn" title="Circle Tool" style="padding:6px 10px; border:1px solid #ccc; background:#ffffff; color:#333; border-radius:4px; cursor:pointer; font-weight:500; transition:all 0.2s ease;">○ Circle</button>
+          <button id="lineToolBtn" title="Line Tool" style="padding:6px 10px; border:1px solid #ccc; background:#ffffff; color:#333; border-radius:4px; cursor:pointer; font-weight:500; transition:all 0.2s ease;">━ Line</button>
+          <button id="textToolBtn" title="Text Tool" style="padding:6px 10px; border:1px solid #ccc; background:#ffffff; color:#333; border-radius:4px; cursor:pointer; font-weight:500; transition:all 0.2s ease;">T Text</button>
         </div>
 
         <label style="display:flex;align-items:center;gap:6px;">
@@ -499,13 +810,13 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
           <input id="fillCheckbox" type="checkbox" title="Fill Shapes">
           <span style="font-size:12px; color:#999;">Fill</span>
         </label>
-        <button id="undoBtn" title="Undo" style="padding:6px 8px;border-radius:2px;border:1px solid #00ff88;background:rgba(0,255,136,0.2);color:#00ff88;cursor:pointer;font-weight:600;">↶ Undo</button>
-        <button id="eyedropperBtn" title="Eyedropper" style="padding:6px 8px;border-radius:2px;border:1px solid #ff1493;background:rgba(255,20,147,0.2);color:#ff1493;cursor:pointer;font-weight:600;">💧 Eyedropper</button>
-        <button id="saveBtn" title="Save Drawing" style="padding:6px 8px;border-radius:2px;border:1px solid #00ffff;background:rgba(0,255,255,0.2);color:#00ffff;cursor:pointer;font-weight:600;">💾 Save</button>
-        <button id="loadBtn" title="Load Drawing" style="padding:6px 8px;border-radius:2px;border:1px solid #00ffff;background:rgba(0,255,255,0.2);color:#00ffff;cursor:pointer;font-weight:600;">📁 Load</button>
-        <button id="zoomInBtn" title="Zoom In" style="padding:6px 8px;border-radius:2px;border:1px solid #00ff88;background:rgba(0,255,136,0.2);color:#00ff88;cursor:pointer;font-weight:600;">🔍+</button>
-        <button id="zoomOutBtn" title="Zoom Out" style="padding:6px 8px;border-radius:2px;border:1px solid #00ff88;background:rgba(0,255,136,0.2);color:#00ff88;cursor:pointer;font-weight:600;">🔍-</button>
-        <button id="clearCanvasBtn" style="padding:6px 8px;border-radius:2px;border:1px solid #ff0000;background:rgba(255,0,0,0.2);color:#ff0000;cursor:pointer;font-weight:600;">Clear</button>
+        <button id="undoBtn" title="Undo" style="padding:6px 8px;border-radius:4px;border:1px solid #28a745;background:#28a745;color:#ffffff;cursor:pointer;font-weight:500;">↶ Undo</button>
+        <button id="eyedropperBtn" title="Eyedropper" style="padding:6px 8px;border-radius:4px;border:1px solid #ccc;background:#ffffff;color:#333;cursor:pointer;font-weight:500;">💧 Eyedropper</button>
+        <button id="saveBtn" title="Save Drawing" style="padding:6px 8px;border-radius:4px;border:1px solid #007bff;background:#007bff;color:#ffffff;cursor:pointer;font-weight:500;">💾 Save</button>
+        <button id="loadBtn" title="Load Drawing" style="padding:6px 8px;border-radius:4px;border:1px solid #ccc;background:#ffffff;color:#333;cursor:pointer;font-weight:500;">📁 Load</button>
+        <button id="zoomInBtn" title="Zoom In" style="padding:6px 8px;border-radius:4px;border:1px solid #28a745;background:#28a745;color:#ffffff;cursor:pointer;font-weight:500;">🔍+</button>
+        <button id="zoomOutBtn" title="Zoom Out" style="padding:6px 8px;border-radius:4px;border:1px solid #28a745;background:#28a745;color:#ffffff;cursor:pointer;font-weight:500;">🔍-</button>
+        <button id="clearCanvasBtn" style="padding:6px 8px;border-radius:4px;border:1px solid #dc3545;background:#dc3545;color:#ffffff;cursor:pointer;font-weight:500;">Clear</button>
         <div style="margin-left:auto; font-size:12px; color:#777;">Shared canvas (Realtime)</div>
       </div>
 
@@ -520,6 +831,251 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 </div>
 <!-- ====================================================================== -->
 
+<!-- ================ Theme Customizer Modal ================ -->
+<div id="themeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:15000; align-items:center; justify-content:center;">
+  <div style="width:min(650px, 95%); background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.2); color:#333;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h2 style="margin:0; color:#007bff;"><i class="fas fa-palette"></i> Theme Customizer</h2>
+      <button id="closeThemeBtn" style="border:none; background:#007bff; color:#ffffff; font-size:20px; cursor:pointer; width:35px; height:35px; border-radius:50%;">&times;</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:25px;">
+      <button class="theme-option" data-theme="default" style="padding:15px; border:2px solid #007bff; background:linear-gradient(135deg, #0f0f1a, #1a1a2a); color:#00d4ff; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s ease;">
+        <div style="font-size:18px; margin-bottom:5px;">🌙</div>
+        Default Dark
+      </button>
+      <button class="theme-option" data-theme="light" style="padding:15px; border:2px solid #ccc; background:linear-gradient(135deg, #f8f9fa, #e9ecef); color:#333; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s ease;">
+        <div style="font-size:18px; margin-bottom:5px;">☀️</div>
+        Light Mode
+      </button>
+      <button class="theme-option" data-theme="neon" style="padding:15px; border:2px solid #ff00ff; background:linear-gradient(135deg, #0a0e27, #1a1a3e); color:#00ffff; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s ease; box-shadow:0 0 15px rgba(255,0,255,0.3);">
+        <div style="font-size:18px; margin-bottom:5px;">⚡</div>
+        Neon Glow
+      </button>
+      <button class="theme-option" data-theme="ocean" style="padding:15px; border:2px solid #00ffff; background:linear-gradient(135deg, #001122, #003344); color:#00ffff; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s ease;">
+        <div style="font-size:18px; margin-bottom:5px;">🌊</div>
+        Ocean Blue
+      </button>
+      <button class="theme-option" data-theme="forest" style="padding:15px; border:2px solid #00aa00; background:linear-gradient(135deg, #0a1a0a, #1a2a1a); color:#00ff88; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s ease;">
+        <div style="font-size:18px; margin-bottom:5px;">🌲</div>
+        Forest Green
+      </button>
+      <button class="theme-option" data-theme="sunset" style="padding:15px; border:2px solid #ff6600; background:linear-gradient(135deg, #2a1810, #3a2415); color:#ffaa00; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s ease;">
+        <div style="font-size:18px; margin-bottom:5px;">🌅</div>
+        Sunset Orange
+      </button>
+    </div>
+
+    <div style="border-top:1px solid #eee; padding-top:20px;">
+      <h3 style="margin:0 0 15px 0; color:#007bff;">Seasonal Themes</h3>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="seasonal-theme" data-season="christmas" style="padding:10px 15px; background:#c41e3a; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:500;">
+          🎄 Christmas
+        </button>
+        <button class="seasonal-theme" data-season="halloween" style="padding:10px 15px; background:#ff6600; color:black; border:none; border-radius:6px; cursor:pointer; font-weight:500;">
+          🎃 Halloween
+        </button>
+        <button class="seasonal-theme" data-season="spring" style="padding:10px 15px; background:#98fb98; color:#333; border:none; border-radius:6px; cursor:pointer; font-weight:500;">
+          🌸 Spring
+        </button>
+        <button class="seasonal-theme" data-season="summer" style="padding:10px 15px; background:#ffd700; color:#333; border:none; border-radius:6px; cursor:pointer; font-weight:500;">
+          ☀️ Summer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ====================================================================== -->
+
+<!-- ================ Achievements Modal ================ -->
+<div id="achievementsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:14000; align-items:center; justify-content:center;">
+  <div style="width:min(750px, 95%); max-height:80%; overflow-y:auto; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.2); color:#333;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h2 style="margin:0; color:#007bff;"><i class="fas fa-trophy"></i> Achievements</h2>
+      <button id="closeAchievementsBtn" style="border:none; background:#007bff; color:#ffffff; font-size:20px; cursor:pointer; width:35px; height:35px; border-radius:50%;">&times;</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:25px;">
+      <div class="achievement-card" id="chatBadge" style="padding:20px; border:2px solid #ccc; border-radius:8px; text-align:center; background:#f8f9fa;">
+        <div style="font-size:48px; margin-bottom:10px;">💬</div>
+        <h3 style="margin:5px 0; color:#333;">Chat Master</h3>
+        <p style="margin:5px 0; font-size:14px; color:#666;">Send 10 chat messages</p>
+        <div class="progress-bar" style="width:100%; height:8px; background:#e9ecef; border-radius:4px; margin-top:10px;">
+          <div class="progress-fill" id="chatProgress" style="height:100%; background:#007bff; border-radius:4px; width:0%; transition:width 0.3s ease;"></div>
+        </div>
+        <small id="chatCount" style="color:#666;">0/10</small>
+      </div>
+
+      <div class="achievement-card" id="drawBadge" style="padding:20px; border:2px solid #ccc; border-radius:8px; text-align:center; background:#f8f9fa;">
+        <div style="font-size:48px; margin-bottom:10px;">🎨</div>
+        <h3 style="margin:5px 0; color:#333;">Artist</h3>
+        <p style="margin:5px 0; font-size:14px; color:#666;">Draw for 30 minutes</p>
+        <div class="progress-bar" style="width:100%; height:8px; background:#e9ecef; border-radius:4px; margin-top:10px;">
+          <div class="progress-fill" id="drawProgress" style="height:100%; background:#28a745; border-radius:4px; width:0%; transition:width 0.3s ease;"></div>
+        </div>
+        <small id="drawCount" style="color:#666;">0/30 min</small>
+      </div>
+
+      <div class="achievement-card" id="gameBadge" style="padding:20px; border:2px solid #ccc; border-radius:8px; text-align:center; background:#f8f9fa;">
+        <div style="font-size:48px; margin-bottom:10px;">🎮</div>
+        <h3 style="margin:5px 0; color:#333;">Gamer</h3>
+        <p style="margin:5px 0; font-size:14px; color:#666;">Play games for 1 hour</p>
+        <div class="progress-bar" style="width:100%; height:8px; background:#e9ecef; border-radius:4px; margin-top:10px;">
+          <div class="progress-fill" id="gameProgress" style="height:100%; background:#ffc107; border-radius:4px; width:0%; transition:width 0.3s ease;"></div>
+        </div>
+        <small id="gameCount" style="color:#666;">0/60 min</small>
+      </div>
+
+      <div class="achievement-card" id="socialBadge" style="padding:20px; border:2px solid #ccc; border-radius:8px; text-align:center; background:#f8f9fa;">
+        <div style="font-size:48px; margin-bottom:10px;">👥</div>
+        <h3 style="margin:5px 0; color:#333;">Social Butterfly</h3>
+        <p style="margin:5px 0; font-size:14px; color:#666;">Be online for 2 hours</p>
+        <div class="progress-bar" style="width:100%; height:8px; background:#e9ecef; border-radius:4px; margin-top:10px;">
+          <div class="progress-fill" id="socialProgress" style="height:100%; background:#e83e8c; border-radius:4px; width:0%; transition:width 0.3s ease;"></div>
+        </div>
+        <small id="socialCount" style="color:#666;">0/120 min</small>
+      </div>
+
+      <div class="achievement-card" id="explorerBadge" style="padding:20px; border:2px solid #ccc; border-radius:8px; text-align:center; background:#f8f9fa;">
+        <div style="font-size:48px; margin-bottom:10px;">🗺️</div>
+        <h3 style="margin:5px 0; color:#333;">Explorer</h3>
+        <p style="margin:5px 0; font-size:14px; color:#666;">Visit all game sites</p>
+        <div class="progress-bar" style="width:100%; height:8px; background:#e9ecef; border-radius:4px; margin-top:10px;">
+          <div class="progress-fill" id="explorerProgress" style="height:100%; background:#17a2b8; border-radius:4px; width:0%; transition:width 0.3s ease;"></div>
+        </div>
+        <small id="explorerCount" style="color:#666;">0/2</small>
+      </div>
+
+      <div class="achievement-card" id="themeBadge" style="padding:20px; border:2px solid #ccc; border-radius:8px; text-align:center; background:#f8f9fa;">
+        <div style="font-size:48px; margin-bottom:10px;">🎨</div>
+        <h3 style="margin:5px 0; color:#333;">Stylist</h3>
+        <p style="margin:5px 0; font-size:14px; color:#666;">Try 3 different themes</p>
+        <div class="progress-bar" style="width:100%; height:8px; background:#e9ecef; border-radius:4px; margin-top:10px;">
+          <div class="progress-fill" id="themeProgress" style="height:100%; background:#6f42c1; border-radius:4px; width:0%; transition:width 0.3s ease;"></div>
+        </div>
+        <small id="themeCount" style="color:#666;">0/3</small>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #eee; padding-top:20px;">
+      <h3 style="margin:0 0 15px 0; color:#007bff;">Daily Challenges</h3>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:10px;">
+        <div class="daily-challenge" style="padding:15px; border:1px solid #dee2e6; border-radius:8px; background:#f8f9fa;">
+          <h4 style="margin:0 0 10px 0; color:#007bff;">Today's Goal</h4>
+          <p style="margin:0; font-size:14px;">Send 5 messages in chat</p>
+          <div class="progress-bar" style="width:100%; height:6px; background:#e9ecef; border-radius:3px; margin-top:10px;">
+            <div class="progress-fill" id="dailyProgress" style="height:100%; background:#28a745; border-radius:3px; width:0%; transition:width 0.3s ease;"></div>
+          </div>
+          <small id="dailyCount" style="color:#666;">0/5</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ====================================================================== -->
+
+<!-- ================ Stats Dashboard Modal ================ -->
+<div id="statsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:13000; align-items:center; justify-content:center;">
+  <div style="width:min(850px, 95%); max-height:80%; overflow-y:auto; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.2); color:#333;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h2 style="margin:0; color:#007bff;"><i class="fas fa-chart-bar"></i> Your Statistics</h2>
+      <button id="closeStatsBtn" style="border:none; background:#007bff; color:#ffffff; font-size:20px; cursor:pointer; width:35px; height:35px; border-radius:50%;">&times;</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:25px;">
+      <div class="stat-card" style="background:#f8f9fa; padding:20px; border-radius:8px; text-align:center; border:1px solid #dee2e6;">
+        <div style="font-size:36px; color:#007bff; margin-bottom:10px;"><i class="fas fa-clock"></i></div>
+        <h3 style="margin:5px 0; color:#333;">Online Time</h3>
+        <div style="font-size:24px; font-weight:bold; color:#007bff;" id="onlineTimeStat">0 min</div>
+        <small style="color:#666;">Total time spent online</small>
+      </div>
+
+      <div class="stat-card" style="background:#f8f9fa; padding:20px; border-radius:8px; text-align:center; border:1px solid #dee2e6;">
+        <div style="font-size:36px; color:#28a745; margin-bottom:10px;"><i class="fas fa-comments"></i></div>
+        <h3 style="margin:5px 0; color:#333;">Chat Messages</h3>
+        <div style="font-size:24px; font-weight:bold; color:#28a745;" id="chatMessagesStat">0</div>
+        <small style="color:#666;">Messages sent</small>
+      </div>
+
+      <div class="stat-card" style="background:#f8f9fa; padding:20px; border-radius:8px; text-align:center; border:1px solid #dee2e6;">
+        <div style="font-size:36px; color:#ffc107; margin-bottom:10px;"><i class="fas fa-gamepad"></i></div>
+        <h3 style="margin:5px 0; color:#333;">Gaming Time</h3>
+        <div style="font-size:24px; font-weight:bold; color:#ffc107;" id="gamingTimeStat">0 min</div>
+        <small style="color:#666;">Time playing games</small>
+      </div>
+
+      <div class="stat-card" style="background:#f8f9fa; padding:20px; border-radius:8px; text-align:center; border:1px solid #e83e8c;">
+        <div style="font-size:36px; color:#e83e8c; margin-bottom:10px;"><i class="fas fa-paint-brush"></i></div>
+        <h3 style="margin:5px 0; color:#333;">Drawing Time</h3>
+        <div style="font-size:24px; font-weight:bold; color:#e83e8c;" id="drawingTimeStat">0 min</div>
+        <small style="color:#666;">Time spent drawing</small>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
+      <div style="background:#f8f9fa; padding:20px; border-radius:8px; border:1px solid #dee2e6;">
+        <h3 style="margin:0 0 15px 0; color:#007bff;"><i class="fas fa-trophy"></i> Achievement Progress</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Chat Master</span>
+            <span id="chatProgressText">0/10</span>
+          </div>
+          <div style="width:100%; height:8px; background:#e9ecef; border-radius:4px;">
+            <div style="height:100%; background:#007bff; border-radius:4px; width:0%; transition:width 0.3s ease;" id="chatProgressBar"></div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Artist</span>
+            <span id="drawProgressText">0/30 min</span>
+          </div>
+          <div style="width:100%; height:8px; background:#e9ecef; border-radius:4px;">
+            <div style="height:100%; background:#28a745; border-radius:4px; width:0%; transition:width 0.3s ease;" id="drawProgressBar"></div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Gamer</span>
+            <span id="gameProgressText">0/60 min</span>
+          </div>
+          <div style="width:100%; height:8px; background:#e9ecef; border-radius:4px;">
+            <div style="height:100%; background:#ffc107; border-radius:4px; width:0%; transition:width 0.3s ease;" id="gameProgressBar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#f8f9fa; padding:20px; border-radius:8px; border:1px solid #dee2e6;">
+        <h3 style="margin:0 0 15px 0; color:#007bff;"><i class="fas fa-calendar-day"></i> Today's Activity</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span>Messages Today:</span>
+            <span id="dailyMessagesStat">0</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Time Online Today:</span>
+            <span id="dailyOnlineStat">0 min</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Sites Visited:</span>
+            <span id="sitesVisitedStat">0</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Themes Tried:</span>
+            <span id="themesTriedStat">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px; padding:15px; background:#e7f3ff; border-radius:8px; border:1px solid #b3d9ff;">
+      <h4 style="margin:0 0 10px 0; color:#007bff;"><i class="fas fa-lightbulb"></i> Tips</h4>
+      <p style="margin:0; font-size:14px; color:#333;">
+        Keep using the site to unlock achievements! Try different themes, chat with friends, and explore all the features.
+        Your progress is automatically saved and synced across devices.
+      </p>
+    </div>
+  </div>
+</div>
+<!-- ====================================================================== -->
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -527,48 +1083,69 @@ header small { font-size:16px; font-weight:normal; display:block; margin-top:4px
 <script>
 // ---------------- Firebase ----------------
 const firebaseConfig = {
-  apiKey: "YOUR_WEB_API_KEY",
+  apiKey: "AIzaSyBn1apVsFafY2-2a2QPeslX17XR0gWE9qs",
   authDomain: "shsproject-d60d0.firebaseapp.com",
   databaseURL: "https://shsproject-d60d0-default-rtdb.firebaseio.com",
   projectId: "shsproject-d60d0",
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+
+let db;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+  alert('Failed to connect to Firebase. Please check your internet connection.');
+  db = null;
+}
 
 // Generate a unique visitor ID (per session)
-const visitorId = 'visitor_' + Date.now();
+const visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+console.log('Visitor ID:', visitorId);
 
 // Online presence
-const onlineRef = db.ref('online/' + visitorId);
-onlineRef.set({online:true});
-onlineRef.onDisconnect().remove();
+if (db) {
+  const onlineRef = db.ref('online/' + visitorId);
+  onlineRef.set({online:true, timestamp: Date.now()}).catch(error => {
+    console.error('Error setting online status:', error);
+  });
+  onlineRef.onDisconnect().remove();
+}
 
 // UI element
 const visitorCounter = document.getElementById('visitorCounter');
 
 // Increment total visitors only once per user (use localStorage to avoid duplicates)
-if (!localStorage.getItem('visitorCounted')) {
-    db.ref('totalVisitors').transaction(val => (val || 0) + 1);
+if (db && !localStorage.getItem('visitorCounted')) {
+    db.ref('totalVisitors').transaction(val => (val || 0) + 1).catch(error => {
+      console.error('Error updating visitor count:', error);
+    });
     localStorage.setItem('visitorCounted', 'yes');
 }
 
 // Listen for online users and total visitors
-const totalRef = db.ref('totalVisitors');
-const onlineDbRef = db.ref('online');
+const totalRef = db ? db.ref('totalVisitors') : null;
+const onlineDbRef = db ? db.ref('online') : null;
 
 function updateCounter() {
+    if (!onlineDbRef || !totalRef) return;
     onlineDbRef.once('value').then(snap => {
         const online = snap.numChildren();
         totalRef.once('value').then(snap2 => {
             const total = snap2.val() || 0;
             visitorCounter.innerText = `Visitors Online: ${online} | Total Visitors: ${total}`;
         });
+    }).catch(error => {
+        console.error('Error updating counter:', error);
     });
 }
 
 // Update counter live when online users change
-onlineDbRef.on('value', updateCounter);
-totalRef.on('value', updateCounter);
+if (onlineDbRef && totalRef) {
+  onlineDbRef.on('value', updateCounter);
+  totalRef.on('value', updateCounter);
+}
 
 // ---------------- Chat ----------------
 let username = 'Guest' + Math.floor(Math.random()*1000);
@@ -581,9 +1158,10 @@ const typingIndicator = document.getElementById('typingIndicator');
 // Typing indicator
 let typing = false;
 chatInput.addEventListener('input', () => {
+    if (!db) return;
     if(!typing){
         typing = true;
-        db.ref('chatTyping/'+visitorId).set(username);
+        db.ref('chatTyping/'+visitorId).set(username).catch(error => console.error('Error setting typing:', error));
         setTimeout(stopTyping, 2000);
     } else {
         clearTimeout(stopTyping.timeout);
@@ -591,12 +1169,14 @@ chatInput.addEventListener('input', () => {
     }
 });
 function stopTyping(){
+    if (!db) return;
     typing = false;
-    db.ref('chatTyping/'+visitorId).remove();
+    db.ref('chatTyping/'+visitorId).remove().catch(error => console.error('Error removing typing:', error));
 }
 
 // Send message
 chatInput.addEventListener('keypress', e => {
+    if (!db) return;
     if(e.key === 'Enter' && chatInput.value.trim() !== ''){
         const msgData = {
             user: username,
@@ -605,56 +1185,59 @@ chatInput.addEventListener('keypress', e => {
             time: Date.now(),
             uid: visitorId
         };
-        db.ref('chat').push(msgData);
+        db.ref('chat').push(msgData).catch(error => console.error('Error sending message:', error));
+        trackActivity('chat', 1);
         chatInput.value='';
     }
 });
 
 // Listen to chat messages
-db.ref('chat').limitToLast(100).on('child_added', snapshot => {
-    const msg = snapshot.val();
-    const msgDiv = document.createElement('div');
-    msgDiv.style.marginBottom='6px';
-    msgDiv.style.display='flex';
-    msgDiv.style.justifyContent = 'space-between';
-    
-    const leftDiv = document.createElement('div');
-    leftDiv.innerHTML = `<span style="color:${msg.color}; font-weight:bold;">${msg.user}</span>: ${msg.text} 
-                         <small style="color:#888; font-size:11px;">${new Date(msg.time).toLocaleTimeString()}</small>`;
-    leftDiv.style.maxWidth='85%';
-    leftDiv.style.wordWrap='break-word';
-    
-    // Delete button if owner
-    if(msg.uid === visitorId){
-        const delBtn = document.createElement('button');
-        delBtn.innerHTML='✖';
-        delBtn.style.border='none';
-        delBtn.style.background='transparent';
-        delBtn.style.color='#888';
-        delBtn.style.cursor='pointer';
-        delBtn.title='Delete';
-        delBtn.onclick = () => snapshot.ref.remove();
-        leftDiv.appendChild(delBtn);
-    }
+if (db) {
+  db.ref('chat').limitToLast(100).on('child_added', snapshot => {
+      const msg = snapshot.val();
+      const msgDiv = document.createElement('div');
+      msgDiv.style.marginBottom='6px';
+      msgDiv.style.display='flex';
+      msgDiv.style.justifyContent = 'space-between';
+      
+      const leftDiv = document.createElement('div');
+      leftDiv.innerHTML = `<span style="color:${msg.color}; font-weight:bold;">${msg.user}</span>: ${msg.text} 
+                           <small style="color:#888; font-size:11px;">${new Date(msg.time).toLocaleTimeString()}</small>`;
+      leftDiv.style.maxWidth='85%';
+      leftDiv.style.wordWrap='break-word';
+      
+      // Delete button if owner
+      if(msg.uid === visitorId){
+          const delBtn = document.createElement('button');
+          delBtn.innerHTML='✖';
+          delBtn.style.border='none';
+          delBtn.style.background='transparent';
+          delBtn.style.color='#888';
+          delBtn.style.cursor='pointer';
+          delBtn.title='Delete';
+          delBtn.onclick = () => snapshot.ref.remove();
+          leftDiv.appendChild(delBtn);
+      }
 
-    msgDiv.appendChild(leftDiv);
-    chatMessages.appendChild(msgDiv);
+      msgDiv.appendChild(leftDiv);
+      chatMessages.appendChild(msgDiv);
 
-    // Auto-scroll if near bottom
-    if(chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 50){
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-});
+      // Auto-scroll if near bottom
+      if(chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 50){
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+  });
 
-// Typing indicators
-db.ref('chatTyping').on('value', snap => {
-    const typingUsers = Object.values(snap.val()||{}).filter(u => u!==username);
-    if(typingUsers.length>0){
-        typingIndicator.innerText = typingUsers.join(', ') + ' is typing...';
-    } else {
-        typingIndicator.innerText = '';
-    }
-});
+  // Typing indicators
+  db.ref('chatTyping').on('value', snap => {
+      const typingUsers = Object.values(snap.val()||{}).filter(u => u!==username);
+      if(typingUsers.length>0){
+          typingIndicator.innerText = typingUsers.join(', ') + ' is typing...';
+      } else {
+          typingIndicator.innerText = '';
+      }
+  });
+}
 
 // Change Name/Color popup
 const changeNameBtn = document.getElementById('changeNameBtn');
@@ -872,7 +1455,7 @@ const ctx = canvas.getContext('2d');
 let sparkles=[];
 function resizeCanvas(){ canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight; }
 window.addEventListener('resize',resizeCanvas); resizeCanvas();
-function createSparkle(){ return { x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*3+1, vx:(Math.random()-0.5)*0.5, vy:(Math.random()-0.5)*0.5, alpha:Math.random(), color:['#007bff','#00bfff','#4682b4','#5f9ea0'][Math.floor(Math.random()*4)] }; }
+function createSparkle(){ return { x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*3+1, vx:(Math.random()-0.5)*0.5, vy:(Math.random()-0.5)*0.5, alpha:Math.random(), color:['#007bff','#cccccc','#ffffff'][Math.floor(Math.random()*3)] }; }
 for(let i=0;i<150;i++) sparkles.push(createSparkle());
 function animateSparkles(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -889,6 +1472,62 @@ function animateSparkles(){
 }
 animateSparkles();
 
+// ---------------- Stars ----------------
+const starCanvas = document.getElementById('starCanvas');
+const starCtx = starCanvas.getContext('2d');
+let stars = [];
+let mouseX = 0, mouseY = 0;
+
+function resizeStarCanvas() {
+    starCanvas.width = window.innerWidth;
+    starCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeStarCanvas);
+resizeStarCanvas();
+
+function createStar() {
+    return {
+        x: Math.random() * starCanvas.width,
+        y: Math.random() * starCanvas.height,
+        size: Math.random() * 2 + 1,
+        brightness: Math.random() * 0.5 + 0.5,
+        twinkle: Math.random() * 0.02,
+        baseBrightness: Math.random() * 0.5 + 0.5
+    };
+}
+for (let i = 0; i < 200; i++) {
+    stars.push(createStar());
+}
+
+function animateStars() {
+    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    for (let star of stars) {
+        // Calculate distance to mouse
+        const dx = mouseX - star.x;
+        const dy = mouseY - star.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        // Increase brightness if close to mouse
+        const mouseEffect = Math.max(0, 1 - distance / 100); // within 100px
+        star.brightness = star.baseBrightness + mouseEffect * 0.5;
+        // Twinkle
+        star.brightness += Math.sin(Date.now() * star.twinkle) * 0.1;
+        star.brightness = Math.max(0, Math.min(1, star.brightness));
+
+        starCtx.beginPath();
+        starCtx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`;
+        starCtx.fill();
+    }
+    requestAnimationFrame(animateStars);
+}
+animateStars();
+
+// Track mouse
+document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
 // ---------------- Chat Toggle ----------------
 const chatContainer = document.getElementById('chatContainer');
 const toggleChatBtn = document.getElementById('toggleChatBtn');
@@ -896,9 +1535,421 @@ const toggleChatBtn = document.getElementById('toggleChatBtn');
 toggleChatBtn.addEventListener('click', () => {
     if(chatContainer.style.display === 'none' || chatContainer.style.display === '') {
         chatContainer.style.display = 'block';
+        // Auto-scroll to bottom when opening
+        setTimeout(() => {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 100);
     } else {
         chatContainer.style.display = 'none';
     }
+});
+
+// ================= Theme Customizer =================
+const themeBtn = document.getElementById('themeBtn');
+const themeModal = document.getElementById('themeModal');
+const closeThemeBtn = document.getElementById('closeThemeBtn');
+const themeOptions = document.querySelectorAll('.theme-option');
+const seasonalThemes = document.querySelectorAll('.seasonal-theme');
+
+let currentTheme = localStorage.getItem('selectedTheme') || 'default';
+let currentSeasonal = localStorage.getItem('selectedSeasonal') || '';
+
+function applyTheme(theme) {
+  // Remove all theme classes
+  document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
+  document.body.className = document.body.className.replace(/seasonal-\w+/g, '').trim();
+
+  // Apply new theme
+  if (theme !== 'default') {
+    document.body.classList.add(`theme-${theme}`);
+  }
+
+  // Apply seasonal theme if exists
+  if (currentSeasonal) {
+    document.body.classList.add(`seasonal-${currentSeasonal}`);
+  }
+
+  localStorage.setItem('selectedTheme', theme);
+}
+
+function applySeasonal(season) {
+  // Remove existing seasonal classes
+  document.body.className = document.body.className.replace(/seasonal-\w+/g, '').trim();
+
+  // Apply new seasonal theme
+  if (season) {
+    document.body.classList.add(`seasonal-${season}`);
+  }
+
+  currentSeasonal = season;
+  localStorage.setItem('selectedSeasonal', season);
+}
+
+// Theme button click
+themeBtn.addEventListener('click', () => {
+  themeModal.style.display = 'flex';
+  themeModal.setAttribute('aria-hidden', 'false');
+});
+
+// Close theme modal
+closeThemeBtn.addEventListener('click', () => {
+  themeModal.style.display = 'none';
+  themeModal.setAttribute('aria-hidden', 'true');
+});
+
+// Theme selection
+themeOptions.forEach(option => {
+  option.addEventListener('click', () => {
+    const theme = option.dataset.theme;
+    applyTheme(theme);
+
+    // Update selected state
+    themeOptions.forEach(opt => opt.style.borderColor = opt.dataset.theme === theme ? '#28a745' : '');
+  });
+});
+
+// Seasonal theme selection
+seasonalThemes.forEach(theme => {
+  theme.addEventListener('click', () => {
+    const season = theme.dataset.season;
+    applySeasonal(season === currentSeasonal ? '' : season);
+
+    // Update selected state
+    seasonalThemes.forEach(t => t.style.opacity = t.dataset.season === currentSeasonal ? '1' : '0.6');
+  });
+});
+
+// Apply saved theme on load
+applyTheme(currentTheme);
+applySeasonal(currentSeasonal);
+
+// ================= Achievement System =================
+const achievementsBtn = document.getElementById('achievementsBtn');
+const achievementsModal = document.getElementById('achievementsModal');
+const closeAchievementsBtn = document.getElementById('closeAchievementsBtn');
+
+// Achievement tracking
+let userStats = JSON.parse(localStorage.getItem('userStats')) || {
+  chatMessages: 0,
+  drawTime: 0,
+  gameTime: 0,
+  onlineTime: 0,
+  sitesVisited: [],
+  themesTried: [],
+  dailyMessages: 0,
+  lastDailyReset: Date.now()
+};
+
+// Reset daily challenge if it's a new day
+const now = Date.now();
+const lastReset = userStats.lastDailyReset;
+const oneDay = 24 * 60 * 60 * 1000;
+if (now - lastReset > oneDay) {
+  userStats.dailyMessages = 0;
+  userStats.lastDailyReset = now;
+}
+
+function updateAchievements() {
+  // Chat Master (10 messages)
+  const chatProgress = Math.min((userStats.chatMessages / 10) * 100, 100);
+  document.getElementById('chatProgress').style.width = chatProgress + '%';
+  document.getElementById('chatCount').textContent = userStats.chatMessages + '/10';
+  if (userStats.chatMessages >= 10) {
+    document.getElementById('chatBadge').style.borderColor = '#28a745';
+    document.getElementById('chatBadge').style.background = '#d4edda';
+  }
+
+  // Artist (30 minutes drawing)
+  const drawProgress = Math.min((userStats.drawTime / 30) * 100, 100);
+  document.getElementById('drawProgress').style.width = drawProgress + '%';
+  document.getElementById('drawCount').textContent = Math.floor(userStats.drawTime) + '/30 min';
+  if (userStats.drawTime >= 30) {
+    document.getElementById('drawBadge').style.borderColor = '#28a745';
+    document.getElementById('drawBadge').style.background = '#d4edda';
+  }
+
+  // Gamer (60 minutes gaming)
+  const gameProgress = Math.min((userStats.gameTime / 60) * 100, 100);
+  document.getElementById('gameProgress').style.width = gameProgress + '%';
+  document.getElementById('gameCount').textContent = Math.floor(userStats.gameTime) + '/60 min';
+  if (userStats.gameTime >= 60) {
+    document.getElementById('gameBadge').style.borderColor = '#28a745';
+    document.getElementById('gameBadge').style.background = '#d4edda';
+  }
+
+  // Social Butterfly (120 minutes online)
+  const socialProgress = Math.min((userStats.onlineTime / 120) * 100, 100);
+  document.getElementById('socialProgress').style.width = socialProgress + '%';
+  document.getElementById('socialCount').textContent = Math.floor(userStats.onlineTime) + '/120 min';
+  if (userStats.onlineTime >= 120) {
+    document.getElementById('socialBadge').style.borderColor = '#28a745';
+    document.getElementById('socialBadge').style.background = '#d4edda';
+  }
+
+  // Explorer (visit all sites)
+  const explorerProgress = Math.min((userStats.sitesVisited.length / 2) * 100, 100);
+  document.getElementById('explorerProgress').style.width = explorerProgress + '%';
+  document.getElementById('explorerCount').textContent = userStats.sitesVisited.length + '/2';
+  if (userStats.sitesVisited.length >= 2) {
+    document.getElementById('explorerBadge').style.borderColor = '#28a745';
+    document.getElementById('explorerBadge').style.background = '#d4edda';
+  }
+
+  // Stylist (try 3 themes)
+  const themeProgress = Math.min((userStats.themesTried.length / 3) * 100, 100);
+  document.getElementById('themeProgress').style.width = themeProgress + '%';
+  document.getElementById('themeCount').textContent = userStats.themesTried.length + '/3';
+  if (userStats.themesTried.length >= 3) {
+    document.getElementById('themeBadge').style.borderColor = '#28a745';
+    document.getElementById('themeBadge').style.background = '#d4edda';
+  }
+
+  // Daily Challenge
+  const dailyProgress = Math.min((userStats.dailyMessages / 5) * 100, 100);
+  document.getElementById('dailyProgress').style.width = dailyProgress + '%';
+  document.getElementById('dailyCount').textContent = userStats.dailyMessages + '/5';
+
+  localStorage.setItem('userStats', JSON.stringify(userStats));
+}
+
+// Track user activity
+function trackActivity(type, value = 1) {
+  switch(type) {
+    case 'chat':
+      userStats.chatMessages += value;
+      userStats.dailyMessages += value;
+      break;
+    case 'draw':
+      userStats.drawTime += value; // value in minutes
+      break;
+    case 'game':
+      userStats.gameTime += value; // value in minutes
+      break;
+    case 'online':
+      userStats.onlineTime += value; // value in minutes
+      break;
+    case 'site':
+      if (!userStats.sitesVisited.includes(value)) {
+        userStats.sitesVisited.push(value);
+      }
+      break;
+    case 'theme':
+      if (!userStats.themesTried.includes(value)) {
+        userStats.themesTried.push(value);
+      }
+      break;
+  }
+  updateAchievements();
+}
+
+// Achievements button
+achievementsBtn.addEventListener('click', () => {
+  updateAchievements();
+  achievementsModal.style.display = 'flex';
+  achievementsModal.setAttribute('aria-hidden', 'false');
+});
+
+// Close achievements modal
+closeAchievementsBtn.addEventListener('click', () => {
+  achievementsModal.style.display = 'none';
+  achievementsModal.setAttribute('aria-hidden', 'true');
+});
+
+// Track online time
+let onlineStartTime = Date.now();
+setInterval(() => {
+  const minutes = (Date.now() - onlineStartTime) / (1000 * 60);
+  trackActivity('online', minutes - userStats.onlineTime);
+  onlineStartTime = Date.now();
+}, 60000); // Update every minute
+
+// Track drawing time
+let drawingStartTime = null;
+document.getElementById('openDrawingBtn').addEventListener('click', () => {
+  drawingStartTime = Date.now();
+});
+document.getElementById('closeDrawingBtn').addEventListener('click', () => {
+  if (drawingStartTime) {
+    const minutes = (Date.now() - drawingStartTime) / (1000 * 60);
+    trackActivity('draw', minutes);
+    drawingStartTime = null;
+  }
+});
+
+// Track game time (simplified - tracks time on main game)
+let gameStartTime = Date.now();
+setInterval(() => {
+  const minutes = (Date.now() - gameStartTime) / (1000 * 60);
+  trackActivity('game', minutes - userStats.gameTime);
+  gameStartTime = Date.now();
+}, 60000);
+
+// Track site visits
+document.getElementById('extraSiteBtn').addEventListener('click', () => {
+  trackActivity('site', 'extra');
+});
+document.getElementById('privacyBtn').addEventListener('click', () => {
+  trackActivity('site', 'privacy');
+});
+
+// Track theme changes
+themeOptions.forEach(option => {
+  option.addEventListener('click', () => {
+    trackActivity('theme', option.dataset.theme);
+  });
+});
+
+// Initial update
+updateAchievements();
+
+// ================= Keyboard Shortcuts =================
+document.addEventListener('keydown', (e) => {
+  // Don't trigger shortcuts when typing in inputs
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  switch(e.key.toLowerCase()) {
+    case 'r':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        document.getElementById('reloadBtn').click();
+      }
+      break;
+    case 'f':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        document.getElementById('fullscreenBtn').click();
+      }
+      break;
+    case '+':
+    case '=':
+      e.preventDefault();
+      document.getElementById('zoomInBtn').click();
+      break;
+    case '-':
+      e.preventDefault();
+      document.getElementById('zoomOutBtn').click();
+      break;
+    case 'h':
+      e.preventDefault();
+      document.getElementById('hideIframeBtn').click();
+      break;
+    case 's':
+      e.preventDefault();
+      document.getElementById('showIframeBtn').click();
+      break;
+    case 'c':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        document.getElementById('toggleChatBtn').click();
+      }
+      break;
+    case 'd':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        document.getElementById('openDrawingBtn').click();
+      }
+      break;
+    case 't':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        document.getElementById('themeBtn').click();
+      }
+      break;
+    case 'a':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        document.getElementById('achievementsBtn').click();
+      }
+      break;
+    case 'escape':
+      // Close modals
+      document.getElementById('themeModal').style.display = 'none';
+      document.getElementById('achievementsModal').style.display = 'none';
+      document.getElementById('drawingModal').style.display = 'none';
+      break;
+  }
+});
+
+// Show keyboard shortcuts hint
+const shortcutsHint = document.createElement('div');
+shortcutsHint.innerHTML = `
+  <div style="position:fixed; bottom:10px; left:10px; background:rgba(0,0,0,0.8); color:#fff; padding:10px; border-radius:8px; font-size:12px; max-width:200px; display:none;" id="shortcutsHint">
+    <strong>Keyboard Shortcuts:</strong><br>
+    Ctrl+R: Reload<br>
+    Ctrl+F: Fullscreen<br>
+    +/-: Zoom<br>
+    H/S: Hide/Show<br>
+    Ctrl+C: Chat<br>
+    Ctrl+D: Drawing<br>
+    Ctrl+T: Themes<br>
+    Ctrl+A: Achievements<br>
+    Esc: Close modals
+  </div>
+`;
+
+// Add to body
+document.body.appendChild(shortcutsHint);
+
+// Show hints on ? key
+document.addEventListener('keydown', (e) => {
+  if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    const hint = document.getElementById('shortcutsHint');
+    hint.style.display = hint.style.display === 'none' ? 'block' : 'none';
+  }
+});
+
+// Auto-save user preferences every 30 seconds
+setInterval(() => {
+  localStorage.setItem('userStats', JSON.stringify(userStats));
+  localStorage.setItem('selectedTheme', currentTheme);
+  localStorage.setItem('selectedSeasonal', currentSeasonal);
+}, 30000);
+
+// ================= Stats Dashboard =================
+const statsBtn = document.getElementById('statsBtn');
+const statsModal = document.getElementById('statsModal');
+const closeStatsBtn = document.getElementById('closeStatsBtn');
+
+function updateStatsDisplay() {
+  // Main stats
+  document.getElementById('onlineTimeStat').textContent = Math.floor(userStats.onlineTime) + ' min';
+  document.getElementById('chatMessagesStat').textContent = userStats.chatMessages;
+  document.getElementById('gamingTimeStat').textContent = Math.floor(userStats.gameTime) + ' min';
+  document.getElementById('drawingTimeStat').textContent = Math.floor(userStats.drawTime) + ' min';
+
+  // Achievement progress bars
+  const chatProgress = Math.min((userStats.chatMessages / 10) * 100, 100);
+  document.getElementById('chatProgressBar').style.width = chatProgress + '%';
+  document.getElementById('chatProgressText').textContent = userStats.chatMessages + '/10';
+
+  const drawProgress = Math.min((userStats.drawTime / 30) * 100, 100);
+  document.getElementById('drawProgressBar').style.width = drawProgress + '%';
+  document.getElementById('drawProgressText').textContent = Math.floor(userStats.drawTime) + '/30 min';
+
+  const gameProgress = Math.min((userStats.gameTime / 60) * 100, 100);
+  document.getElementById('gameProgressBar').style.width = gameProgress + '%';
+  document.getElementById('gameProgressText').textContent = Math.floor(userStats.gameTime) + '/60 min';
+
+  // Daily stats
+  document.getElementById('dailyMessagesStat').textContent = userStats.dailyMessages;
+  document.getElementById('dailyOnlineStat').textContent = Math.floor(userStats.onlineTime) + ' min';
+  document.getElementById('sitesVisitedStat').textContent = userStats.sitesVisited.length;
+  document.getElementById('themesTriedStat').textContent = userStats.themesTried.length;
+}
+
+// Stats button
+statsBtn.addEventListener('click', () => {
+  updateStatsDisplay();
+  statsModal.style.display = 'flex';
+  statsModal.setAttribute('aria-hidden', 'false');
+});
+
+// Close stats modal
+closeStatsBtn.addEventListener('click', () => {
+  statsModal.style.display = 'none';
+  statsModal.setAttribute('aria-hidden', 'true');
 });
 
 // ================= Drawing Modal =================
@@ -958,8 +2009,9 @@ drawingModal.addEventListener('click', (e) => {
     const tools = ['brushToolBtn', 'eraserToolBtn', 'rectangleToolBtn', 'circleToolBtn', 'lineToolBtn', 'textToolBtn', 'eyedropperBtn'];
     tools.forEach(id => {
       const btn = document.getElementById(id);
-      btn.style.background = 'transparent';
-      btn.style.border = '2px solid rgba(0,255,255,0.3)';
+      btn.style.background = '#ffffff';
+      btn.style.border = '1px solid #ccc';
+      btn.style.color = '#333';
     });
   }
 
@@ -967,32 +2019,39 @@ drawingModal.addEventListener('click', (e) => {
     currentTool = tool;
     resetToolStyles();
     if(tool === 'brush') {
-      brushToolBtn.style.background = 'rgba(0,255,255,0.3)';
-      brushToolBtn.style.border = '2px solid #00ffff';
+      brushToolBtn.style.background = '#007bff';
+      brushToolBtn.style.border = '1px solid #007bff';
+      brushToolBtn.style.color = '#ffffff';
       canvasEl.style.cursor = 'crosshair';
     } else if(tool === 'eraser') {
-      eraserToolBtn.style.background = 'rgba(255,170,0,0.2)';
-      eraserToolBtn.style.border = '2px solid #ffaa00';
+      eraserToolBtn.style.background = '#ffc107';
+      eraserToolBtn.style.border = '1px solid #ffc107';
+      eraserToolBtn.style.color = '#000';
       canvasEl.style.cursor = 'cell';
     } else if(tool === 'rectangle') {
-      document.getElementById('rectangleToolBtn').style.background = 'rgba(255,0,255,0.2)';
-      document.getElementById('rectangleToolBtn').style.border = '2px solid #ff00ff';
+      document.getElementById('rectangleToolBtn').style.background = '#28a745';
+      document.getElementById('rectangleToolBtn').style.border = '1px solid #28a745';
+      document.getElementById('rectangleToolBtn').style.color = '#ffffff';
       canvasEl.style.cursor = 'crosshair';
     } else if(tool === 'circle') {
-      document.getElementById('circleToolBtn').style.background = 'rgba(0,255,0,0.2)';
-      document.getElementById('circleToolBtn').style.border = '2px solid #00ff00';
+      document.getElementById('circleToolBtn').style.background = '#17a2b8';
+      document.getElementById('circleToolBtn').style.border = '1px solid #17a2b8';
+      document.getElementById('circleToolBtn').style.color = '#ffffff';
       canvasEl.style.cursor = 'crosshair';
     } else if(tool === 'line') {
-      document.getElementById('lineToolBtn').style.background = 'rgba(255,255,0,0.2)';
-      document.getElementById('lineToolBtn').style.border = '2px solid #ffff00';
+      document.getElementById('lineToolBtn').style.background = '#6c757d';
+      document.getElementById('lineToolBtn').style.border = '1px solid #6c757d';
+      document.getElementById('lineToolBtn').style.color = '#ffffff';
       canvasEl.style.cursor = 'crosshair';
     } else if(tool === 'text') {
-      document.getElementById('textToolBtn').style.background = 'rgba(255,165,0,0.2)';
-      document.getElementById('textToolBtn').style.border = '2px solid #ffa500';
+      document.getElementById('textToolBtn').style.background = '#dc3545';
+      document.getElementById('textToolBtn').style.border = '1px solid #dc3545';
+      document.getElementById('textToolBtn').style.color = '#ffffff';
       canvasEl.style.cursor = 'text';
     } else if(tool === 'eyedropper') {
-      document.getElementById('eyedropperBtn').style.background = 'rgba(255,20,147,0.2)';
-      document.getElementById('eyedropperBtn').style.border = '2px solid #ff1493';
+      document.getElementById('eyedropperBtn').style.background = '#e83e8c';
+      document.getElementById('eyedropperBtn').style.border = '1px solid #e83e8c';
+      document.getElementById('eyedropperBtn').style.color = '#ffffff';
       canvasEl.style.cursor = 'copy';
     }
   }
@@ -1625,7 +2684,7 @@ for(let i=0;i<100;i++){
         r:Math.random()*3+1,
         vx:(Math.random()-0.5)*0.5,
         vy:(Math.random()-0.5)*0.5,
-        color:['#fff','#00f','#0ff','#ff0'][Math.floor(Math.random()*4)]
+        color:['#ffffff','#007bff','#cccccc'][Math.floor(Math.random()*3)]
     });
 }
 
