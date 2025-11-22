@@ -41,7 +41,7 @@
         <div class="headerText gradient-text">
         SHS Game Hall <br>
             <small style="font-size: 12px; font-weight: 400; display: block; margin-top: 6px; color: rgba(255, 255, 255, 0.6);">SPS-devices Wi-Fi Password: 7&UI0)jk</small>
-        </div>
+    </div>
         <button id="youtubeWatcherBtn" title="Watch YouTube Videos Unblocked" class="youtube-watcher-btn hover-lift">
             <i class="fab fa-youtube"></i>
             <span class="youtube-btn-text">Watch YouTube Unblocked</span>
@@ -111,6 +111,18 @@
         <h2><i class="fas fa-gamepad"></i> Select a Game Site</h2>
         <p>Click any cube to load that site</p>
     </div>
+    <div class="games-search-container">
+        <div class="games-search-wrapper">
+            <i class="fas fa-search games-search-icon"></i>
+            <input type="text" id="gamesSearchInput" class="games-search-input" placeholder="Search games...">
+            <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <button id="defaultGameBtn" class="default-game-btn">
+            <i class="fas fa-home"></i> Go to Default Game Site
+        </button>
+    </div>
     <div id="gamesGrid" class="games-grid">
         <!-- Games will be dynamically loaded here -->
     </div>
@@ -149,7 +161,7 @@
         <div class="chat-header-left">
             <div class="chat-icon-wrapper">
                 <i class="fas fa-comments"></i>
-            </div>
+    </div>
             <div>
                 <h3 class="chat-title">Chat</h3>
                 <span id="typingIndicator" class="typing-indicator"></span>
@@ -777,7 +789,7 @@
         <div class="friends-header-title">
           <div class="friends-icon-wrapper">
             <i class="fas fa-user-friends"></i>
-          </div>
+    </div>
           <div>
             <h1 class="friends-main-title">Friends</h1>
             <p class="friends-subtitle">Connect, chat, and stay in touch</p>
