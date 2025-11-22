@@ -2944,38 +2944,42 @@ window.addEventListener('load', function() {
 });
 
 // ================= Intro Screen Particles =================
-const particleCanvas = document.createElement('canvas');
-particleCanvas.width = window.innerWidth;
-particleCanvas.height = window.innerHeight;
-document.querySelector('.introParticles').appendChild(particleCanvas);
-const particleCtx = particleCanvas.getContext('2d');
+// Only initialize if the loading screen element exists
+const loadingParticlesContainer = document.querySelector('.loading-particles');
+if (loadingParticlesContainer) {
+    const particleCanvas = document.createElement('canvas');
+    particleCanvas.width = window.innerWidth;
+    particleCanvas.height = window.innerHeight;
+    loadingParticlesContainer.appendChild(particleCanvas);
+    const particleCtx = particleCanvas.getContext('2d');
 
-let particles = [];
-for(let i=0;i<100;i++){
-  particles.push({
-      x:Math.random()*particleCanvas.width,
-      y:Math.random()*particleCanvas.height,
-      r:Math.random()*3+1,
-      vx:(Math.random()-0.5)*0.5,
-      vy:(Math.random()-0.5)*0.5,
-      color:['#ffffff','#FFD700','#000000'][Math.floor(Math.random()*3)]
-  });
-}
+    let particles = [];
+    for(let i=0;i<100;i++){
+        particles.push({
+            x:Math.random()*particleCanvas.width,
+            y:Math.random()*particleCanvas.height,
+            r:Math.random()*3+1,
+            vx:(Math.random()-0.5)*0.5,
+            vy:(Math.random()-0.5)*0.5,
+            color:['#ffffff','#FFD700','#000000'][Math.floor(Math.random()*3)]
+        });
+    }
 
-function animateParticles(){
-  particleCtx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
-  for(let p of particles){
-      particleCtx.beginPath();
-      particleCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      particleCtx.fillStyle=p.color;
-      particleCtx.fill();
-      p.x += p.vx; p.y += p.vy;
-      if(p.x<0||p.x>particleCanvas.width)p.vx*=-1;
-      if(p.y<0||p.y>particleCanvas.height)p.vy*=-1;
-  }
-  requestAnimationFrame(animateParticles);
+    function animateParticles(){
+        particleCtx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
+        for(let p of particles){
+            particleCtx.beginPath();
+            particleCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            particleCtx.fillStyle=p.color;
+            particleCtx.fill();
+            p.x += p.vx; p.y += p.vy;
+            if(p.x<0||p.x>particleCanvas.width)p.vx*=-1;
+            if(p.y<0||p.y>particleCanvas.height)p.vy*=-1;
+        }
+        requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
 }
-animateParticles();
 
 window.addEventListener('resize', ()=>{
   particleCanvas.width = window.innerWidth;
