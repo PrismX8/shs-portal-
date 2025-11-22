@@ -5964,6 +5964,493 @@ window.ProfessionalUtils = {
 
 console.log('%c🚀 All professional enhancements are ready!', 'font-size: 14px; color: #28a745;');
 
+// ================= Games Grid System =================
+const gameSites = [
+    { url: 'https://unblocker.whitespider.gq/', title: 'White Spider Unblocker', icon: '🕷️' },
+    { url: 'https://unlock.wmeluna.com/', title: 'WME Luna Unlock', icon: '🔓' },
+    { url: 'https://sz-games.github.io', title: 'SZ Games', icon: '🎮' },
+    { url: 'https://593d4d43-3073-45d0-86e2-0443d15adf21.id.repl.co/games/mario64/index.html', title: 'Mario 64', icon: '🍄' },
+    { url: 'https://ubg100.bitbucket.io/games.html', title: 'UBG100 Games', icon: '🎯' },
+    { url: 'https://suite.saltyspamz.xyz/', title: 'Salty Spamz Suite', icon: '🧂' },
+    { url: 'https://mathadventure1.github.io/sm64/sm64/index.html', title: 'Super Mario 64', icon: '⭐' },
+    { url: 'https://picklekid31.github.io/GBA-unblocked-games/', title: 'GBA Unblocked', icon: '🎮' },
+    { url: 'https://jonahkc.github.io/youtube-unblcked/', title: 'YouTube Unblocked', icon: '📺' },
+    { url: 'https://cattn.github.io/gba/', title: 'GBA Emulator', icon: '🎮' },
+    { url: 'https://28klotlucas2.github.io/Mario64webgl/', title: 'Mario 64 WebGL', icon: '🍄' },
+    { url: 'https://emulatoros.github.io/', title: 'Emulator OS', icon: '💻' },
+    { url: 'https://abc6782.github.io/core-html/games.html', title: 'Core HTML Games', icon: '🎲' },
+    { url: 'https://blaizerbrumo.github.io/School-Heaven/public/index.html', title: 'School Heaven', icon: '🏫' },
+    { url: 'https://browncha023.github.io/GBA/', title: 'GBA Games', icon: '🎮' },
+    { url: 'https://jetyehsunblocked.codehs.me/', title: 'Jetyeh Unblocked', icon: '🚀' },
+    { url: 'https://593d4d43-3073-45d0-86e2-0443d15adf21.id.repl.co/', title: 'Repl Games', icon: '⚡' },
+    { url: 'https://superteamxx.github.io/Subway-Surfers/', title: 'Subway Surfers', icon: '🚇' },
+    { url: 'https://ytunblock.weebly.com/', title: 'YT Unblock', icon: '📺' },
+    { url: 'https://gamerateofficial.weebly.com/', title: 'Game Rate', icon: '⭐' },
+    { url: 'https://ytunblockerv10.weebly.com/', title: 'YT Unblocker V10', icon: '📺' },
+    { url: 'https://unblockedgames1147.weebly.com/games.html', title: 'Unblocked Games 1147', icon: '🎮' },
+    { url: 'https://odd.gay/games/', title: 'Odd Games', icon: '🎲' },
+    { url: 'https://superteamxx.github.io/GBA-Emulator-Unblocked/', title: 'GBA Emulator', icon: '🎮' },
+    { url: 'https://yologolosolo.github.io/projects.html', title: 'Yolo Projects', icon: '💡' },
+    { url: 'https://outred.github.io/game', title: 'Outred Games', icon: '🎯' },
+    { url: 'https://vexgames.online/', title: 'Vex Games', icon: '🎮' },
+    { url: 'https://skool.world/', title: 'Skool World', icon: '🌍' },
+    { url: 'https://skool.gq/', title: 'Skool', icon: '🏫' },
+    { url: 'https://www.typeracer.gq/', title: 'TypeRacer', icon: '⌨️' },
+    { url: 'https://flipgrid.gq/', title: 'Flipgrid', icon: '📹' },
+    { url: 'https://r.pluralsight.gq/', title: 'Pluralsight', icon: '📚' },
+    { url: 'https://r.codewars.ml/', title: 'CodeWars', icon: '⚔️' },
+    { url: 'https://www.coursera.cf/', title: 'Coursera', icon: '🎓' },
+    { url: 'https://whitespider.gq/', title: 'White Spider', icon: '🕷️' },
+    { url: 'https://whitespider.gq/ebutuoy/', title: 'YouTube Mirror', icon: '📺' },
+    { url: 'https://tw31120071857.github.io/BCHS-Unblocked-Games-V2/Online%20Games.html', title: 'BCHS Games', icon: '🎮' },
+    { url: 'https://wcpss.gq/', title: 'WCPSS', icon: '🏫' },
+    { url: 'https://skool.pages.dev/', title: 'Skool Pages', icon: '📄' },
+    { url: 'https://mathhomework.pages.dev/', title: 'Math Homework', icon: '📐' },
+    { url: 'https://mathwizard.pages.dev/', title: 'Math Wizard', icon: '🧙' },
+    { url: 'https://mathhomework.netlify.app/', title: 'Math Homework', icon: '📐' },
+    { url: 'https://oddpvp.github.io/unblockedgames/', title: 'Odd PVP Games', icon: '⚔️' },
+    { url: 'https://trickjoker312.github.io/', title: 'Trick Joker', icon: '🃏' },
+    { url: 'https://funkymods.github.io/', title: 'Funky Mods', icon: '🎵' },
+    { url: 'https://28klotlucas2.github.io/Funkin-Html5/', title: 'Friday Night Funkin', icon: '🎤' },
+    { url: 'https://luckydog7.github.io/funkinmobile/game/index.html', title: 'Funkin Mobile', icon: '📱' },
+    { url: 'https://gaming99github.github.io/', title: 'Gaming 99', icon: '🎮' },
+    { url: 'https://trickjoker312.github.io/unblockedgames/', title: 'Trick Joker Games', icon: '🃏' },
+    { url: 'https://lioxryt.github.io/', title: 'Lioxryt', icon: '🌟' },
+    { url: 'https://bgs.pages.dev/g/', title: 'BGS Games', icon: '🎮' },
+    { url: 'https://www.bigfootshack.tk/g/', title: 'Bigfoot Shack', icon: '🦶' },
+    { url: 'https://genarcy.github.io/Pages/games.html', title: 'Genarcy Games', icon: '🎯' },
+    { url: 'https://skoolunblock.up.railway.app/', title: 'Skool Unblock', icon: '🚂' },
+    { url: 'https://bidoofery.github.io/renov8/projects.html', title: 'Renov8', icon: '🔧' },
+    { url: 'https://theooofficial.github.io/myRETROGAMES/', title: 'Retro Games', icon: '🕹️' },
+    { url: 'https://gointerstellar.app/play.html', title: 'Go Interstellar', icon: '🚀' },
+    { url: 'https://teddblue.github.io/gamebois/', title: 'Game Bois', icon: '👾' },
+    { url: 'https://artclass.site/', title: 'Art Class', icon: '🎨' },
+    { url: 'https://jetyeh.vodka/', title: 'Jetyeh', icon: '🍸' },
+    { url: 'https://slope.faav.top/', title: 'Slope', icon: '⛷️' },
+    { url: 'https://shadowgmes.github.io/', title: 'Shadow Games', icon: '👻' },
+    { url: 'https://dominos.buzz/play.html', title: 'Dominos', icon: '🍕' },
+    { url: 'https://fractions.interstellarmath.ink/play.html', title: 'Fractions', icon: '🔢' },
+    { url: 'https://unblockedswaggygames.netlify.app/', title: 'Swaggy Games', icon: '😎' },
+    { url: 'https://www.schooltears.ml/', title: 'School Tears', icon: '😢' },
+    { url: 'https://ds-proxy-1.darkspeed.repl.co/', title: 'Dark Speed Proxy', icon: '🌑' },
+    { url: 'https://proxy.darkspeed.repl.co/', title: 'Dark Speed', icon: '⚡' },
+    { url: 'https://darkspeed.repl.co/games.html', title: 'Dark Speed Games', icon: '🎮' },
+    { url: 'https://funmath.club/', title: 'Fun Math', icon: '📊' },
+    { url: 'https://mgg658.github.io/', title: 'MGG Games', icon: '🎮' },
+    { url: 'https://oddgames.uk/', title: 'Odd Games UK', icon: '🇬🇧' },
+    { url: 'https://oddisbest.dev/', title: 'Odd Is Best', icon: '⭐' },
+    { url: 'https://potion-of.invisibility.lol/play.html', title: 'Invisibility Potion', icon: '🧪' },
+    { url: 'https://desmos.me/play.html', title: 'Desmos', icon: '📈' },
+    { url: 'https://artclass.site/games.html', title: 'Art Class Games', icon: '🎨' },
+    { url: 'https://gh.retronetwork.ml/', title: 'Retro Network', icon: '📡' },
+    { url: 'https://gamehub88.gq', title: 'Game Hub 88', icon: '🎯' },
+    { url: 'https://smdgames.github.io/', title: 'SMD Games', icon: '🎮' },
+    { url: 'https://www.hotcorn.ga/games/index.html', title: 'Hot Corn', icon: '🌽' },
+    { url: 'https://uk1.noblo.cc/', title: 'Noblo UK1', icon: '🇬🇧' },
+    { url: 'https://uk2.noblo.cc/', title: 'Noblo UK2', icon: '🇬🇧' },
+    { url: 'https://us1.noblo.cc/', title: 'Noblo US1', icon: '🇺🇸' },
+    { url: 'https://us2.noblo.cc/', title: 'Noblo US2', icon: '🇺🇸' },
+    { url: 'https://g.noblo.cc/', title: 'Noblo Games', icon: '🎮' },
+    { url: 'https://bhij.w3spaces.com/', title: 'BHIJ', icon: '🌐' },
+    { url: 'https://monkey3three.github.io/unblocked88.github.io/', title: 'Unblocked 88', icon: '🎮' },
+    { url: 'https://unblockedhaven.games/games?unlock', title: 'Unblocked Haven', icon: '🏰' },
+    { url: 'https://mgalternative.github.io/', title: 'MG Alternative', icon: '🔄' },
+    { url: 'https://mathgames67.github.io/', title: 'Math Games 67', icon: '🔢' },
+    { url: 'https://newportgrizfun.netlify.app/', title: 'Newport Griz', icon: '🐻' },
+    { url: 'https://tamgames.net', title: 'TAM Games', icon: '🎮' },
+    { url: 'https://outred-io-site.vercel.app/', title: 'Outred IO', icon: '🌐' },
+    { url: 'https://ubg9.github.io/', title: 'UBG9', icon: '9️⃣' },
+    { url: 'https://ubg9.com/', title: 'UBG9.com', icon: '9️⃣' },
+    { url: 'https://antsbackups.github.io/', title: 'Ants Backups', icon: '🐜' },
+    { url: 'https://cool-orpin.vercel.app/', title: 'Cool Orpin', icon: '🌺' },
+    { url: 'https://sneslover22.github.io/Mathews-Collection/index.html', title: 'Mathews Collection', icon: '📦' },
+    { url: 'https://feetnetworks.netlify.app/', title: 'Feet Networks', icon: '🦶' },
+    { url: 'https://mixed-pickled-soarer.glitch.me/', title: 'Mixed Pickled', icon: '🥒' },
+    { url: 'https://apricot-acoustic-seal.glitch.me/', title: 'Apricot Seal', icon: '🦭' },
+    { url: 'https://destiny-erratic-dimple.glitch.me/', title: 'Destiny Dimple', icon: '😊' },
+    { url: 'https://encouraging-inexpensive-polo.glitch.me/', title: 'Encouraging Polo', icon: '👔' },
+    { url: 'https://veil-band-pixie.glitch.me/', title: 'Veil Pixie', icon: '🧚' },
+    { url: 'https://www.jordansmathwork.ml/gs/', title: 'Jordans Math', icon: '📐' },
+    { url: 'https://geometryspot.com/activities/', title: 'Geometry Spot', icon: '📐' },
+    { url: 'https://fatgarfield777.github.io/Games.html', title: 'Fat Garfield Games', icon: '🐱' },
+    { url: 'http://david.thecallenders.com/', title: 'David Games', icon: '👤' },
+    { url: 'https://masonsunblockedgames.github.io/MasonsUnblockedGames/', title: 'Masons Games', icon: '🧱' },
+    { url: 'https://vancouver-games.github.io/', title: 'Vancouver Games', icon: '🏔️' },
+    { url: 'https://whizgames.github.io/', title: 'Whiz Games', icon: '⚡' },
+    { url: 'https://dingusorg.github.io/yeet/', title: 'Yeet Games', icon: '💨' },
+    { url: 'https://project-scythe.vercel.app/', title: 'Project Scythe', icon: '⚔️' },
+    { url: 'https://hmafia.org/', title: 'H Mafia', icon: '🕴️' },
+    { url: 'https://getjhub.tech/', title: 'JHub', icon: '🔧' },
+    { url: 'https://cattn.github.io/msgweb/', title: 'MSG Web', icon: '🌐' },
+    { url: 'https://purepro4561.github.io', title: 'Pure Pro', icon: '⭐' },
+    { url: 'https://obliged-gisele-thetatertotgod.koyeb.app/', title: 'Tater Tot God', icon: '🥔' },
+    { url: 'https://irunblocked.asia/', title: 'I Run Blocked', icon: '🏃' },
+    { url: 'https://irunblocked.asia/', title: 'I Run Blocked', icon: '🏃' },
+    { url: 'https://weblfg.vercel.app/games', title: 'Web LFG', icon: '🎮' },
+    { url: 'https://ubg100.vercel.app/games', title: 'UBG100', icon: '💯' },
+    { url: 'https://ubg.vercel.app/games', title: 'UBG', icon: '🎮' },
+    { url: 'https://supermath84.vercel.app/games', title: 'Super Math 84', icon: '📊' },
+    { url: 'https://othermgwebsite.github.io/', title: 'Other MG', icon: '🌐' },
+    { url: 'https://3kh0-hel.github.io/', title: '3kh0', icon: '🎮' },
+    { url: 'https://658658658.github.io/', title: '658 Games', icon: '🎯' },
+    { url: 'https://ice-wallo-come.github.io/', title: 'Ice Wallo', icon: '🧊' },
+    { url: 'https://mgg658.github.io/', title: 'MGG 658', icon: '🎮' },
+    { url: 'https://mountain-game-games.github.io/', title: 'Mountain Games', icon: '⛰️' },
+    { url: 'https://mountjustin.github.io/', title: 'Mount Justin', icon: '🏔️' },
+    { url: 'https://3kh04ever.github.io/', title: '3kh0 Forever', icon: '♾️' },
+    { url: 'https://angrytree0.github.io/', title: 'Angry Tree', icon: '🌳' },
+    { url: 'https://3kh0preview.github.io/', title: '3kh0 Preview', icon: '👁️' },
+    { url: 'https://5kh0.github.io/', title: '5kh0', icon: '🎮' },
+    { url: 'https://69kh0.github.io/', title: '69kh0', icon: '🎮' },
+    { url: 'https://75kh0.github.io/', title: '75kh0', icon: '🎮' },
+    { url: 'https://prestonwitzel.github.io/', title: 'Preston Witzel', icon: '👤' },
+    { url: 'https://mgunblocked.github.io/', title: 'MG Unblocked', icon: '🔓' },
+    { url: 'https://rx1ncreations.github.io/', title: 'RX1N Creations', icon: '✨' },
+    { url: 'https://lps7x.csb.app/', title: 'LPS7X', icon: '🎮' },
+    { url: 'https://skoolgq.github.io/', title: 'Skool GQ', icon: '🏫' },
+    { url: 'https://unblockedhaven.games/?unlock', title: 'Unblocked Haven', icon: '🏰' },
+    { url: 'https://0ntimer.github.io/', title: '0ntimer', icon: '⏱️' },
+    { url: 'https://nowgg.me/', title: 'Now GG', icon: '🎮' },
+    { url: 'https://railingames.github.io/classes.html', title: 'Rail In Games', icon: '🚂' },
+    { url: 'https://omnitechnicity.github.io/neuralekzz/flash/index.html', title: 'Neural Flash', icon: '⚡' },
+    { url: 'https://taco-browser.netlify.app/#gsc.tab=0', title: 'Taco Browser', icon: '🌮' },
+    { url: 'https://queserishot-in4.cyclic.app/play.html', title: 'Queserishot', icon: '🧀' },
+    { url: 'https://the-i-eat-water-return.onrender.com/', title: 'I Eat Water', icon: '💧' },
+    { url: 'https://harvard-streetview.onrender.com/play.html', title: 'Harvard Streetview', icon: '🏛️' },
+    { url: 'https://interstellar-vi8j.onrender.com/play.html', title: 'Interstellar VI8J', icon: '🚀' },
+    { url: 'https://interstellar-8m0x.onrender.com/play.html', title: 'Interstellar 8M0X', icon: '🚀' },
+    { url: 'https://interstellar-8dl7.onrender.com/play.html', title: 'Interstellar 8DL7', icon: '🚀' },
+    { url: 'https://orcais-thebest.onrender.com/play.html', title: 'Orcais The Best', icon: '⭐' },
+    { url: 'https://interstellar-77q7.onrender.com/play.html', title: 'Interstellar 77Q7', icon: '🚀' },
+    { url: 'https://login.algebraxyz.online/play.html', title: 'Algebra XYZ', icon: '📐' },
+    { url: 'https://www.rateavon.je/error.php', title: 'Rate Avon', icon: '⭐' },
+    { url: 'https://hhsgames.netlify.app/', title: 'HHS Games', icon: '🎮' },
+    { url: 'https://login.algebraxyz.com/play.html', title: 'Algebra XYZ', icon: '📐' },
+    { url: 'https://ill.tantrum.org/', title: 'Tantrum', icon: '😤' },
+    { url: 'https://mathclass.ballbang.wiki/', title: 'Math Class', icon: '📐' },
+    { url: 'https://phantoms.gq/', title: 'Phantoms', icon: '👻' },
+    { url: 'https://hawaii.cf/', title: 'Hawaii', icon: '🏝️' },
+    { url: 'https://geometry.answerozi.com/', title: 'Geometry Answer', icon: '📐' },
+    { url: 'https://helpingverbs.online/', title: 'Helping Verbs', icon: '📚' },
+    { url: 'https://geometryspot.onrender.com/play', title: 'Geometry Spot', icon: '📐' },
+    { url: 'https://mathpepe-calculator-algebra-onmathrender.onrender.com/play', title: 'Math Pepe', icon: '🐸' },
+    { url: 'https://g00g1ec1assr00m-gogle-com.onrender.com/play', title: 'Google Classroom', icon: '📚' },
+    { url: 'https://op1um.pages.dev/', title: 'Op1um', icon: '💊' },
+    { url: 'https://opium-games.com/', title: 'Opium Games', icon: '💊' },
+    { url: 'https://opium.cybriatech.dev/', title: 'Opium Cybria', icon: '💊' },
+    { url: 'https://opium-games.onrender.com/', title: 'Opium Games', icon: '💊' },
+    { url: 'https://bewildered-tweed-jacket-pike.cyclic.app/', title: 'Bewildered Pike', icon: '🐟' },
+    { url: 'https://nate-games.github.io/0/g/', title: 'Nate Games', icon: '🎮' },
+    { url: 'https://cosmicgames-11.onrender.com/', title: 'Cosmic Games', icon: '🌌' },
+    { url: 'https://pakupaku.bounceme.net/', title: 'Paku Paku', icon: '👾' },
+    { url: 'https://rammer.rude.li/', title: 'Rammer', icon: '🔨' },
+    { url: 'https://photography.ryanandjen.org/', title: 'Photography', icon: '📷' },
+    { url: 'https://chemistry.prs7.org/', title: 'Chemistry', icon: '🧪' },
+    { url: 'https://i-hate-school-lol.hop.sh/', title: 'I Hate School', icon: '😤' },
+    { url: 'https://coal-uranium-plutonium.vercel.app/', title: 'Nuclear Elements', icon: '☢️' },
+    { url: 'https://tasty-rock.hop.sh/', title: 'Tasty Rock', icon: '🪨' },
+    { url: 'https://69.eightgrade.com/', title: 'Eight Grade', icon: '8️⃣' },
+    { url: 'https://someone.fairuse.org/', title: 'Fair Use', icon: '⚖️' },
+    { url: 'https://sword.msg.boats/', title: 'Sword MSG', icon: '⚔️' },
+    { url: 'https://selenite.cc/', title: 'Selenite', icon: '💎' },
+    { url: 'https://selenite.skysthelimit.dev/', title: 'Selenite Sky', icon: '☁️' },
+    { url: 'https://all-about-science.onrender.com/', title: 'All About Science', icon: '🔬' },
+    { url: 'https://robotics-docs.onrender.com/', title: 'Robotics Docs', icon: '🤖' },
+    { url: 'https://contact.deleesportsmedicine.com/', title: 'Sports Medicine', icon: '🏥' },
+    { url: 'https://learn-at.undo.it/', title: 'Learn At', icon: '📖' },
+    { url: 'https://fediverse.faefox.org/', title: 'Fediverse', icon: '🌐' },
+    { url: 'https://projects.blueshadows.cl/', title: 'Blue Shadows', icon: '💙' },
+    { url: 'https://contact.zverovich.net/', title: 'Zverovich', icon: '👤' },
+    { url: 'https://nc.is-a.super-cool.dev/', title: 'NC Super Cool', icon: '❄️' },
+    { url: 'https://mathstudy.one/msgweb/', title: 'Math Study', icon: '📐' },
+    { url: 'https://unblockedgames66.github.io/', title: 'Unblocked Games 66', icon: '🎮' },
+    { url: 'https://choilieng.com/', title: 'Choi Lieng', icon: '🌐' },
+    { url: 'https://nabilubg.github.io/pages/games.html', title: 'Nabil UBG', icon: '🎮' },
+    { url: 'https://nabilmirror1.netlify.app/pages/games.html', title: 'Nabil Mirror 1', icon: '🪞' },
+    { url: 'https://nabilv5.netlify.app/pages/games.html', title: 'Nabil V5', icon: '5️⃣' },
+    { url: 'https://nabilmirror2.netlify.app/pages/games.html', title: 'Nabil Mirror 2', icon: '🪞' },
+    { url: 'https://stephen-is-cool.onrender.com/games', title: 'Stephen Games', icon: '😎' },
+    { url: 'https://jermaine-is-cool.onrender.com/', title: 'Jermaine', icon: '😎' },
+    { url: 'https://tristan-thorne-is-cool.onrender.com/play', title: 'Tristan Thorne', icon: '😎' },
+    { url: 'https://honored-pickled-locust.glitch.me/', title: 'Pickled Locust', icon: '🦗' },
+    { url: 'https://ballbang-pro45.com/', title: 'Ballbang Pro', icon: '⚽' },
+    { url: 'https://pr0xxxy.ballbang-pro1.com/', title: 'Pr0xxxy', icon: '🎮' },
+    { url: 'https://br0si.ballbang-app59.com/', title: 'Br0si App', icon: '📱' },
+    { url: 'https://techgai.com/', title: 'Tech Gai', icon: '💻' },
+    { url: 'https://metal.tree-board.net/', title: 'Metal Tree', icon: '🌳' },
+    { url: 'https://geoquiz.gq/', title: 'Geo Quiz', icon: '🌍' },
+    { url: 'https://login.prospectpointbooks.com/', title: 'Prospect Point', icon: '📚' },
+    { url: 'https://join.gettysburgmath.org/', title: 'Gettysburg Math', icon: '📐' },
+    { url: 'https://irepel.cf/', title: 'I Repel', icon: '🛡️' },
+    { url: 'https://play.irepel.com/', title: 'Play I Repel', icon: '🎮' },
+    { url: 'https://glatic.games/', title: 'Glatic Games', icon: '🎮' },
+    { url: 'https://the-glatics.github.io/glaticgames/', title: 'Glatic Games', icon: '🎮' },
+    { url: 'https://flushed.cyou/', title: 'Flushed', icon: '🚽' },
+    { url: 'https://interstellar-nkmi.onrender.com/play', title: 'Interstellar NKMI', icon: '🚀' },
+    { url: 'https://winterstellar.s1monwork.ga/play', title: 'Winter Stellar', icon: '❄️' },
+    { url: 'https://givememod.s1monwork.ga/play', title: 'Give Me Mod', icon: '👑' },
+    { url: 'https://whydidntigetmod.s1monwork.ga/play', title: 'Why No Mod', icon: '😢' },
+    { url: 'https://someoneusingaigotacceptedbutididnt.s1monwork.ga/play', title: 'AI Accepted', icon: '🤖' },
+    { url: 'https://pleasebubgivememod.hahalol15.online/play', title: 'Please Bub Mod', icon: '🙏' },
+    { url: 'https://purepro4561.github.io', title: 'Pure Pro', icon: '⭐' },
+    { url: 'https://yummyfood-tk.vercel.app/play.html', title: 'Yummy Food', icon: '🍔' },
+    { url: 'https://twagner-25-onrender.onrender.com/play.html', title: 'Wagner 25', icon: '👤' },
+    { url: 'https://mathcaculator.site/', title: 'Math Calculator', icon: '🧮' },
+    { url: 'https://interstellar-nkmi.onrender.com/play', title: 'Interstellar', icon: '🚀' },
+    { url: 'https://winterstellar.s1monwork.ga/play', title: 'Winter Stellar', icon: '❄️' },
+    { url: 'https://1v4irc-8080.csb.app/', title: '1V4IRC', icon: '🎮' },
+    { url: 'https://c7v25h-8080.csb.app/', title: 'C7V25H', icon: '🎮' },
+    { url: 'https://fs94yc-8080.csb.app/', title: 'FS94YC', icon: '🎮' },
+    { url: 'https://irunblocked.asia/', title: 'I Run Blocked', icon: '🏃' },
+    { url: 'https://gay-lovers.netlify.app/#/search/movie', title: 'Gay Lovers', icon: '💕' },
+    { url: 'https://rpndocuments.netlify.app/#/search/movie', title: 'RPN Documents', icon: '📄' },
+    { url: 'https://scram.onrender.com/nature', title: 'Scram Nature', icon: '🌿' },
+    { url: 'https://bob-d5pr.onrender.com/', title: 'Bob', icon: '👤' },
+    { url: 'https://bob-awesome-e1lq.onrender.com/', title: 'Bob Awesome', icon: '⭐' },
+    { url: 'https://render-cant-ban-me.onrender.com/', title: 'Render Cant Ban', icon: '🛡️' },
+    { url: 'https://fp2lyq-8080.csb.app/', title: 'FP2LYQ', icon: '🎮' },
+    { url: 'https://qdtjde-8080.csb.app/', title: 'QDTJDE', icon: '🎮' },
+    { url: 'https://rocketlea6e01.onrender.com/', title: 'Rocket Lea', icon: '🚀' },
+    { url: 'https://paycheckgange.onrender.com/', title: 'Paycheck Gange', icon: '💰' },
+    { url: 'https://isinterstellarcool.onrender.com/', title: 'Is Interstellar Cool', icon: '❓' },
+    { url: 'https://caspy-leftu.onrender.com/', title: 'Caspy', icon: '👤' },
+    { url: 'https://nbmsreal.onrender.com/', title: 'NBMS Real', icon: '🏫' },
+    { url: 'https://asparagusmath.onrender.com/', title: 'Asparagus Math', icon: '🌱' },
+    { url: 'https://newinterstellar.onrender.com/', title: 'New Interstellar', icon: '🚀' },
+    { url: 'https://korb.nard.ca/', title: 'Korb', icon: '🌐' },
+    { url: 'https://beautyof.backriverphotography.com/', title: 'Beauty Of', icon: '📷' },
+    { url: 'https://diet.fitnessdieta.com/', title: 'Fitness Diet', icon: '💪' },
+    { url: 'https://deviouslink.onrender.com/', title: 'Devious Link', icon: '🔗' },
+    { url: 'https://long-puce-sheep-gown.cyclic.app/', title: 'Long Puce', icon: '🐑' },
+    { url: 'https://gtgt.onrender.com/', title: 'GTGT', icon: '🎮' },
+    { url: 'https://amongthehidden.onrender.com/', title: 'Among The Hidden', icon: '👥' },
+    { url: 'https://freebooks.onrender.com/', title: 'Free Books', icon: '📚' },
+    { url: 'https://interstellareducationfree.onrender.com/', title: 'Interstellar Education', icon: '🎓' },
+    { url: 'https://studyguides.onrender.com/', title: 'Study Guides', icon: '📖' },
+    { url: 'https://cusotmijnterstellar.onrender.com/', title: 'Custom Interstellar', icon: '🔧' },
+    { url: 'https://funnydadjokes.onrender.com/', title: 'Funny Dad Jokes', icon: '😄' },
+    { url: 'https://derpmandev.uk.ms/unblocked-games/', title: 'Derpman Games', icon: '🎮' },
+    { url: 'https://website-v2-ltzv.onrender.com/games', title: 'Website V2', icon: '🌐' },
+    { url: 'https://nate-games.github.io/0/g/', title: 'Nate Games', icon: '🎮' },
+    { url: 'https://cosmicgames-11.onrender.com/', title: 'Cosmic Games', icon: '🌌' },
+    { url: 'https://pakupaku.bounceme.net/', title: 'Paku Paku', icon: '👾' },
+    { url: 'https://rammer.rude.li/', title: 'Rammer', icon: '🔨' },
+    { url: 'https://photography.ryanandjen.org/', title: 'Photography', icon: '📷' },
+    { url: 'https://chemistry.prs7.org/', title: 'Chemistry', icon: '🧪' },
+    { url: 'https://i-hate-school-lol.hop.sh/', title: 'I Hate School', icon: '😤' },
+    { url: 'https://coal-uranium-plutonium.vercel.app/', title: 'Nuclear', icon: '☢️' },
+    { url: 'https://tasty-rock.hop.sh/', title: 'Tasty Rock', icon: '🪨' },
+    { url: 'https://69.eightgrade.com/', title: 'Eight Grade', icon: '8️⃣' },
+    { url: 'https://someone.fairuse.org/', title: 'Fair Use', icon: '⚖️' },
+    { url: 'https://sword.msg.boats/', title: 'Sword MSG', icon: '⚔️' },
+    { url: 'https://selenite.cc/', title: 'Selenite', icon: '💎' },
+    { url: 'https://selenite.skysthelimit.dev/', title: 'Selenite Sky', icon: '☁️' },
+    { url: 'https://all-about-science.onrender.com/', title: 'All About Science', icon: '🔬' },
+    { url: 'https://robotics-docs.onrender.com/', title: 'Robotics', icon: '🤖' },
+    { url: 'https://contact.deleesportsmedicine.com/', title: 'Sports Med', icon: '🏥' },
+    { url: 'https://learn-at.undo.it/', title: 'Learn At', icon: '📖' },
+    { url: 'https://fediverse.faefox.org/', title: 'Fediverse', icon: '🌐' },
+    { url: 'https://projects.blueshadows.cl/', title: 'Blue Shadows', icon: '💙' },
+    { url: 'https://contact.zverovich.net/', title: 'Zverovich', icon: '👤' },
+    { url: 'https://nc.is-a.super-cool.dev/', title: 'NC Cool', icon: '❄️' },
+    { url: 'https://mathstudy.one/msgweb/', title: 'Math Study', icon: '📐' },
+    { url: 'https://unblockedgames66.github.io/', title: 'Games 66', icon: '🎮' },
+    { url: 'https://choilieng.com/', title: 'Choi Lieng', icon: '🌐' },
+    { url: 'https://nabilubg.github.io/pages/games.html', title: 'Nabil UBG', icon: '🎮' },
+    { url: 'https://nabilmirror1.netlify.app/pages/games.html', title: 'Nabil Mirror', icon: '🪞' },
+    { url: 'https://nabilv5.netlify.app/pages/games.html', title: 'Nabil V5', icon: '5️⃣' },
+    { url: 'https://nabilmirror2.netlify.app/pages/games.html', title: 'Nabil Mirror 2', icon: '🪞' },
+    { url: 'https://stephen-is-cool.onrender.com/games', title: 'Stephen', icon: '😎' },
+    { url: 'https://jermaine-is-cool.onrender.com/', title: 'Jermaine', icon: '😎' },
+    { url: 'https://tristan-thorne-is-cool.onrender.com/play', title: 'Tristan', icon: '😎' },
+    { url: 'https://honored-pickled-locust.glitch.me/', title: 'Locust', icon: '🦗' },
+    { url: 'https://ballbang-pro45.com/', title: 'Ballbang', icon: '⚽' },
+    { url: 'https://pr0xxxy.ballbang-pro1.com/', title: 'Pr0xxxy', icon: '🎮' },
+    { url: 'https://br0si.ballbang-app59.com/', title: 'Br0si', icon: '📱' },
+    { url: 'https://techgai.com/', title: 'Tech Gai', icon: '💻' },
+    { url: 'https://metal.tree-board.net/', title: 'Metal Tree', icon: '🌳' },
+    { url: 'https://geoquiz.gq/', title: 'Geo Quiz', icon: '🌍' },
+    { url: 'https://login.prospectpointbooks.com/', title: 'Prospect', icon: '📚' },
+    { url: 'https://join.gettysburgmath.org/', title: 'Gettysburg', icon: '📐' },
+    { url: 'https://irepel.cf/', title: 'I Repel', icon: '🛡️' },
+    { url: 'https://play.irepel.com/', title: 'Play I Repel', icon: '🎮' },
+    { url: 'https://glatic.games/', title: 'Glatic', icon: '🎮' },
+    { url: 'https://the-glatics.github.io/glaticgames/', title: 'Glatic Games', icon: '🎮' },
+    { url: 'https://flushed.cyou/', title: 'Flushed', icon: '🚽' },
+    { url: 'https://interstellar-nkmi.onrender.com/play', title: 'Interstellar', icon: '🚀' },
+    { url: 'https://winterstellar.s1monwork.ga/play', title: 'Winter', icon: '❄️' },
+    { url: 'https://givememod.s1monwork.ga/play', title: 'Give Mod', icon: '👑' },
+    { url: 'https://whydidntigetmod.s1monwork.ga/play', title: 'Why Mod', icon: '😢' },
+    { url: 'https://someoneusingaigotacceptedbutididnt.s1monwork.ga/play', title: 'AI Accepted', icon: '🤖' },
+    { url: 'https://pleasebubgivememod.hahalol15.online/play', title: 'Please Mod', icon: '🙏' },
+    { url: 'https://purepro4561.github.io', title: 'Pure Pro', icon: '⭐' },
+    { url: 'https://yummyfood-tk.vercel.app/play.html', title: 'Yummy Food', icon: '🍔' },
+    { url: 'https://twagner-25-onrender.onrender.com/play.html', title: 'Wagner', icon: '👤' },
+    { url: 'https://mathcaculator.site/', title: 'Calculator', icon: '🧮' },
+    { url: 'https://interstellar-nkmi.onrender.com/play', title: 'Interstellar', icon: '🚀' },
+    { url: 'https://winterstellar.s1monwork.ga/play', title: 'Winter', icon: '❄️' },
+    { url: 'https://1v4irc-8080.csb.app/', title: '1V4IRC', icon: '🎮' },
+    { url: 'https://c7v25h-8080.csb.app/', title: 'C7V25H', icon: '🎮' },
+    { url: 'https://fs94yc-8080.csb.app/', title: 'FS94YC', icon: '🎮' },
+    { url: 'https://irunblocked.asia/', title: 'I Run Blocked', icon: '🏃' },
+    { url: 'https://gay-lovers.netlify.app/#/search/movie', title: 'Gay Lovers', icon: '💕' },
+    { url: 'https://rpndocuments.netlify.app/#/search/movie', title: 'RPN Docs', icon: '📄' },
+    { url: 'https://scram.onrender.com/nature', title: 'Scram', icon: '🌿' },
+    { url: 'https://bob-d5pr.onrender.com/', title: 'Bob', icon: '👤' },
+    { url: 'https://bob-awesome-e1lq.onrender.com/', title: 'Bob Awesome', icon: '⭐' },
+    { url: 'https://render-cant-ban-me.onrender.com/', title: 'Cant Ban', icon: '🛡️' },
+    { url: 'https://fp2lyq-8080.csb.app/', title: 'FP2LYQ', icon: '🎮' },
+    { url: 'https://qdtjde-8080.csb.app/', title: 'QDTJDE', icon: '🎮' },
+    { url: 'https://rocketlea6e01.onrender.com/', title: 'Rocket Lea', icon: '🚀' },
+    { url: 'https://paycheckgange.onrender.com/', title: 'Paycheck', icon: '💰' },
+    { url: 'https://isinterstellarcool.onrender.com/', title: 'Is Cool', icon: '❓' },
+    { url: 'https://caspy-leftu.onrender.com/', title: 'Caspy', icon: '👤' },
+    { url: 'https://nbmsreal.onrender.com/', title: 'NBMS', icon: '🏫' },
+    { url: 'https://asparagusmath.onrender.com/', title: 'Asparagus', icon: '🌱' },
+    { url: 'https://newinterstellar.onrender.com/', title: 'New Interstellar', icon: '🚀' },
+    { url: 'https://korb.nard.ca/', title: 'Korb', icon: '🌐' },
+    { url: 'https://beautyof.backriverphotography.com/', title: 'Beauty', icon: '📷' },
+    { url: 'https://diet.fitnessdieta.com/', title: 'Fitness', icon: '💪' },
+    { url: 'https://deviouslink.onrender.com/', title: 'Devious', icon: '🔗' },
+    { url: 'https://long-puce-sheep-gown.cyclic.app/', title: 'Sheep', icon: '🐑' },
+    { url: 'https://gtgt.onrender.com/', title: 'GTGT', icon: '🎮' },
+    { url: 'https://amongthehidden.onrender.com/', title: 'Among Hidden', icon: '👥' },
+    { url: 'https://freebooks.onrender.com/', title: 'Free Books', icon: '📚' },
+    { url: 'https://interstellareducationfree.onrender.com/', title: 'Education', icon: '🎓' },
+    { url: 'https://studyguides.onrender.com/', title: 'Study', icon: '📖' },
+    { url: 'https://cusotmijnterstellar.onrender.com/', title: 'Custom', icon: '🔧' },
+    { url: 'https://funnydadjokes.onrender.com/', title: 'Dad Jokes', icon: '😄' },
+    { url: 'https://derpmandev.uk.ms/unblocked-games/', title: 'Derpman', icon: '🎮' },
+    { url: 'https://website-v2-ltzv.onrender.com/games', title: 'Website V2', icon: '🌐' },
+    { url: 'https://nate-games.github.io/0/g/', title: 'Nate', icon: '🎮' },
+    { url: 'https://cosmicgames-11.onrender.com/', title: 'Cosmic', icon: '🌌' },
+    { url: 'https://pakupaku.bounceme.net/', title: 'Paku', icon: '👾' },
+    { url: 'https://rammer.rude.li/', title: 'Rammer', icon: '🔨' },
+    { url: 'https://photography.ryanandjen.org/', title: 'Photo', icon: '📷' },
+    { url: 'https://chemistry.prs7.org/', title: 'Chem', icon: '🧪' },
+    { url: 'https://i-hate-school-lol.hop.sh/', title: 'Hate School', icon: '😤' },
+    { url: 'https://coal-uranium-plutonium.vercel.app/', title: 'Nuclear', icon: '☢️' },
+    { url: 'https://tasty-rock.hop.sh/', title: 'Rock', icon: '🪨' },
+    { url: 'https://69.eightgrade.com/', title: 'Grade', icon: '8️⃣' },
+    { url: 'https://someone.fairuse.org/', title: 'Fair', icon: '⚖️' },
+    { url: 'https://sword.msg.boats/', title: 'Sword', icon: '⚔️' },
+    { url: 'https://selenite.cc/', title: 'Selenite', icon: '💎' },
+    { url: 'https://selenite.skysthelimit.dev/', title: 'Sky', icon: '☁️' },
+    { url: 'https://all-about-science.onrender.com/', title: 'Science', icon: '🔬' },
+    { url: 'https://robotics-docs.onrender.com/', title: 'Robotics', icon: '🤖' },
+    { url: 'https://contact.deleesportsmedicine.com/', title: 'Med', icon: '🏥' },
+    { url: 'https://learn-at.undo.it/', title: 'Learn', icon: '📖' },
+    { url: 'https://fediverse.faefox.org/', title: 'Fediverse', icon: '🌐' },
+    { url: 'https://projects.blueshadows.cl/', title: 'Blue', icon: '💙' },
+    { url: 'https://contact.zverovich.net/', title: 'Zver', icon: '👤' },
+    { url: 'https://nc.is-a.super-cool.dev/', title: 'NC', icon: '❄️' },
+    { url: 'https://mathstudy.one/msgweb/', title: 'Math', icon: '📐' }
+];
+
+// Function to extract domain name for title if not provided
+function getDomainName(url) {
+    try {
+        const urlObj = new URL(url);
+        let domain = urlObj.hostname.replace('www.', '');
+        // Remove common TLDs for cleaner names
+        domain = domain.split('.')[0];
+        return domain.charAt(0).toUpperCase() + domain.slice(1);
+    } catch {
+        return 'Game Site';
+    }
+}
+
+// Initialize games grid
+function initGamesGrid() {
+    const gamesGrid = document.getElementById('gamesGrid');
+    if (!gamesGrid) return;
+    
+    gamesGrid.innerHTML = gameSites.map((site, index) => {
+        const title = site.title || getDomainName(site.url);
+        const icon = site.icon || '🎮';
+        
+        return `
+            <div class="game-cube" data-url="${site.url}" data-index="${index}" style="animation-delay: ${index * 0.03}s;">
+                <div class="game-cube-inner">
+                    <div class="game-cube-icon">${icon}</div>
+                    <div class="game-cube-title">${title}</div>
+                    <div class="game-cube-glow"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Add click handlers
+    gamesGrid.querySelectorAll('.game-cube').forEach(cube => {
+        cube.addEventListener('click', () => {
+            const url = cube.getAttribute('data-url');
+            const title = cube.querySelector('.game-cube-title').textContent;
+            loadGameSite(url, title);
+        });
+    });
+}
+
+// Load game site in iframe
+function loadGameSite(url, title) {
+    const iframeContainer = document.getElementById('iframeContainer');
+    const gamesGridContainer = document.getElementById('gamesGridContainer');
+    const embeddedSite = document.getElementById('embeddedSite');
+    const currentSiteTitle = document.getElementById('currentSiteTitle');
+    
+    if (iframeContainer && embeddedSite && gamesGridContainer) {
+        // Hide games grid
+        gamesGridContainer.style.display = 'none';
+        
+        // Show iframe
+        iframeContainer.style.display = 'block';
+        
+        // Set title
+        if (currentSiteTitle) {
+            currentSiteTitle.textContent = title;
+        }
+        
+        // Load site
+        embeddedSite.src = url;
+        
+        // Scroll to iframe
+        setTimeout(() => {
+            iframeContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
+}
+
+// Back to games button
+document.addEventListener('DOMContentLoaded', () => {
+    initGamesGrid();
+    
+    const backToGamesBtn = document.getElementById('backToGamesBtn');
+    if (backToGamesBtn) {
+        backToGamesBtn.addEventListener('click', () => {
+            const iframeContainer = document.getElementById('iframeContainer');
+            const gamesGridContainer = document.getElementById('gamesGridContainer');
+            const embeddedSite = document.getElementById('embeddedSite');
+            
+            if (iframeContainer && gamesGridContainer) {
+                // Hide iframe
+                iframeContainer.style.display = 'none';
+                
+                // Show games grid
+                gamesGridContainer.style.display = 'block';
+                
+                // Clear iframe src
+                if (embeddedSite) {
+                    embeddedSite.src = '';
+                }
+                
+                // Scroll to games grid
+                setTimeout(() => {
+                    gamesGridContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        });
+    }
+});
+
 // Navigation button handlers
 document.addEventListener('DOMContentLoaded', () => {
     // Chat button in navigation
