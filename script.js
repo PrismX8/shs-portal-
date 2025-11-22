@@ -6287,7 +6287,8 @@ function renderGamesGrid(filteredGames = null) {
 
 // Initialize games grid
 function initGamesGrid() {
-    renderGamesGrid();
+    // Load trending category by default
+    filterGamesByCategory('trending');
     
     // Setup search functionality
     const searchInput = document.getElementById('gamesSearchInput');
@@ -6476,37 +6477,55 @@ function filterGamesByCategory(category) {
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
         const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
         
-        filtered = filtered
-            .map(game => {
-                const now = Date.now();
-                let trendingScore = 0;
+        // Calculate trending scores for all games
+        const allGamesWithScores = filtered.map(game => {
+            const now = Date.now();
+            let trendingScore = 0;
+            
+            if (game.clicks > 0) {
+                // Base score from total clicks (logarithmic to prevent old games from dominating)
+                const baseScore = Math.log10(game.clicks + 1) * 10;
                 
-                if (game.clicks > 0) {
-                    // Base score from total clicks (logarithmic to prevent old games from dominating)
-                    const baseScore = Math.log10(game.clicks + 1) * 10;
-                    
-                    // Recent activity boost
-                    if (game.lastClicked > oneDayAgo) {
-                        // Very recent (last 24 hours) - high boost
-                        trendingScore = baseScore * 3;
-                    } else if (game.lastClicked > twoDaysAgo) {
-                        // Recent (last 48 hours) - medium boost
-                        trendingScore = baseScore * 1.5;
-                    } else {
-                        // Older - lower score
-                        trendingScore = baseScore * 0.5;
-                    }
-                    
-                    // Add recency decay factor
-                    const hoursSinceLastClick = (now - game.lastClicked) / (1000 * 60 * 60);
-                    const recencyFactor = Math.max(0, 1 - (hoursSinceLastClick / 72)); // Decay over 3 days
-                    trendingScore *= (1 + recencyFactor);
+                // Recent activity boost
+                if (game.lastClicked > oneDayAgo) {
+                    // Very recent (last 24 hours) - high boost
+                    trendingScore = baseScore * 3;
+                } else if (game.lastClicked > twoDaysAgo) {
+                    // Recent (last 48 hours) - medium boost
+                    trendingScore = baseScore * 1.5;
+                } else {
+                    // Older - lower score
+                    trendingScore = baseScore * 0.5;
                 }
                 
-                return { ...game, trendingScore: trendingScore };
-            })
-            .filter(game => game.clicks > 0) // Only show games that have been clicked
+                // Add recency decay factor
+                const hoursSinceLastClick = (now - game.lastClicked) / (1000 * 60 * 60);
+                const recencyFactor = Math.max(0, 1 - (hoursSinceLastClick / 72)); // Decay over 3 days
+                trendingScore *= (1 + recencyFactor);
+            }
+            
+            return { ...game, trendingScore: trendingScore };
+        });
+        
+        // Separate trending games (with clicks) from non-trending games
+        const trendingGames = allGamesWithScores
+            .filter(game => game.clicks > 0)
             .sort((a, b) => b.trendingScore - a.trendingScore);
+        
+        // Get non-trending games (games with 0 clicks or very low scores)
+        const nonTrendingGames = allGamesWithScores
+            .filter(game => game.clicks === 0 || game.trendingScore < 1)
+            .sort((a, b) => {
+                // Sort by clicks first, then by array position (newer games first)
+                if (b.clicks !== a.clicks) return b.clicks - a.clicks;
+                // For games with same clicks, prefer newer ones (higher index in original array)
+                const indexA = gameSites.findIndex(s => s.embed === a.embed);
+                const indexB = gameSites.findIndex(s => s.embed === b.embed);
+                return indexB - indexA;
+            });
+        
+        // Combine: trending games first, then fill with other games
+        filtered = [...trendingGames, ...nonTrendingGames];
     } else if (category === 'new') {
         // Show games that haven't been clicked yet (newly added) or recently added
         // Prioritize games with 0 clicks (newest additions)
