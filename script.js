@@ -54,12 +54,37 @@ if (db) {
   onlineRef.onDisconnect().remove();
 }
 const visitorCounter = document.getElementById('visitorCounter');
+const INITIAL_VISITOR_COUNT = 127349;
+
+// Initialize visitor count to 127,349 if it doesn't exist or is less
+if (db) {
+    db.ref('totalVisitors').once('value').then(snap => {
+        const currentCount = snap.val() || 0;
+        if (currentCount < INITIAL_VISITOR_COUNT) {
+            db.ref('totalVisitors').set(INITIAL_VISITOR_COUNT).catch(error => {
+                console.error('Error setting initial visitor count:', error);
+            });
+        }
+    }).catch(error => {
+        console.error('Error checking visitor count:', error);
+    });
+}
+
+// Increment visitor count for new visitors
 if (db && !localStorage.getItem('visitorCounted')) {
-    db.ref('totalVisitors').transaction(val => (val || 0) + 1).catch(error => {
+    db.ref('totalVisitors').transaction(val => {
+        const currentVal = val || INITIAL_VISITOR_COUNT;
+        // If count is less than initial, set to initial first
+        if (currentVal < INITIAL_VISITOR_COUNT) {
+            return INITIAL_VISITOR_COUNT + 1;
+        }
+        return currentVal + 1;
+    }).catch(error => {
       console.error('Error updating visitor count:', error);
     });
     localStorage.setItem('visitorCounted', 'yes');
 }
+
 const totalRef = db ? db.ref('totalVisitors') : null;
 const onlineDbRef = db ? db.ref('online') : null;
 
@@ -68,18 +93,23 @@ function updateCounter() {
     onlineDbRef.once('value').then(snap => {
         const online = snap.numChildren();
         totalRef.once('value').then(snap2 => {
-            const total = snap2.val() || 0;
+            const total = snap2.val() || INITIAL_VISITOR_COUNT;
             const onlineCountEl = document.getElementById('onlineCount');
             const totalCountEl = document.getElementById('totalCount');
             if (onlineCountEl) onlineCountEl.textContent = online;
-            if (totalCountEl) totalCountEl.textContent = total;
+            if (totalCountEl) totalCountEl.textContent = total.toLocaleString();
             if (!onlineCountEl && !totalCountEl) {
-                visitorCounter.innerText = `${online} Online | ${total} Total`;
+                visitorCounter.innerText = `${online} Online | ${total.toLocaleString()} Total Visitors`;
             }
         });
     }).catch(error => {
         console.error('Error updating counter:', error);
     });
+}
+
+// Format number with commas for display
+function formatNumber(num) {
+    return num.toLocaleString();
 }
 
 // Update counter live when online users change
@@ -582,9 +612,10 @@ clearCanvasAdminBtn.addEventListener('click', () => {
 });
 
 resetVisitorsBtn.addEventListener('click', () => {
-  if(confirm('Reset total visitors count to 0?')) {
-    db.ref('totalVisitors').set(1).then(() => {
-      alert('Visitors count reset');
+  if(confirm('Reset total visitors count to 127,349?')) {
+    db.ref('totalVisitors').set(INITIAL_VISITOR_COUNT).then(() => {
+      alert('Visitors count reset to 127,349');
+      updateCounter(); // Refresh the display
     }).catch(err => alert('Error: ' + err.message));
   }
 });
@@ -3729,6 +3760,36 @@ console.error = function(...args) {
 
 // Note: AdSense errors in the Network tab are normal and expected
 // They occur when ad blockers block ad requests or when the site isn't fully approved yet
+
+// Prevent text/element selection via double-click and drag
+document.addEventListener('selectstart', (e) => {
+    // Allow selection in input fields and textareas
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+    }
+    e.preventDefault();
+    return false;
+});
+
+document.addEventListener('dragstart', (e) => {
+    // Allow dragging of images and links if needed
+    if (e.target.tagName === 'IMG' || e.target.tagName === 'A') {
+        return;
+    }
+    e.preventDefault();
+    return false;
+});
+
+// Prevent double-click selection
+document.addEventListener('mousedown', (e) => {
+    if (e.detail > 1) { // Double-click
+        e.preventDefault();
+        return false;
+    }
+});
+
+// Note: Context menu is already handled by the custom context menu code above
+// The custom context menu will still work, but selection is disabled
 
 // Professional Performance Monitor
 class PerformanceMonitor {
