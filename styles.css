@@ -3696,6 +3696,65 @@ header small {
     50% { opacity: 1; }
 }
 
+/* ================= Back to Top Button ================= */
+.back-to-top-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8));
+    backdrop-filter: blur(20px);
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+}
+
+.back-to-top-btn.show {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.back-to-top-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 1), rgba(255, 165, 0, 0.95));
+    border-color: rgba(255, 215, 0, 0.8);
+    transform: translateY(-5px) scale(1.1);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.5);
+}
+
+.back-to-top-btn:active {
+    transform: translateY(-2px) scale(1.05);
+}
+
+.back-to-top-btn i {
+    transition: transform 0.3s ease;
+}
+
+.back-to-top-btn:hover i {
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .back-to-top-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+    }
+}
+
 /* ================= PROFESSIONAL ENHANCEMENTS ================= */
 
 /* Smooth scroll behavior */
