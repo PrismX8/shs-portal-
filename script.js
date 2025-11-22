@@ -2685,192 +2685,777 @@ function displayLeaderboard(data) {
     }).join('');
 }
 
-// ---------------- Friends System ----------------
+// ================= Modern Friends System =================
 const friendsBtn = document.getElementById('friendsBtn');
 const friendsModal = document.getElementById('friendsModal');
 const closeFriendsBtn = document.getElementById('closeFriendsBtn');
-const friendsList = document.getElementById('friendsList');
+
+// Friends data storage
+let friendsData = {
+    friends: JSON.parse(localStorage.getItem('friends')) || [],
+    requests: {
+        sent: JSON.parse(localStorage.getItem('friendRequestsSent')) || [],
+        received: JSON.parse(localStorage.getItem('friendRequestsReceived')) || []
+    },
+    blocked: JSON.parse(localStorage.getItem('blockedUsers')) || []
+};
+
+// Cache for performance
+let profilesCache = {};
+let onlineCache = {};
+let cacheTimestamp = 0;
+const CACHE_DURATION = 10000; // 10 seconds
+
+// Initialize friends system
+function initFriendsSystem() {
+    if (!db) return;
+    
+    // Load friends data from Firebase if available
+    loadFriendsFromFirebase();
+    
+    // Set up real-time listeners
+    setupFriendsRealtimeListeners();
+}
+
+// Load friends from Firebase (with localStorage fallback)
+function loadFriendsFromFirebase() {
+    if (!db) {
+        updateAllDisplays();
+        return;
+    }
+    
+    Promise.all([
+        db.ref(`friends/${visitorId}`).once('value'),
+        db.ref(`friendRequests/${visitorId}`).once('value'),
+        db.ref(`blocked/${visitorId}`).once('value'),
+        db.ref('profiles').once('value'),
+        db.ref('online').once('value')
+    ]).then(([friendsSnap, requestsSnap, blockedSnap, profilesSnap, onlineSnap]) => {
+        // Load friends
+        const firebaseFriends = friendsSnap.val();
+        if (firebaseFriends) {
+            friendsData.friends = Object.keys(firebaseFriends);
+            localStorage.setItem('friends', JSON.stringify(friendsData.friends));
+        }
+        
+        // Load requests
+        const requests = requestsSnap.val() || {};
+        friendsData.requests = {
+            sent: Object.keys(requests.sent || {}),
+            received: Object.keys(requests.received || {})
+        };
+        localStorage.setItem('friendRequestsSent', JSON.stringify(friendsData.requests.sent));
+        localStorage.setItem('friendRequestsReceived', JSON.stringify(friendsData.requests.received));
+        
+        // Load blocked
+        const blocked = blockedSnap.val();
+        if (blocked) {
+            friendsData.blocked = Object.keys(blocked);
+            localStorage.setItem('blockedUsers', JSON.stringify(friendsData.blocked));
+        }
+        
+        // Cache profiles and online status
+        profilesCache = profilesSnap.val() || {};
+        onlineCache = onlineSnap.val() || {};
+        cacheTimestamp = Date.now();
+        
+        updateAllDisplays();
+    }).catch(err => {
+        console.error('Error loading friends from Firebase:', err);
+        updateAllDisplays();
+    });
+}
+
+// Setup real-time listeners
+function setupFriendsRealtimeListeners() {
+    if (!db) return;
+    
+    // Friends listener
+    db.ref(`friends/${visitorId}`).on('value', (snap) => {
+        const friends = snap.val();
+        if (friends) {
+            friendsData.friends = Object.keys(friends);
+            localStorage.setItem('friends', JSON.stringify(friendsData.friends));
+            updateCountBadges();
+            if (document.querySelector('.friends-tab-btn[data-tab="friends"]')?.classList.contains('active')) {
+                renderFriendsTab();
+            }
+        }
+    });
+    
+    // Requests listener
+    db.ref(`friendRequests/${visitorId}`).on('value', (snap) => {
+        const requests = snap.val() || {};
+        friendsData.requests = {
+            sent: Object.keys(requests.sent || {}),
+            received: Object.keys(requests.received || {})
+        };
+        localStorage.setItem('friendRequestsSent', JSON.stringify(friendsData.requests.sent));
+        localStorage.setItem('friendRequestsReceived', JSON.stringify(friendsData.requests.received));
+        updateCountBadges();
+        if (document.querySelector('.friends-tab-btn[data-tab="requests"]')?.classList.contains('active')) {
+            renderRequestsTab();
+        }
+    });
+    
+    // Online status listener
+    db.ref('online').on('value', (snap) => {
+        onlineCache = snap.val() || {};
+        if (document.querySelector('.friends-tab-btn[data-tab="friends"]')?.classList.contains('active')) {
+            renderFriendsTab();
+        }
+    });
+}
+
+// Update count badges
+function updateCountBadges() {
+    const friendsBadge = document.getElementById('friendsCountBadge');
+    const requestsBadge = document.getElementById('requestsCountBadge');
+    const blockedBadge = document.getElementById('blockedCountBadge');
+    
+    if (friendsBadge) {
+        friendsBadge.textContent = friendsData.friends.length;
+        friendsBadge.style.display = friendsData.friends.length > 0 ? 'inline-block' : 'none';
+    }
+    
+    if (requestsBadge) {
+        const count = friendsData.requests.received.length;
+        requestsBadge.textContent = count;
+        requestsBadge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+    
+    if (blockedBadge) {
+        const count = friendsData.blocked.length;
+        blockedBadge.textContent = count;
+        blockedBadge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+}
+
+// Tab navigation
+document.querySelectorAll('.friends-tab-btn').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const targetTab = tab.dataset.tab;
+        
+        // Update active state
+        document.querySelectorAll('.friends-tab-btn').forEach(t => {
+            t.classList.remove('active');
+        });
+        tab.classList.add('active');
+        
+        // Show/hide panels
+        document.querySelectorAll('.friends-tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+        
+        const targetPanel = document.getElementById(`${targetTab}TabContent`);
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+            
+            // Load data for active tab
+            switch(targetTab) {
+                case 'friends':
+                    renderFriendsTab();
+                    break;
+                case 'requests':
+                    renderRequestsTab();
+                    break;
+                case 'search':
+                    // Search loads on input
+                    break;
+                case 'blocked':
+                    renderBlockedTab();
+                    break;
+            }
+        }
+    });
+});
+
+// Render friends tab
+function renderFriendsTab() {
+    const friendsList = document.getElementById('friendsList');
+    if (!friendsList) return;
+    
+    if (friendsData.friends.length === 0) {
+        friendsList.innerHTML = `
+            <div class="friends-empty-state">
+                <i class="fas fa-user-friends"></i>
+                <h3>No Friends Yet</h3>
+                <p>Start by searching for users or accepting friend requests!</p>
+            </div>
+        `;
+        updateCountBadges();
+        return;
+    }
+    
+    // Get friend data
+    const friendsWithData = friendsData.friends.map(id => {
+        const profile = profilesCache[id] || {};
+        const isOnline = !!onlineCache[id];
+        return { id, profile, isOnline };
+    });
+    
+    // Apply sorting
+    const sortValue = document.getElementById('friendsSortSelect')?.value || 'online';
+    friendsWithData.sort((a, b) => {
+        if (sortValue === 'online') {
+            if (a.isOnline !== b.isOnline) return b.isOnline - a.isOnline;
+            return (a.profile.username || '').localeCompare(b.profile.username || '');
+        } else if (sortValue === 'name') {
+            return (a.profile.username || '').localeCompare(b.profile.username || '');
+        }
+        return 0;
+    });
+    
+    // Apply filter
+    const filterValue = document.getElementById('filterFriendsInput')?.value.toLowerCase() || '';
+    const filtered = filterValue 
+        ? friendsWithData.filter(f => (f.profile.username || '').toLowerCase().includes(filterValue))
+        : friendsWithData;
+    
+    // Render friend cards
+    friendsList.innerHTML = filtered.map(({id, profile, isOnline}) => {
+        const avatarStyle = profile.avatarImage 
+            ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+            : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+        const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+        const status = profile.status || '';
+        
+        return `
+            <div class="friend-card-modern ${isOnline ? 'online' : ''}">
+                <div class="friend-card-header">
+                    <div class="friend-avatar-modern" style="${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:36px;">
+                        ${avatarContent}
+                        <div class="friend-status-dot ${isOnline ? 'online' : ''}"></div>
+                    </div>
+                    <div class="friend-info-modern">
+                        <div class="friend-name-modern">${profile.username || 'User'}</div>
+                        <div class="friend-status-text">
+                            ${isOnline ? '<span style="color:#28a745;">🟢 Online</span>' : '<span style="color:#6c757d;">⚫ Offline</span>'}
+                        </div>
+                        ${status ? `<div class="friend-status-message">"${status}"</div>` : ''}
+                    </div>
+                </div>
+                <div class="friend-actions-modern">
+                    <button class="friend-action-btn-modern primary" onclick="viewFriendProfile('${id}')" title="View Profile">
+                        <i class="fas fa-user"></i> Profile
+                    </button>
+                    <button class="friend-action-btn-modern danger" onclick="removeFriend('${id}')" title="Remove Friend">
+                        <i class="fas fa-user-minus"></i> Remove
+                    </button>
+                    <button class="friend-action-btn-modern secondary" onclick="blockUser('${id}')" title="Block User">
+                        <i class="fas fa-ban"></i> Block
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    updateCountBadges();
+}
+
+// Render requests tab
+function renderRequestsTab() {
+    const sentList = document.getElementById('sentRequestsList');
+    const receivedList = document.getElementById('receivedRequestsList');
+    
+    // Render sent requests
+    if (sentList) {
+        if (friendsData.requests.sent.length === 0) {
+            sentList.innerHTML = '<div class="friends-empty-state" style="padding:40px 20px;"><i class="fas fa-paper-plane"></i><h3>No Sent Requests</h3><p>Friend requests you send will appear here</p></div>';
+        } else {
+            loadUserProfiles(friendsData.requests.sent).then(users => {
+                sentList.innerHTML = users.map(({id, profile}) => {
+                    const avatarStyle = profile.avatarImage 
+                        ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+                        : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+                    const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+                    
+                    return `
+                        <div class="request-card-modern">
+                            <div class="request-card-header">
+                                <div class="request-avatar" style="${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:28px;">
+                                    ${avatarContent}
+                                </div>
+                                <div class="request-info">
+                                    <h4>${profile.username || 'User'}</h4>
+                                    <p>Pending request</p>
+                                </div>
+                            </div>
+                            <div class="request-actions">
+                                <button class="friend-action-btn-modern secondary" onclick="cancelFriendRequest('${id}')">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+    }
+    
+    // Render received requests
+    if (receivedList) {
+        if (friendsData.requests.received.length === 0) {
+            receivedList.innerHTML = '<div class="friends-empty-state" style="padding:40px 20px;"><i class="fas fa-inbox"></i><h3>No Pending Requests</h3><p>Friend requests you receive will appear here</p></div>';
+        } else {
+            loadUserProfiles(friendsData.requests.received).then(users => {
+                receivedList.innerHTML = users.map(({id, profile}) => {
+                    const avatarStyle = profile.avatarImage 
+                        ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+                        : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+                    const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+                    
+                    return `
+                        <div class="request-card-modern">
+                            <div class="request-card-header">
+                                <div class="request-avatar" style="${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:32px;">
+                                    ${avatarContent}
+                                </div>
+                                <div class="request-info">
+                                    <h4>${profile.username || 'User'}</h4>
+                                    <p>wants to be your friend</p>
+                                </div>
+                            </div>
+                            <div class="request-actions">
+                                <button class="friend-action-btn-modern success" onclick="acceptFriendRequest('${id}')">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                                <button class="friend-action-btn-modern danger" onclick="declineFriendRequest('${id}')">
+                                    <i class="fas fa-times"></i> Decline
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+    }
+    
+    updateCountBadges();
+}
+
+// Render blocked tab
+function renderBlockedTab() {
+    const blockedList = document.getElementById('blockedList');
+    if (!blockedList) return;
+    
+    if (friendsData.blocked.length === 0) {
+        blockedList.innerHTML = `
+            <div class="friends-empty-state">
+                <i class="fas fa-ban"></i>
+                <h3>No Blocked Users</h3>
+                <p>Users you block will appear here</p>
+            </div>
+        `;
+        updateCountBadges();
+        return;
+    }
+    
+    loadUserProfiles(friendsData.blocked).then(users => {
+        blockedList.innerHTML = users.map(({id, profile}) => {
+            const avatarStyle = profile.avatarImage 
+                ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+                : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+            const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+            
+            return `
+                <div class="friend-card-modern" style="opacity:0.6;">
+                    <div class="friend-card-header">
+                        <div class="friend-avatar-modern" style="${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:36px;">
+                            ${avatarContent}
+                        </div>
+                        <div class="friend-info-modern">
+                            <div class="friend-name-modern">${profile.username || 'User'}</div>
+                            <div class="friend-status-text" style="color:rgba(255,255,255,0.4);">Blocked</div>
+                        </div>
+                    </div>
+                    <div class="friend-actions-modern">
+                        <button class="friend-action-btn-modern success" onclick="unblockUser('${id}')">
+                            <i class="fas fa-unlock"></i> Unblock
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    });
+    
+    updateCountBadges();
+}
+
+// Helper function to load user profiles
+function loadUserProfiles(userIds) {
+    if (!db) {
+        return Promise.resolve(userIds.map(id => ({
+            id,
+            profile: profilesCache[id] || {}
+        })));
+    }
+    
+    const now = Date.now();
+    if (now - cacheTimestamp < CACHE_DURATION && Object.keys(profilesCache).length > 0) {
+        return Promise.resolve(userIds.map(id => ({
+            id,
+            profile: profilesCache[id] || {}
+        })));
+    }
+    
+    return db.ref('profiles').once('value').then(snap => {
+        profilesCache = snap.val() || {};
+        cacheTimestamp = now;
+        return userIds.map(id => ({
+            id,
+            profile: profilesCache[id] || {}
+        }));
+    });
+}
+
+// Friend actions (global functions)
+window.viewFriendProfile = function(friendId) {
+    const profile = profilesCache[friendId] || {};
+    notifications.show(`Viewing ${profile.username || 'friend'}'s profile`, 'info', 2000);
+};
+
+window.removeFriend = function(friendId) {
+    const profile = profilesCache[friendId] || {};
+    if (!confirm(`Remove ${profile.username || 'this user'} from your friends?`)) return;
+    
+    // Remove from friends
+    friendsData.friends = friendsData.friends.filter(id => id !== friendId);
+    localStorage.setItem('friends', JSON.stringify(friendsData.friends));
+    
+    // Remove from Firebase if db exists
+    if (db) {
+        db.ref(`friends/${visitorId}/${friendId}`).remove();
+        db.ref(`friends/${friendId}/${visitorId}`).remove();
+    }
+    
+    notifications.show('Friend removed', 'success', 2000);
+    renderFriendsTab();
+    updateCountBadges();
+};
+
+window.blockUser = function(userId) {
+    const profile = profilesCache[userId] || {};
+    if (!confirm(`Block ${profile.username || 'this user'}? They won't be able to see you or send you requests.`)) return;
+    
+    // Remove from friends if they are friends
+    if (friendsData.friends.includes(userId)) {
+        friendsData.friends = friendsData.friends.filter(id => id !== userId);
+        localStorage.setItem('friends', JSON.stringify(friendsData.friends));
+        if (db) {
+            db.ref(`friends/${visitorId}/${userId}`).remove();
+            db.ref(`friends/${userId}/${visitorId}`).remove();
+        }
+    }
+    
+    // Add to blocked
+    if (!friendsData.blocked.includes(userId)) {
+        friendsData.blocked.push(userId);
+        localStorage.setItem('blockedUsers', JSON.stringify(friendsData.blocked));
+    }
+    
+    if (db) {
+        db.ref(`blocked/${visitorId}/${userId}`).set(true);
+    }
+    
+    notifications.show('User blocked', 'success', 2000);
+    renderFriendsTab();
+    renderBlockedTab();
+    updateCountBadges();
+};
+
+window.unblockUser = function(userId) {
+    friendsData.blocked = friendsData.blocked.filter(id => id !== userId);
+    localStorage.setItem('blockedUsers', JSON.stringify(friendsData.blocked));
+    
+    if (db) {
+        db.ref(`blocked/${visitorId}/${userId}`).remove();
+    }
+    
+    notifications.show('User unblocked', 'success', 2000);
+    renderBlockedTab();
+    updateCountBadges();
+};
+
+window.sendFriendRequest = function(userId) {
+    if (!db) {
+        notifications.show('Database not available', 'error', 2000);
+        return;
+    }
+    
+    // Check if already friends
+    if (friendsData.friends.includes(userId)) {
+        notifications.show('Already friends!', 'info', 2000);
+        return;
+    }
+    
+    // Check if already sent
+    if (friendsData.requests.sent.includes(userId)) {
+        notifications.show('Request already sent', 'info', 2000);
+        return;
+    }
+    
+    // Check if blocked
+    if (friendsData.blocked.includes(userId)) {
+        notifications.show('Cannot send request to blocked user', 'error', 2000);
+        return;
+    }
+    
+    // Send request
+    db.ref(`friendRequests/${userId}/received/${visitorId}`).set({
+        from: visitorId,
+        timestamp: Date.now()
+    });
+    db.ref(`friendRequests/${visitorId}/sent/${userId}`).set({
+        to: userId,
+        timestamp: Date.now()
+    });
+    
+    friendsData.requests.sent.push(userId);
+    localStorage.setItem('friendRequestsSent', JSON.stringify(friendsData.requests.sent));
+    
+    notifications.show('Friend request sent!', 'success', 2000);
+    renderRequestsTab();
+    updateCountBadges();
+};
+
+window.acceptFriendRequest = function(userId) {
+    if (!db) {
+        notifications.show('Database not available', 'error', 2000);
+        return;
+    }
+    
+    // Add to friends
+    db.ref(`friends/${visitorId}/${userId}`).set(true);
+    db.ref(`friends/${userId}/${visitorId}`).set(true);
+    
+    // Remove from requests
+    db.ref(`friendRequests/${visitorId}/received/${userId}`).remove();
+    db.ref(`friendRequests/${userId}/sent/${visitorId}`).remove();
+    
+    friendsData.friends.push(userId);
+    friendsData.requests.received = friendsData.requests.received.filter(id => id !== userId);
+    localStorage.setItem('friends', JSON.stringify(friendsData.friends));
+    localStorage.setItem('friendRequestsReceived', JSON.stringify(friendsData.requests.received));
+    
+    const profile = profilesCache[userId] || {};
+    notifications.show(`You are now friends with ${profile.username || 'this user'}!`, 'success', 3000);
+    renderFriendsTab();
+    renderRequestsTab();
+    updateCountBadges();
+};
+
+window.declineFriendRequest = function(userId) {
+    if (!db) {
+        notifications.show('Database not available', 'error', 2000);
+        return;
+    }
+    
+    // Remove from requests
+    db.ref(`friendRequests/${visitorId}/received/${userId}`).remove();
+    db.ref(`friendRequests/${userId}/sent/${visitorId}`).remove();
+    
+    friendsData.requests.received = friendsData.requests.received.filter(id => id !== userId);
+    localStorage.setItem('friendRequestsReceived', JSON.stringify(friendsData.requests.received));
+    
+    notifications.show('Friend request declined', 'info', 2000);
+    renderRequestsTab();
+    updateCountBadges();
+};
+
+window.cancelFriendRequest = function(userId) {
+    if (!db) {
+        notifications.show('Database not available', 'error', 2000);
+        return;
+    }
+    
+    // Remove from requests
+    db.ref(`friendRequests/${visitorId}/sent/${userId}`).remove();
+    db.ref(`friendRequests/${userId}/received/${visitorId}`).remove();
+    
+    friendsData.requests.sent = friendsData.requests.sent.filter(id => id !== userId);
+    localStorage.setItem('friendRequestsSent', JSON.stringify(friendsData.requests.sent));
+    
+    notifications.show('Friend request cancelled', 'info', 2000);
+    renderRequestsTab();
+    updateCountBadges();
+};
+
+// Search functionality
 const searchFriendsInput = document.getElementById('searchFriendsInput');
+const clearSearchBtn = document.getElementById('clearSearchBtn');
 const searchResults = document.getElementById('searchResults');
-let friends = JSON.parse(localStorage.getItem('friends')) || [];
 
+searchFriendsInput?.addEventListener('input', Utils.debounce((e) => {
+    const query = e.target.value.toLowerCase().trim();
+    
+    if (clearSearchBtn) {
+        clearSearchBtn.style.display = query.length > 0 ? 'flex' : 'none';
+    }
+    
+    if (!searchResults || !db) return;
+    
+    if (query.length === 0) {
+        searchResults.innerHTML = '<div class="friends-empty-state"><i class="fas fa-search"></i><h3>Start Searching</h3><p>Type a username to find friends</p></div>';
+        return;
+    }
+    
+    // Load profiles if cache is stale
+    const now = Date.now();
+    if (now - cacheTimestamp > CACHE_DURATION || Object.keys(profilesCache).length === 0) {
+        Promise.all([
+            db.ref('profiles').once('value'),
+            db.ref('online').once('value')
+        ]).then(([profilesSnap, onlineSnap]) => {
+            profilesCache = profilesSnap.val() || {};
+            onlineCache = onlineSnap.val() || {};
+            cacheTimestamp = now;
+            performSearch(query);
+        });
+    } else {
+        performSearch(query);
+    }
+}, 400));
 
+clearSearchBtn?.addEventListener('click', () => {
+    if (searchFriendsInput) {
+        searchFriendsInput.value = '';
+        clearSearchBtn.style.display = 'none';
+        if (searchResults) {
+            searchResults.innerHTML = '<div class="friends-empty-state"><i class="fas fa-search"></i><h3>Start Searching</h3><p>Type a username to find friends</p></div>';
+        }
+    }
+});
+
+function performSearch(query) {
+    if (!searchResults) return;
+    
+    const matches = Object.entries(profilesCache)
+        .filter(([id, profile]) => 
+            id !== visitorId && 
+            !friendsData.blocked.includes(id) &&
+            profile.username && 
+            profile.username.toLowerCase().includes(query)
+        )
+        .slice(0, 30)
+        .map(([id, profile]) => {
+            const isOnline = !!onlineCache[id];
+            const isFriend = friendsData.friends.includes(id);
+            const hasSentRequest = friendsData.requests.sent.includes(id);
+            const hasReceivedRequest = friendsData.requests.received.includes(id);
+            
+            const avatarStyle = profile.avatarImage 
+                ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+                : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+            const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+            const status = profile.status || '';
+            
+            let actionButton = '';
+            if (isFriend) {
+                actionButton = '<button class="friend-action-btn-modern secondary" disabled><i class="fas fa-check"></i> Friends</button>';
+            } else if (hasSentRequest) {
+                actionButton = '<button class="friend-action-btn-modern secondary" onclick="cancelFriendRequest(\'' + id + '\')"><i class="fas fa-clock"></i> Pending</button>';
+            } else if (hasReceivedRequest) {
+                actionButton = '<div class="request-actions"><button class="friend-action-btn-modern success" onclick="acceptFriendRequest(\'' + id + '\')"><i class="fas fa-check"></i> Accept</button><button class="friend-action-btn-modern danger" onclick="declineFriendRequest(\'' + id + '\')"><i class="fas fa-times"></i> Decline</button></div>';
+            } else {
+                actionButton = '<button class="friend-action-btn-modern primary" onclick="sendFriendRequest(\'' + id + '\')"><i class="fas fa-user-plus"></i> Add Friend</button>';
+            }
+            
+            return `
+                <div class="friend-card-modern ${isOnline ? 'online' : ''}">
+                    <div class="friend-card-header">
+                        <div class="friend-avatar-modern" style="${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:36px;">
+                            ${avatarContent}
+                            <div class="friend-status-dot ${isOnline ? 'online' : ''}"></div>
+                        </div>
+                        <div class="friend-info-modern">
+                            <div class="friend-name-modern">${profile.username || 'User'}</div>
+                            <div class="friend-status-text">
+                                ${isOnline ? '<span style="color:#28a745;">🟢 Online</span>' : '<span style="color:#6c757d;">⚫ Offline</span>'}
+                            </div>
+                            ${status ? `<div class="friend-status-message">"${status}"</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="friend-actions-modern">
+                        ${actionButton}
+                        <button class="friend-action-btn-modern secondary" onclick="viewFriendProfile('${id}')">
+                            <i class="fas fa-user"></i> View
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    
+    if (matches.length === 0) {
+        searchResults.innerHTML = '<div class="friends-empty-state"><i class="fas fa-search"></i><h3>No Users Found</h3><p>Try a different search term</p></div>';
+    } else {
+        searchResults.innerHTML = matches.join('');
+    }
+}
+
+// Filter and sort handlers
+const filterFriendsInput = document.getElementById('filterFriendsInput');
+filterFriendsInput?.addEventListener('input', Utils.debounce(() => {
+    renderFriendsTab();
+}, 300));
+
+const friendsSortSelect = document.getElementById('friendsSortSelect');
+friendsSortSelect?.addEventListener('change', () => {
+    renderFriendsTab();
+});
+
+// Update all displays
+function updateAllDisplays() {
+    updateCountBadges();
+    if (document.querySelector('.friends-tab-btn.active')) {
+        const activeTab = document.querySelector('.friends-tab-btn.active').dataset.tab;
+        switch(activeTab) {
+            case 'friends':
+                renderFriendsTab();
+                break;
+            case 'requests':
+                renderRequestsTab();
+                break;
+            case 'blocked':
+                renderBlockedTab();
+                break;
+        }
+    }
+}
+
+// Modal open/close
 closeFriendsBtn?.addEventListener('click', () => {
     friendsModal.style.display = 'none';
 });
 
 friendsModal?.addEventListener('click', (e) => {
-    if(e.target === friendsModal) friendsModal.style.display = 'none';
+    if (e.target === friendsModal) {
+        friendsModal.style.display = 'none';
+    }
 });
-
-// Load all profile users on friends modal open - optimized with parallel loading
-function loadAllProfileUsers() {
-    if(!db || !searchResults) return;
-    
-    // Load both in parallel for faster loading
-    Promise.all([
-        db.ref('profiles').once('value'),
-        db.ref('online').once('value')
-    ]).then(([profilesSnap, onlineSnap]) => {
-        const profiles = profilesSnap.val() || {};
-        const onlineData = onlineSnap.val() || {};
-        
-        // Show all profile users initially
-        const allUsers = Object.entries(profiles)
-            .filter(([id]) => id !== visitorId && profiles[id] && profiles[id].username)
-            .map(([id, profile]) => {
-                const isOnline = !!onlineData[id];
-                const avatarStyle = profile.avatarImage 
-                    ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
-                    : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
-                const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
-                return { id, profile, isOnline, avatarStyle, avatarContent };
-            })
-            .sort((a, b) => {
-                // Sort online users first
-                if(a.isOnline !== b.isOnline) return b.isOnline - a.isOnline;
-                return (a.profile.username || '').localeCompare(b.profile.username || '');
-            });
-        
-        displayUserSearchResults(allUsers);
-    }).catch(err => {
-        console.error('Error loading profile users:', err);
-        if(searchResults) {
-            searchResults.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading users.</p>';
-        }
-    });
-}
-
-function displayUserSearchResults(users) {
-    if(!searchResults) return;
-    searchResults.innerHTML = users.map(({id, profile, isOnline, avatarStyle, avatarContent}) => `
-        <div style="display:flex; align-items:center; gap:12px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:8px;">
-            <div style="width:35px; height:35px; border-radius:50%; ${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-                ${avatarContent}
-            </div>
-            <div style="flex:1;">
-                <div style="font-weight:500; color:rgba(255,255,255,0.9);">${profile.username || 'User'}</div>
-                <div style="font-size:11px; color:rgba(255,255,255,0.5);">${isOnline ? '🟢 Online' : '⚫ Offline'}</div>
-            </div>
-            <button class="addFriendBtn" data-id="${id}" style="padding:6px 12px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:6px; color:#FFD700; cursor:pointer;">
-                ${friends.includes(id) ? '✓ Friend' : '+ Add'}
-            </button>
-        </div>
-    `).join('');
-    
-    document.querySelectorAll('.addFriendBtn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = btn.dataset.id;
-            if(!friends.includes(id)) {
-                friends.push(id);
-                localStorage.setItem('friends', JSON.stringify(friends));
-                updateFriendsList();
-                loadAllProfileUsers(); // Refresh the list
-            }
-        });
-    });
-}
 
 friendsBtn?.addEventListener('click', () => {
-    friendsModal.style.display = 'flex';
-    updateFriendsList();
-    loadAllProfileUsers(); // Load all users when modal opens
-});
-
-searchFriendsInput?.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase().trim();
-    if(!db || !searchResults) return;
-    
-    if(query.length === 0) {
-        // Show all users when search is empty
-        loadAllProfileUsers();
-        return;
-    }
-    
-    // Debounce search to avoid too many queries
-    clearTimeout(searchFriendsInput.searchTimeout);
-    searchFriendsInput.searchTimeout = setTimeout(() => {
-        // Search all profile users - parallel loading
+    friendsModal.style.display = 'block';
+    // Load fresh data
+    if (db) {
         Promise.all([
             db.ref('profiles').once('value'),
             db.ref('online').once('value')
         ]).then(([profilesSnap, onlineSnap]) => {
-        const profiles = profilesSnap.val() || {};
-        const online = onlineSnap.val() || {};
-        const matches = Object.entries(profiles)
-            .filter(([id, profile]) => 
-                id !== visitorId && 
-                profile.username && 
-                profile.username.toLowerCase().includes(query)
-            )
-            .map(([id, profile]) => {
-                const isOnline = !!online[id];
-                const avatarStyle = profile.avatarImage 
-                    ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
-                    : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
-                const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
-                return { id, profile, isOnline, avatarStyle, avatarContent };
-            })
-            .sort((a, b) => {
-                if(a.isOnline !== b.isOnline) return b.isOnline - a.isOnline;
-                return (a.profile.username || '').localeCompare(b.profile.username || '');
-            })
-            .slice(0, 20); // Limit to 20 results
-        
-        displayUserSearchResults(matches);
-        }).catch(err => {
-            console.error('Error searching users:', err);
-            if(searchResults) {
-                searchResults.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error searching users.</p>';
-            }
+            profilesCache = profilesSnap.val() || {};
+            onlineCache = onlineSnap.val() || {};
+            cacheTimestamp = Date.now();
         });
-    }, 300); // 300ms debounce
+    }
+    // Activate friends tab by default
+    document.querySelector('.friends-tab-btn[data-tab="friends"]')?.click();
 });
 
-function updateFriendsList() {
-    if(!friendsList) return;
-    if(friends.length === 0) {
-        friendsList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">No friends yet. Search for users above!</p>';
-        return;
-    }
-    if(db) {
-        Promise.all([
-            db.ref('online').once('value'),
-            db.ref('profiles').once('value')
-        ]).then(([onlineSnap, profilesSnap]) => {
-            const online = onlineSnap.val() || {};
-            const profiles = profilesSnap.val() || {};
-            friendsList.innerHTML = friends.map(id => {
-                const user = online[id];
-                const profile = profiles[id] || {};
-                const avatarStyle = profile.avatarImage 
-                    ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
-                    : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
-                const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
-                return `
-                    <div style="display:flex; align-items:center; gap:12px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:10px;">
-                        <div style="width:40px; height:40px; border-radius:50%; ${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
-                            ${avatarContent}
-                        </div>
-                        <div style="flex:1;">
-                            <div style="font-weight:600; color:#FFD700;">${user?.username || profile.username || 'User'}</div>
-                            <div style="font-size:12px; color:rgba(255,255,255,0.6);">
-                                ${user ? '🟢 Online' : '⚫ Offline'}
-                            </div>
-                        </div>
-                        <button class="removeFriendBtn" data-id="${id}" style="padding:6px 12px; background:rgba(220,53,69,0.2); border:1px solid rgba(220,53,69,0.4); border-radius:6px; color:#dc3545; cursor:pointer;">Remove</button>
-                    </div>
-                `;
-            }).join('');
-            document.querySelectorAll('.removeFriendBtn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    friends = friends.filter(id => id !== btn.dataset.id);
-                    localStorage.setItem('friends', JSON.stringify(friends));
-                    updateFriendsList();
-                });
-            });
-        });
-    }
+// Initialize on page load
+if (db) {
+    initFriendsSystem();
+} else {
+    updateAllDisplays();
 }
 
 // ---------------- Polls/Voting ----------------
