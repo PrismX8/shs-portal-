@@ -342,11 +342,6 @@ function openNameColorPopup() {
     }
 }
 
-// Connect change name buttons (remove old listener if exists)
-if (changeNameBtn) {
-    changeNameBtn.replaceWith(changeNameBtn.cloneNode(true)); // Remove old listeners
-    document.getElementById('changeNameBtn')?.addEventListener('click', openNameColorPopup);
-}
 // Get popup elements
 const chatNameColorPopup = document.getElementById('chatNameColorPopup');
 const chatPopupUsername = document.getElementById('chatPopupUsername');
@@ -354,24 +349,25 @@ const chatPopupColor = document.getElementById('chatPopupColor');
 const chatSaveNameColor = document.getElementById('chatSaveNameColor');
 
 // Update openNameColorPopup function to use actual elements
-const originalOpenNameColorPopup = openNameColorPopup;
-openNameColorPopup = function() {
-    if (chatNameColorPopup && chatPopupUsername && chatPopupColor) {
+if (chatNameColorPopup && chatPopupUsername && chatPopupColor) {
+    openNameColorPopup = function() {
         chatPopupUsername.value = username;
         chatPopupColor.value = userColor;
         chatNameColorPopup.style.display = 'block';
-    } else {
-        notifications.show('Name/Color popup not found', 'error', 2000);
-    }
-};
+    };
+}
 
-// Remove duplicate listener by replacing the button
+// Connect change name button (only once, remove duplicates)
 if (changeNameBtn) {
+    // Remove any existing listeners by cloning
     const newBtn = changeNameBtn.cloneNode(true);
     changeNameBtn.parentNode.replaceChild(newBtn, changeNameBtn);
-    document.getElementById('changeNameBtn')?.addEventListener('click', openNameColorPopup);
+    const updatedBtn = document.getElementById('changeNameBtn');
+    if (updatedBtn) {
+        updatedBtn.addEventListener('click', openNameColorPopup);
+    }
 }
-fullscreenNameBtn?.addEventListener('click', openNameColorPopup);
+// fullscreenNameBtn will be connected after it's declared (see line ~1244)
 chatSaveNameColor.addEventListener('click', () => {
     if(chatPopupUsername.value.trim() !== '') username = chatPopupUsername.value.trim();
     userColor = chatPopupColor.value;
@@ -1063,6 +1059,7 @@ if (document.readyState === 'loading') {
 } else {
     initInteractiveBackground();
 }
+
 function initStars() {
     const starCanvas = document.getElementById('starCanvas');
     if (!starCanvas) return;
@@ -1243,6 +1240,12 @@ const fullscreenLinkBtn = document.getElementById('fullscreenLinkBtn');
 const fullscreenFileBtn = document.getElementById('fullscreenFileBtn');
 const fullscreenNameBtn = document.getElementById('fullscreenNameBtn');
 
+// Connect fullscreen name button now that it's declared
+fullscreenNameBtn?.addEventListener('click', openNameColorPopup);
+
+// Connect fullscreen name button now that it's declared
+fullscreenNameBtn?.addEventListener('click', openNameColorPopup);
+
 // Expand chat to full screen
 expandChatBtn?.addEventListener('click', () => {
     if (!fullScreenChatModal) {
@@ -1378,7 +1381,9 @@ fullscreenChatUsersBtn?.addEventListener('click', () => {
 function sendChatMessage(inputElement) {
     if (!inputElement || !inputElement.value.trim()) return;
     if (!db) {
-        notifications.show('Database not available', 'error', 2000);
+        if (typeof notifications !== 'undefined' && notifications.show) {
+            notifications.show('Database not available', 'error', 2000);
+        }
         return;
     }
     
@@ -1387,11 +1392,11 @@ function sendChatMessage(inputElement) {
     
     // Stop typing indicator
     if (db) {
-        db.ref('chatTyping/' + visitorId).remove();
+        db.ref('chatTyping/' + visitorId).remove().catch(err => console.error('Error removing typing:', err));
     }
     
     // Send message
-    db.ref('chat').push({
+    const msgData = {
         user: username,
         text: messageText,
         color: userColor,
@@ -1399,7 +1404,22 @@ function sendChatMessage(inputElement) {
         uid: visitorId,
         avatar: userProfile.avatar || '👤',
         avatarImage: userProfile.avatarImage || null
+    };
+    
+    db.ref('chat').push(msgData).catch(error => {
+        console.error('Error sending message:', error);
+        if (typeof notifications !== 'undefined' && notifications.show) {
+            notifications.show('Error sending message', 'error', 2000);
+        }
     });
+    
+    // Track activity
+    if (typeof trackActivity === 'function') {
+        trackActivity('chat', 1);
+    }
+    if (typeof addActivity === 'function') {
+        addActivity('Sent a chat message');
+    }
 }
 
 // Regular chat send
@@ -3836,8 +3856,32 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const starCanvas = document.getElementById('starCanvas');
         const interactiveBg = document.getElementById('interactiveBackground');
-        if (!starCanvas || !interactiveBg) {
-            console.warn('Background canvas elements not found');
+        const sparkleCanvas = document.getElementById('sparkleCanvas');
+        
+        if (!starCanvas) {
+            console.warn('starCanvas not found - stars may not work');
+        } else {
+            // Re-initialize if not working
+            try {
+                initStars();
+            } catch(e) {
+                console.error('Error initializing stars:', e);
+            }
+        }
+        
+        if (!interactiveBg) {
+            console.warn('interactiveBackground not found - interactive effects may not work');
+        } else {
+            // Re-initialize if not working
+            try {
+                initInteractiveBackground();
+            } catch(e) {
+                console.error('Error initializing interactive background:', e);
+            }
+        }
+        
+        if (!sparkleCanvas) {
+            // Sparkle canvas is in popup, may not exist yet - that's ok
         }
     }, 500);
 });
@@ -4765,11 +4809,14 @@ console.error = function(...args) {
     if (message.includes('googlesyndication.com') ||
         message.includes('doubleclick.net') ||
         message.includes('googleads.g.doubleclick.net') ||
+        message.includes('googleads') ||
         message.includes('ERR_BLOCKED_BY_CLIENT') ||
+        message.includes('Failed to load resource') ||
         message.includes('Failed to fetch') ||
         message.includes('NetworkError') ||
         message.includes('TypeError: Failed to fetch') ||
-        message.includes('ads') && message.includes('fetch')) {
+        (message.includes('403') && (message.includes('ads') || message.includes('doubleclick') || message.includes('googleads'))) ||
+        (message.includes('ads') && message.includes('fetch'))) {
         return; // Suppress these errors
     }
     originalConsoleError.apply(console, args);
@@ -4785,8 +4832,11 @@ console.warn = function(...args) {
         message.includes('violates') ||
         message.includes('report-only') ||
         message.includes('Failed to fetch') ||
+        message.includes('Failed to load resource') ||
         message.includes('googlesyndication.com') ||
-        message.includes('doubleclick.net')) {
+        message.includes('doubleclick.net') ||
+        message.includes('googleads') ||
+        (message.includes('403') && (message.includes('ads') || message.includes('doubleclick') || message.includes('googleads')))) {
         return; // Suppress these warnings
     }
     originalConsoleWarn.apply(console, args);
