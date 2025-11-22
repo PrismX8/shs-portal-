@@ -36,28 +36,28 @@
 <!-- Navigation -->
 <nav class="main-navigation">
     <div class="nav-container">
-        <div class="nav-logo" style="cursor: pointer;" onclick="switchPage('home')">
+        <a href="index.html" class="nav-logo">
             <i class="fas fa-gamepad"></i> SHS Game Hall
-        </div>
+        </a>
         <div class="nav-links">
-            <button class="nav-link active" data-page="home" onclick="switchPage('home')">
+            <a href="index.html" class="nav-link active">
                 <i class="fas fa-home"></i> Home
-            </button>
-            <button class="nav-link" data-page="chat" onclick="switchPage('chat')">
+            </a>
+            <a href="chat.html" class="nav-link">
                 <i class="fas fa-comments"></i> Chat
-            </button>
-            <button class="nav-link" data-page="profile" onclick="switchPage('profile')">
+            </a>
+            <a href="profile.html" class="nav-link">
                 <i class="fas fa-user-circle"></i> Profile
-            </button>
-            <button class="nav-link" data-page="leaderboard" onclick="switchPage('leaderboard')">
+            </a>
+            <a href="leaderboard.html" class="nav-link">
                 <i class="fas fa-medal"></i> Leaderboard
-            </button>
-            <button class="nav-link" data-page="friends" onclick="switchPage('friends')">
+            </a>
+            <a href="friends.html" class="nav-link">
                 <i class="fas fa-user-friends"></i> Friends
-            </button>
-            <button class="nav-link" data-page="drawing" onclick="switchPage('drawing')">
+            </a>
+            <a href="drawing.html" class="nav-link">
                 <i class="fas fa-paint-brush"></i> Drawing
-            </button>
+            </a>
         </div>
         <div class="nav-actions">
             <button id="adminBtn" title="Admin Panel" class="nav-icon-btn">
@@ -76,19 +76,16 @@
     </div>
 </nav>
 
-<!-- Page Sections -->
-<!-- Home Page (Games) -->
-<div id="page-home" class="page-section active">
-    <header class="glass-effect animate-on-scroll" style="margin-top: 70px;">
-        <div class="headerContent">
-            <div class="headerText gradient-text">
-            SHS Game Hall <br>
-                <small style="font-size: 12px; font-weight: 400; display: block; margin-top: 6px; color: rgba(255, 255, 255, 0.6);">SPS-devices Wi-Fi Password: 7&UI0)jk</small>
-        </div>
-        </div>
-    </header>
+<header class="glass-effect animate-on-scroll" style="margin-top: 70px;">
+    <div class="headerContent">
+        <div class="headerText gradient-text">
+        SHS Game Hall <br>
+            <small style="font-size: 12px; font-weight: 400; display: block; margin-top: 6px; color: rgba(255, 255, 255, 0.6);">SPS-devices Wi-Fi Password: 7&UI0)jk</small>
+    </div>
+    </div>
+</header>
 
-    <div class="controls">
+<div class="controls">
     <div class="control-section active">
         <div class="control-section-header">
             <h3><i class="fas fa-gamepad"></i> Game Controls</h3>
@@ -242,17 +239,8 @@
         <i class="fas fa-microphone"></i> Recording... (Release to send)
     </div>
 </div>
-    </div>
-</div>
 
-<!-- Profile Page -->
-<div id="page-profile" class="page-section" style="display:none;">
-    <div class="page-header-inline">
-        <h1><i class="fas fa-user-circle"></i> My Profile</h1>
-        <p>Manage your profile and settings</p>
-    </div>
-    <div style="max-width:800px; margin:30px auto;">
-        <div id="profileModal" style="display:block; position:relative; background:transparent; box-shadow:none;">
+<!-- Fullscreen Voice Indicator -->
 <div id="fullscreenVoiceIndicator" class="fullscreen-voice-indicator" style="display:none;">
     <i class="fas fa-microphone"></i> Recording... (Release to send)
 </div>
@@ -980,39 +968,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="script.js"></script>
-
-<!-- Page Switching Script -->
-<script>
-// Page switching function
-function switchPage(pageName) {
-    // Hide all page sections
-    document.querySelectorAll('.page-section').forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    // Show selected page
-    const selectedPage = document.getElementById('page-' + pageName);
-    if (selectedPage) {
-        selectedPage.style.display = 'block';
-    }
-    
-    // Update navigation active state
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('data-page') === pageName) {
-            link.classList.add('active');
-        }
-    });
-    
-    // Scroll to top
-    window.scrollTo(0, 0);
-}
-
-// Initialize - show home page by default
-document.addEventListener('DOMContentLoaded', () => {
-    switchPage('home');
-});
-</script>
 
 </body>
 </html>
