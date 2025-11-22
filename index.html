@@ -25,7 +25,7 @@ body {
 #visitorCounter {
     width: 100%;
     text-align: center;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 215, 0, 0.1);
     backdrop-filter: blur(10px);
     padding: 12px 0;
     font-size: 14px;
@@ -34,20 +34,20 @@ body {
     position: relative;
     z-index: 1000;
     font-weight: 600;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.2);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Header */
 header {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 215, 0, 0.1);
     backdrop-filter: blur(10px);
     color: #ffffff;
     padding: 25px 20px;
     text-align: center;
     font-size: 28px;
     font-weight: 700;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.2);
     position: relative;
     display: flex;
     justify-content: center;
@@ -61,21 +61,21 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 
 #replayTutorialBtn {
     position:absolute; top:15px; right:15px; width:35px; height:35px;
-    font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #007bff;
-    background: #007bff; cursor:pointer;
+    font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #FFD700;
+    background: #FFD700; cursor:pointer;
     transition: all 0.3s ease;
-    color: #ffffff;
+    color: #000000;
 }
-#replayTutorialBtn:hover { background: #0056b3; }
+#replayTutorialBtn:hover { background: #B8860B; }
 
 /* Controls */
 .controls {
-    background: linear-gradient(135deg, #1a1a2a, #2a2a3a);
+    background: transparent;
     padding: 25px 20px;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.1);
     margin: 0 15px;
     border-radius: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -90,8 +90,8 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 
 .controls button {
     padding: 12px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    background: rgba(255, 215, 0, 0.15);
     color: #ffffff;
     cursor: pointer;
     border-radius: 12px;
@@ -106,7 +106,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
     position: relative;
     overflow: hidden;
     backdrop-filter: blur(15px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 215, 0, 0.3);
 }
 
 .controls button::before {
@@ -116,7 +116,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.3), transparent);
     transition: left 0.5s ease;
 }
 
@@ -125,9 +125,9 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 }
 
 .controls button:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 215, 0, 0.25);
     transform: translateY(-3px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 215, 0, 0.4);
 }
 
 /* Iframe */
@@ -141,7 +141,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 
 #embeddedSite {
     width: 100%;
-    height: calc(100vh - 200px);
+    height: calc(100vh - 400px);
     border: none;
     border-radius: 20px;
     box-sizing: border-box;
@@ -154,13 +154,13 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 #tutorialOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); backdrop-filter:blur(3px); z-index:9999; display:none; }
 .tutorialBubble {
     position: absolute; max-width:350px; background: rgba(255, 255, 255, 0.95); backdrop-filter:blur(15px); color:#333;
-    padding:25px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding:25px; border-radius: 15px; border: 1px solid rgba(255, 215, 0, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     text-align:center; font-size:16px; opacity:0;
     transform: translate(-50%, -20px); transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 .tutorialBubble.show { opacity:1; transform: translate(-50%,0); }
-.tutorialBubble button { margin-top:15px; padding:10px 20px; border: none; background: rgba(0, 123, 255, 0.8); color:#ffffff; border-radius: 10px; cursor:pointer; font-weight: 600; backdrop-filter:blur(10px); }
-.tutorialBubble button:hover { background: rgba(0, 123, 255, 1); }
+.tutorialBubble button { margin-top:15px; padding:10px 20px; border: none; background: rgba(255, 215, 0, 0.8); color:#000000; border-radius: 10px; cursor:pointer; font-weight: 600; backdrop-filter:blur(10px); }
+.tutorialBubble button:hover { background: rgba(255, 215, 0, 1); }
 
 #tutorialArrow {
     position:absolute; width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent;
@@ -171,21 +171,24 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 #fullscreenPopup {
     position: fixed; top:0; left:0; width:100%; height:100%; display:flex;
     justify-content:center; align-items:center; z-index:10001; opacity:0; pointer-events:none;
-    background: rgba(0,0,0,0.8); backdrop-filter:blur(5px);
+    background: linear-gradient(135deg, rgba(0,0,0,0.9), rgba(255,215,0,0.1)); backdrop-filter:blur(8px);
     flex-direction: column; color:#ffffff; text-align:center;
 }
 #fullscreenPopup.show { opacity:1; pointer-events:auto; }
 #fullscreenPopup .popupContent {
-    max-width: 550px; padding: 50px; background: rgba(255, 255, 255, 0.95); backdrop-filter:blur(20px); border-radius: 20px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #333;
+    max-width: 600px; padding: 60px; background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,215,0,0.05)); backdrop-filter:blur(25px); border-radius: 25px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 215, 0, 0.5); border: 1px solid rgba(255, 215, 0, 0.3);
+    color: #2c3e50; position: relative; overflow: hidden;
 }
-#fullscreenPopup h1 { font-size:32px; margin:0 0 25px 0; font-weight: 700; }
-#fullscreenPopup p { font-size:18px; margin:0; line-height: 1.5; }
+#fullscreenPopup .popupContent::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #FFD700, #000000, #FFFFFF, #FFD700);
+}
+#fullscreenPopup h1 { font-size:36px; margin:0 0 30px 0; font-weight: 800; color: #FFD700; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+#fullscreenPopup p { font-size:20px; margin:0; line-height: 1.6; color: #000000; font-weight: 400; }
 #fullscreenPopup .closeBtn {
-    position:absolute; top:15px; right:15px; border: none; background: rgba(0, 123, 255, 0.8); color:#ffffff;
-    font-size:24px; cursor:pointer; width: 40px; height: 40px; border-radius: 12px; backdrop-filter:blur(10px);
+    position:absolute; top:20px; right:20px; border: none; background: rgba(255, 215, 0, 0.8); color:#000000;
+    font-size:20px; cursor:pointer; width: 45px; height: 45px; border-radius: 50%; backdrop-filter:blur(10px); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;
 }
-#fullscreenPopup .closeBtn:hover { background: rgba(0, 123, 255, 1); }
+#fullscreenPopup .closeBtn:hover { background: rgba(255, 215, 0, 1); transform: scale(1.1); }
 
 
 /* Stars */
@@ -209,6 +212,38 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
     pointer-events: none; /* <<< add this */
 }
 
+/* Custom Context Menu */
+#customContextMenu {
+    position: fixed;
+    background: rgba(255, 215, 0, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 8px;
+    padding: 8px 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    display: none;
+    min-width: 120px;
+}
+
+#customContextMenu .menu-item {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    color: #000000;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s ease;
+}
+
+#customContextMenu .menu-item:hover {
+    background: rgba(255, 215, 0, 0.8);
+}
+
 /* Chat Box */
 #chatContainer {
     position: fixed;
@@ -221,7 +256,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
     backdrop-filter: blur(15px);
     padding: 20px;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 215, 0, 0.2);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     font-size: 14px;
     color: #333;
@@ -262,17 +297,17 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
   padding: 20px;
 }
 #drawingModal .modalInner {
-  width: min(1200px, 96%);
-  max-height: 92%;
-  overflow: auto;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-  padding: 25px;
-  position: relative;
-  color: #333;
+   width: min(1200px, 96%);
+   max-height: 92%;
+   overflow: auto;
+   border-radius: 20px;
+   background: rgba(255, 255, 255, 0.95);
+   backdrop-filter: blur(20px);
+   border: 1px solid rgba(255, 215, 0, 0.2);
+   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+   padding: 25px;
+   position: relative;
+   color: #333;
 }
 #drawingModal .closeDrawing {
   position: absolute;
@@ -613,7 +648,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
     position: fixed;
     top:0; left:0;
     width:100%; height:100%;
-    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    background: linear-gradient(135deg, #000000, #1a1a1a);
     display:flex; justify-content:center; align-items:center;
     z-index:99999; overflow:hidden;
     flex-direction: column;
@@ -650,7 +685,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 
 .typingDots span {
     width:10px; height:10px; border-radius: 2px;
-    background: #007bff; opacity:0.3;
+    background: #FFD700; opacity:0.3;
     animation: blink 1.5s infinite;
 }
 
@@ -675,7 +710,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 <div id="visitorCounter">Visitors Online: 0 | Total Visitors: 0</div>
 
 <header>
-    <button id="adminBtn" title="Admin Panel" style="position:absolute; top:15px; left:15px; width:35px; height:35px; font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #007bff; background: #007bff; cursor:pointer; transition: all 0.3s ease; color: #ffffff;">⚙</button>
+    <button id="adminBtn" title="Admin Panel" style="position:absolute; top:15px; left:15px; width:35px; height:35px; font-weight:bold; font-size:16px; border-radius: 4px; border: 1px solid #FFD700; background: #FFD700; cursor:pointer; transition: all 0.3s ease; color: #000000;">⚙</button>
     <div class="headerText">
         SHS - Gooner Gamesite <br>
         <small>SPS-devices Wi-Fi Password: 7&UI0)jk</small>
@@ -723,8 +758,8 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 <div id="fullscreenPopup">
     <div class="popupContent" id="popupContent">
         <button class="closeBtn">&times;</button>
-        <h1>Welcome to the gooner gamesite</h1>
-        <p>Access games, browse the web unblocked, and explore our interactive portal.<br>Close to get started.</p>
+        <h1>Welcome to SHS Gamesite</h1>
+        <p>Discover unblocked games, browse freely, and enjoy our interactive features.<br>Let's get started!</p>
         <canvas id="sparkleCanvas"></canvas>
     </div>
 </div>
@@ -753,7 +788,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 
 <!-- Admin Panel -->
 <div id="adminModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:20001; align-items:center; justify-content:center;">
-  <div style="width:min(550px, 96%); background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:25px; box-shadow:0 15px 35px rgba(0,0,0,0.2); color:#333;">
+  <div style="width:min(550px, 96%); background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border:1px solid rgba(255,215,0,0.2); border-radius:20px; padding:25px; box-shadow:0 15px 35px rgba(0,0,0,0.2); color:#333;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
       <h2 style="margin:0;">Admin Panel</h2>
       <button id="closeAdminBtn" style="border:none; background:#007bff; color:#ffffff; font-size:20px; cursor:pointer; width:30px; height:30px; border-radius:4px;">&times;</button>
@@ -833,7 +868,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 
 <!-- ================ Theme Customizer Modal ================ -->
 <div id="themeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:15000; align-items:center; justify-content:center;">
-  <div style="width:min(650px, 95%); background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.2); color:#333;">
+  <div style="width:min(650px, 95%); background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,215,0,0.2); color:#333;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <h2 style="margin:0; color:#007bff;"><i class="fas fa-palette"></i> Theme Customizer</h2>
       <button id="closeThemeBtn" style="border:none; background:#007bff; color:#ffffff; font-size:20px; cursor:pointer; width:35px; height:35px; border-radius:50%;">&times;</button>
@@ -889,7 +924,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 
 <!-- ================ Achievements Modal ================ -->
 <div id="achievementsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:14000; align-items:center; justify-content:center;">
-  <div style="width:min(750px, 95%); max-height:80%; overflow-y:auto; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.2); color:#333;">
+  <div style="width:min(750px, 95%); max-height:80%; overflow-y:auto; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,215,0,0.2); color:#333;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <h2 style="margin:0; color:#007bff;"><i class="fas fa-trophy"></i> Achievements</h2>
       <button id="closeAchievementsBtn" style="border:none; background:#007bff; color:#ffffff; font-size:20px; cursor:pointer; width:35px; height:35px; border-radius:50%;">&times;</button>
@@ -976,7 +1011,7 @@ header small { font-size:14px; font-weight:normal; display:block; margin-top:4px
 
 <!-- ================ Stats Dashboard Modal ================ -->
 <div id="statsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:13000; align-items:center; justify-content:center;">
-  <div style="width:min(850px, 95%); max-height:80%; overflow-y:auto; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.2); color:#333;">
+  <div style="width:min(850px, 95%); max-height:80%; overflow-y:auto; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-radius:20px; padding:30px; box-shadow:0 15px 35px rgba(0,0,0,0.2); border:1px solid rgba(255,215,0,0.2); color:#333;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <h2 style="margin:0; color:#007bff;"><i class="fas fa-chart-bar"></i> Your Statistics</h2>
       <button id="closeStatsBtn" style="border:none; background:#007bff; color:#ffffff; font-size:20px; cursor:pointer; width:35px; height:35px; border-radius:50%;">&times;</button>
@@ -1355,7 +1390,9 @@ popup.addEventListener('click', (e) => {
         popup.classList.remove('show');
 });
 
-function showPopup(){ popup.classList.add('show'); }
+function showPopup(){
+    popup.classList.add('show');
+}
 
 // ================= Admin Panel =================
 const adminBtn = document.getElementById('adminBtn');
@@ -1492,7 +1529,8 @@ function createStar() {
         size: Math.random() * 2 + 1,
         brightness: Math.random() * 0.5 + 0.5,
         twinkle: Math.random() * 0.02,
-        baseBrightness: Math.random() * 0.5 + 0.5
+        baseBrightness: Math.random() * 0.5 + 0.5,
+        depth: Math.random() * 0.9 + 0.1 // Parallax depth factor
     };
 }
 for (let i = 0; i < 200; i++) {
@@ -1501,10 +1539,24 @@ for (let i = 0; i < 200; i++) {
 
 function animateStars() {
     starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    const centerX = starCanvas.width / 2;
+    const centerY = starCanvas.height / 2;
     for (let star of stars) {
-        // Calculate distance to mouse
-        const dx = mouseX - star.x;
-        const dy = mouseY - star.y;
+        // Parallax offset based on mouse position and depth
+        const offsetX = (mouseX - centerX) * star.depth * 0.02;
+        const offsetY = (mouseY - centerY) * star.depth * 0.02;
+        let drawX = star.x + offsetX;
+        let drawY = star.y + offsetY;
+
+        // Wrap around edges for seamless parallax
+        if (drawX < 0) drawX += starCanvas.width;
+        if (drawX > starCanvas.width) drawX -= starCanvas.width;
+        if (drawY < 0) drawY += starCanvas.height;
+        if (drawY > starCanvas.height) drawY -= starCanvas.height;
+
+        // Calculate distance to mouse for brightness effect
+        const dx = mouseX - drawX;
+        const dy = mouseY - drawY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         // Increase brightness if close to mouse
         const mouseEffect = Math.max(0, 1 - distance / 100); // within 100px
@@ -1514,7 +1566,7 @@ function animateStars() {
         star.brightness = Math.max(0, Math.min(1, star.brightness));
 
         starCtx.beginPath();
-        starCtx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        starCtx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
         starCtx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`;
         starCtx.fill();
     }
@@ -1526,6 +1578,120 @@ animateStars();
 document.addEventListener('mousemove', (e) => {
     mouseX = e.clientX;
     mouseY = e.clientY;
+});
+
+// Add floating particles that follow mouse
+const floatingParticles = [];
+for (let i = 0; i < 50; i++) {
+    floatingParticles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 3 + 1,
+        color: ['#FFD700', '#FFFFFF', '#000000'][Math.floor(Math.random() * 3)],
+        life: Math.random() * 100 + 50
+    });
+}
+
+function animateFloatingParticles() {
+    const particleCanvas = document.createElement('canvas');
+    particleCanvas.id = 'floatingParticlesCanvas';
+    particleCanvas.style.position = 'fixed';
+    particleCanvas.style.top = '0';
+    particleCanvas.style.left = '0';
+    particleCanvas.style.width = '100%';
+    particleCanvas.style.height = '100%';
+    particleCanvas.style.pointerEvents = 'none';
+    particleCanvas.style.zIndex = '0';
+    document.body.appendChild(particleCanvas);
+
+    const ctx = particleCanvas.getContext('2d');
+    particleCanvas.width = window.innerWidth;
+    particleCanvas.height = window.innerHeight;
+
+    function drawParticles() {
+        ctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+
+        for (let p of floatingParticles) {
+            // Attract to mouse
+            const dx = mouseX - p.x;
+            const dy = mouseY - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 150) {
+                p.vx += dx * 0.0001;
+                p.vy += dy * 0.0001;
+            }
+
+            // Update position
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // Bounce off edges
+            if (p.x < 0 || p.x > particleCanvas.width) p.vx *= -1;
+            if (p.y < 0 || p.y > particleCanvas.height) p.vy *= -1;
+
+            // Draw
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life / 150;
+            ctx.fill();
+
+            p.life--;
+            if (p.life <= 0) {
+                p.x = Math.random() * particleCanvas.width;
+                p.y = Math.random() * particleCanvas.height;
+                p.life = Math.random() * 100 + 50;
+            }
+        }
+
+        requestAnimationFrame(drawParticles);
+    }
+
+    drawParticles();
+}
+
+animateFloatingParticles();
+
+// ================= Custom Context Menu =================
+const contextMenu = document.createElement('div');
+contextMenu.id = 'customContextMenu';
+contextMenu.innerHTML = `
+    <button class="menu-item" id="menuHome">🏠 Home</button>
+    <button class="menu-item" id="menuRefresh">🔄 Refresh</button>
+    <button class="menu-item" id="menuBack">⬅️ Back</button>
+    <button class="menu-item" id="menuForward">➡️ Forward</button>
+`;
+document.body.appendChild(contextMenu);
+
+// Context menu event listeners
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    contextMenu.style.left = e.clientX + 'px';
+    contextMenu.style.top = e.clientY + 'px';
+    contextMenu.style.display = 'block';
+});
+
+document.addEventListener('click', () => {
+    contextMenu.style.display = 'none';
+});
+
+// Menu actions
+document.getElementById('menuHome').addEventListener('click', () => {
+    window.location.href = window.location.origin + window.location.pathname;
+});
+
+document.getElementById('menuRefresh').addEventListener('click', () => {
+    window.location.reload();
+});
+
+document.getElementById('menuBack').addEventListener('click', () => {
+    window.history.back();
+});
+
+document.getElementById('menuForward').addEventListener('click', () => {
+    window.history.forward();
 });
 
 // ---------------- Chat Toggle ----------------
@@ -2684,7 +2850,7 @@ for(let i=0;i<100;i++){
         r:Math.random()*3+1,
         vx:(Math.random()-0.5)*0.5,
         vy:(Math.random()-0.5)*0.5,
-        color:['#ffffff','#007bff','#cccccc'][Math.floor(Math.random()*3)]
+        color:['#ffffff','#FFD700','#000000'][Math.floor(Math.random()*3)]
     });
 }
 
