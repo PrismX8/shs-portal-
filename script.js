@@ -1,6 +1,4 @@
- 
-// ================= Loading Screen Removal (RUN FIRST) =================
-// Remove loading screen immediately - don't wait for anything
+
 (function() {
     function removeLoadingScreen() {
         const introScreen = document.getElementById('introScreen');
@@ -14,8 +12,6 @@
             }, 500);
         }
     }
-    
-    // Try immediately
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
         setTimeout(removeLoadingScreen, 1500);
     } else {
@@ -23,12 +19,8 @@
             setTimeout(removeLoadingScreen, 1500);
         });
     }
-    
-    // Safety fallback - always remove after 3 seconds
     setTimeout(removeLoadingScreen, 3000);
 })();
-
-// ---------------- Firebase ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyBn1apVsFafY2-2a2QPeslX17XR0gWE9qs",
   authDomain: "shsproject-d60d0.firebaseapp.com",
@@ -47,11 +39,13 @@ try {
   db = null;
 }
 
-// Generate a unique visitor ID (per session)
-const visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+// Generate a unique visitor ID (persistent across sessions)
+let visitorId = localStorage.getItem('visitorId');
+if (!visitorId) {
+    visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    localStorage.setItem('visitorId', visitorId);
+}
 console.log('Visitor ID:', visitorId);
-
-// Online presence
 if (db) {
   const onlineRef = db.ref('online/' + visitorId);
   onlineRef.set({online:true, timestamp: Date.now()}).catch(error => {
@@ -59,19 +53,13 @@ if (db) {
   });
   onlineRef.onDisconnect().remove();
 }
-
-// UI element
 const visitorCounter = document.getElementById('visitorCounter');
-
-// Increment total visitors only once per user (use localStorage to avoid duplicates)
 if (db && !localStorage.getItem('visitorCounted')) {
     db.ref('totalVisitors').transaction(val => (val || 0) + 1).catch(error => {
       console.error('Error updating visitor count:', error);
     });
     localStorage.setItem('visitorCounted', 'yes');
 }
-
-// Listen for online users and total visitors
 const totalRef = db ? db.ref('totalVisitors') : null;
 const onlineDbRef = db ? db.ref('online') : null;
 
@@ -81,7 +69,13 @@ function updateCounter() {
         const online = snap.numChildren();
         totalRef.once('value').then(snap2 => {
             const total = snap2.val() || 0;
-            visitorCounter.innerText = `Visitors Online: ${online} | Total Visitors: ${total}`;
+            const onlineCountEl = document.getElementById('onlineCount');
+            const totalCountEl = document.getElementById('totalCount');
+            if (onlineCountEl) onlineCountEl.textContent = online;
+            if (totalCountEl) totalCountEl.textContent = total;
+            if (!onlineCountEl && !totalCountEl) {
+                visitorCounter.innerText = `${online} Online | ${total} Total`;
+            }
         });
     }).catch(error => {
         console.error('Error updating counter:', error);
@@ -94,8 +88,6 @@ if (onlineDbRef && totalRef) {
   totalRef.on('value', updateCounter);
 }
 
-// ---------------- Chat ----------------
-// Load username from profile if it exists, otherwise use default
 let userProfileData = JSON.parse(localStorage.getItem('userProfile')) || { profileCreated: false };
 let username = (userProfileData.profileCreated && userProfileData.username) ? userProfileData.username : ('Guest' + Math.floor(Math.random()*1000));
 let userColor = ['#007bff','#ff4500','#32cd32','#ffa500','#9932cc'][Math.floor(Math.random()*5)];
@@ -103,8 +95,6 @@ let userColor = ['#007bff','#ff4500','#32cd32','#ffa500','#9932cc'][Math.floor(M
 const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const typingIndicator = document.getElementById('typingIndicator');
-
-// Typing indicator
 let typing = false;
 chatInput.addEventListener('input', () => {
     if (!db) return;
@@ -142,8 +132,6 @@ chatInput.addEventListener('keypress', e => {
         chatInput.value='';
     }
 });
-
-// Helper function to render a chat message
 function renderChatMessage(msg, msgId, snapshot) {
     const msgDiv = document.createElement('div');
     msgDiv.setAttribute('data-msg-id', msgId);
@@ -151,8 +139,6 @@ function renderChatMessage(msg, msgId, snapshot) {
     msgDiv.style.display='flex';
     msgDiv.style.gap='10px';
     msgDiv.style.alignItems='flex-start';
-    
-    // Profile picture
     const avatarDiv = document.createElement('div');
     avatarDiv.style.width='32px';
     avatarDiv.style.height='32px';
@@ -184,7 +170,6 @@ function renderChatMessage(msg, msgId, snapshot) {
             content = `${msg.text} <a href="${msg.file.data}" download="${msg.file.name}" style="color:#FFD700;">Download</a>`;
         }
     }
-    // Handle links
     if(msg.link) {
         content = `${content}<br><a href="${msg.link}" target="_blank" rel="noopener noreferrer" style="color:#FFD700; text-decoration:underline;">${msg.link}</a>`;
     }
@@ -193,8 +178,6 @@ function renderChatMessage(msg, msgId, snapshot) {
                          <small style="color:rgba(255,255,255,0.5); font-size:11px;">${new Date(msg.time).toLocaleTimeString()}</small>`;
     leftDiv.style.maxWidth='85%';
     leftDiv.style.wordWrap='break-word';
-    
-    // Delete button if owner
     if(msg.uid === visitorId && snapshot){
         const delBtn = document.createElement('button');
         delBtn.innerHTML='✖';
@@ -208,67 +191,48 @@ function renderChatMessage(msg, msgId, snapshot) {
     }
 
     msgDiv.appendChild(leftDiv);
-    
-    // Add emoji reactions section
     const reactionsDiv = document.createElement('div');
     reactionsDiv.className = 'emoji-reactions';
     reactionsDiv.style.cssText = 'display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; width:100%;';
     msgDiv.appendChild(reactionsDiv);
     
     chatMessages.appendChild(msgDiv);
-
-    // Auto-scroll if near bottom
     if(chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 50){
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
-    
-    // Load reactions
     if(msg.reactions) {
         updateMessageReactions(msgId, msg.reactions);
     }
 }
-
-// Listen to chat messages - optimized loading
 if (db) {
-  // Load initial messages in bulk for faster display
   db.ref('chat').limitToLast(50).once('value').then(snap => {
       const initialMessages = snap.val() || {};
       const messageArray = Object.entries(initialMessages)
           .map(([id, msg]) => ({ id, ...msg }))
           .sort((a, b) => (a.time || 0) - (b.time || 0));
-      
-      // Render all initial messages at once
       messageArray.forEach(({id, ...msg}) => {
           renderChatMessage(msg, id, null);
       });
-      
-      // Now listen for new messages only
       const lastMessageTime = messageArray.length > 0 ? messageArray[messageArray.length - 1].time : 0;
       db.ref('chat').limitToLast(100).on('child_added', snapshot => {
           const msg = snapshot.val();
-          // Only render if it's a new message (not in initial load)
           if(msg && msg.time > lastMessageTime) {
               renderChatMessage(msg, snapshot.key, snapshot);
           }
       });
   }).catch(err => {
       console.error('Error loading initial chat:', err);
-      // Fallback to original method if bulk load fails
       db.ref('chat').limitToLast(100).on('child_added', snapshot => {
           const msg = snapshot.val();
           renderChatMessage(msg, snapshot.key, snapshot);
       });
   });
-  
-  // Listen for reaction changes
   db.ref('chat').on('child_changed', snapshot => {
       const msg = snapshot.val();
       if(msg.reactions) {
           updateMessageReactions(snapshot.key, msg.reactions);
       }
   });
-
-  // Typing indicators
   db.ref('chatTyping').on('value', snap => {
       const typingUsers = Object.values(snap.val()||{}).filter(u => u!==username);
       if(typingUsers.length>0){
@@ -315,30 +279,22 @@ const chatNameColorPopup = document.getElementById('chatNameColorPopup');
 const chatPopupUsername = document.getElementById('chatPopupUsername');
 const chatPopupColor = document.getElementById('chatPopupColor');
 const chatSaveNameColor = document.getElementById('chatSaveNameColor');
-
-// Open popup
 changeNameBtn.addEventListener('click', () => {
     chatPopupUsername.value = username;
     chatPopupColor.value = userColor;
     chatNameColorPopup.style.display = 'block';
 });
-
-// Save changes
 chatSaveNameColor.addEventListener('click', () => {
     if(chatPopupUsername.value.trim() !== '') username = chatPopupUsername.value.trim();
     userColor = chatPopupColor.value;
     chatNameColorPopup.style.display = 'none';
 });
-
-// ---------------- Collapsible Control Sections ----------------
 document.querySelectorAll('.control-section-header').forEach(header => {
   header.addEventListener('click', () => {
     const section = header.parentElement;
     section.classList.toggle('active');
   });
 });
-
-// ---------------- Buttons ----------------
 const iframe = document.getElementById('embeddedSite');
 let zoomLevel = 1;
 let originalSrc = iframe.src;
@@ -360,9 +316,7 @@ document.getElementById('hideIframeBtn').addEventListener('click', ()=>iframe.st
 document.getElementById('showIframeBtn').addEventListener('click', ()=>iframe.style.display='block');
 
 extraBtn.addEventListener('click', ()=>{ if(!onExtra){ iframe.src='https://funfrinew.neocities.org/'; extraBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back'; onExtra=true; } else { iframe.src=originalSrc; extraBtn.innerHTML='<i class="fas fa-gamepad"></i> Extra Site'; onExtra=false; } });
-privacyBtn.addEventListener('click', ()=>{ if(!onPrivacy){ iframe.src="https://webtoppings.bar/browse?url=https://wikipedia.org&region=us-west&mode=privacy"; privacyBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back'; onPrivacy=true; } else { iframe.src=originalSrc; privacyBtn.innerHTML='<i class="fas fa-shield-alt"></i> Browser'; onPrivacy=false; } });
-
-// ---------------- Tutorial ----------------
+privacyBtn.addEventListener('click', ()=>{ if(!onPrivacy){ iframe.src="https://webtoppings.bar/browse?url=https://wikipedia.org&region=us-west&mode=privacy"; privacyBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back'; onPrivacy=true; } else { iframe.src=originalSrc; privacyBtn.innerHTML='<i class="fas fa-shield-alt"></i> Browser';     onPrivacy=false; } });
 const steps = [
     {text:"Welcome! This tutorial guides you through the buttons.", target:null},
     {text:"Reload: Reloads the embedded site.", target:document.getElementById('reloadBtn')},
@@ -424,20 +378,41 @@ document.getElementById('replayTutorialBtn').addEventListener('click', startTuto
 // ---------------- Popup ----------------
 const popup = document.getElementById('fullscreenPopup');
 // Close when clicking the X button
-popup.querySelector('.closeBtn').addEventListener('click', () => {
-    popup.classList.remove('show');
-});
+if (popup) {
+    const closeBtn = popup.querySelector('.closeBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+                popup.classList.remove('show');
+            } catch (err) {
+                console.warn('Error closing popup:', err);
+            }
+        });
+    }
 
-// Close when clicking *anywhere* outside the popupContent
-popup.addEventListener('click', (e) => {
-        popup.classList.remove('show');
-});
-
-function showPopup(){
-    popup.classList.add('show');
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) {
+            try {
+                popup.classList.remove('show');
+            } catch (err) {
+                console.warn('Error closing popup:', err);
+            }
+        }
+    });
 }
 
-// ================= Admin Panel =================
+function showPopup(){
+    if (popup) {
+        try {
+            popup.classList.add('show');
+        } catch (err) {
+            console.warn('Error showing popup:', err);
+        }
+    }
+}
+
 const adminBtn = document.getElementById('adminBtn');
 const adminModal = document.getElementById('adminModal');
 const closeAdminBtn = document.getElementById('closeAdminBtn');
@@ -757,17 +732,11 @@ function animateSparkles() {
     }
     animateSparkles();
 }
-
-// Initialize sparkles when popup is shown (lazy init)
-// This will be called when popup opens, or we can init on DOM ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSparkles);
 } else {
-    // Try to init, but it's ok if canvas doesn't exist yet
     setTimeout(initSparkles, 100);
 }
-
-// ---------------- Enhanced Interactive Background ----------------
 let mouseX = 0, mouseY = 0;
 let mouseTrail = [];
 let clickRipples = [];
@@ -785,19 +754,19 @@ function initInteractiveBackground() {
     }
     window.addEventListener('resize', resizeInteractiveBg);
     resizeInteractiveBg();
-
-    // Track mouse with trail
-    document.addEventListener('mousemove', (e) => {
+    const handleMouseMove = (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
         mouseTrail.push({ x: mouseX, y: mouseY, time: Date.now() });
         if (mouseTrail.length > maxTrailLength) {
             mouseTrail.shift();
         }
-    });
-
-    // Add click ripple effect
-    document.addEventListener('click', (e) => {
+    };
+    document.addEventListener('mousemove', handleMouseMove, { passive: true, capture: true });
+    const handleClick = (e) => {
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button') || e.target.closest('input')) {
+            return;
+        }
         clickRipples.push({
             x: e.clientX,
             y: e.clientY,
@@ -806,79 +775,80 @@ function initInteractiveBackground() {
             alpha: 0.8,
             speed: 5
         });
-    });
-
-    // Animate interactive background
+    };
+    document.addEventListener('click', handleClick, { passive: true, capture: true });
+    let animationRunning = true;
     function animateInteractiveBg() {
-        bgCtx.clearRect(0, 0, interactiveBg.width, interactiveBg.height);
+        if (!animationRunning) return;
         
-        // Create radial gradient from mouse position (subtle glow)
-        const gradient = bgCtx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 500);
-        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.12)');
-        gradient.addColorStop(0.3, 'rgba(255, 215, 0, 0.06)');
-        gradient.addColorStop(0.6, 'rgba(255, 215, 0, 0.02)');
-        gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-        bgCtx.fillStyle = gradient;
-        bgCtx.fillRect(0, 0, interactiveBg.width, interactiveBg.height);
-        
-        // Draw mouse trail
-        for (let i = 0; i < mouseTrail.length; i++) {
-            const point = mouseTrail[i];
-            const age = Date.now() - point.time;
-            const alpha = Math.max(0, 1 - age / 800);
-            const size = 4 * alpha;
-            
-            bgCtx.beginPath();
-            bgCtx.arc(point.x, point.y, size, 0, Math.PI * 2);
-            bgCtx.fillStyle = `rgba(255, 215, 0, ${alpha * 0.5})`;
-            bgCtx.fill();
-        }
-        
-        // Draw and update click ripples
-        for (let i = clickRipples.length - 1; i >= 0; i--) {
-            const ripple = clickRipples[i];
-            ripple.radius += ripple.speed;
-            ripple.alpha -= 0.015;
-            
-            if (ripple.radius > ripple.maxRadius || ripple.alpha <= 0) {
-                clickRipples.splice(i, 1);
-                continue;
+        try {
+            bgCtx.clearRect(0, 0, interactiveBg.width, interactiveBg.height);
+            const gradient = bgCtx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 500);
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.12)');
+            gradient.addColorStop(0.3, 'rgba(255, 215, 0, 0.06)');
+            gradient.addColorStop(0.6, 'rgba(255, 215, 0, 0.02)');
+            gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            bgCtx.fillStyle = gradient;
+            bgCtx.fillRect(0, 0, interactiveBg.width, interactiveBg.height);
+            for (let i = 0; i < mouseTrail.length; i++) {
+                const point = mouseTrail[i];
+                const age = Date.now() - point.time;
+                const alpha = Math.max(0, 1 - age / 800);
+                const size = 4 * alpha;
+                
+                bgCtx.beginPath();
+                bgCtx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                bgCtx.fillStyle = `rgba(255, 215, 0, ${alpha * 0.5})`;
+                bgCtx.fill();
             }
-            
-            // Draw ripple with gradient
-            const rippleGradient = bgCtx.createRadialGradient(ripple.x, ripple.y, ripple.radius - 10, ripple.x, ripple.y, ripple.radius);
-            rippleGradient.addColorStop(0, `rgba(255, 215, 0, ${ripple.alpha * 0.3})`);
-            rippleGradient.addColorStop(1, `rgba(255, 215, 0, 0)`);
-            
-            bgCtx.strokeStyle = `rgba(255, 215, 0, ${ripple.alpha})`;
-            bgCtx.lineWidth = 3;
-            bgCtx.beginPath();
-            bgCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
-            bgCtx.stroke();
-            
-            // Inner glow
-            bgCtx.fillStyle = rippleGradient;
-            bgCtx.beginPath();
-            bgCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
-            bgCtx.fill();
+            for (let i = clickRipples.length - 1; i >= 0; i--) {
+                const ripple = clickRipples[i];
+                ripple.radius += ripple.speed;
+                ripple.alpha -= 0.015;
+                
+                if (ripple.radius > ripple.maxRadius || ripple.alpha <= 0) {
+                    clickRipples.splice(i, 1);
+                    continue;
+                }
+                const rippleGradient = bgCtx.createRadialGradient(ripple.x, ripple.y, ripple.radius - 10, ripple.x, ripple.y, ripple.radius);
+                rippleGradient.addColorStop(0, `rgba(255, 215, 0, ${ripple.alpha * 0.3})`);
+                rippleGradient.addColorStop(1, `rgba(255, 215, 0, 0)`);
+                
+                bgCtx.strokeStyle = `rgba(255, 215, 0, ${ripple.alpha})`;
+                bgCtx.lineWidth = 3;
+                bgCtx.beginPath();
+                bgCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+                bgCtx.stroke();
+                bgCtx.fillStyle = rippleGradient;
+                bgCtx.beginPath();
+                bgCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+            mouseTrail = mouseTrail.filter(p => Date.now() - p.time < 800);
+        } catch (err) {
+            console.warn('Error in interactive background animation:', err);
         }
-        
-        // Remove old trail points
-        mouseTrail = mouseTrail.filter(p => Date.now() - p.time < 800);
         
         requestAnimationFrame(animateInteractiveBg);
     }
     animateInteractiveBg();
+    let lastFrameTime = Date.now();
+    setInterval(() => {
+        const now = Date.now();
+        if (now - lastFrameTime > 1000) {
+            if (!animationRunning) {
+                animationRunning = true;
+                animateInteractiveBg();
+            }
+        }
+        lastFrameTime = now;
+    }, 500);
 }
-
-// Initialize after DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initInteractiveBackground);
 } else {
     initInteractiveBackground();
 }
-
-// ---------------- Enhanced Stars ----------------
 function initStars() {
     const starCanvas = document.getElementById('starCanvas');
     if (!starCanvas) return;
@@ -971,7 +941,6 @@ if (document.readyState === 'loading') {
 }
 
 
-// ================= Custom Context Menu =================
 const contextMenu = document.createElement('div');
 contextMenu.id = 'customContextMenu';
 contextMenu.innerHTML = `
@@ -1011,7 +980,6 @@ document.getElementById('menuForward').addEventListener('click', () => {
     window.history.forward();
 });
 
-// ---------------- Chat Toggle ----------------
 const chatContainer = document.getElementById('chatContainer');
 const toggleChatBtn = document.getElementById('toggleChatBtn');
 
@@ -1028,7 +996,6 @@ toggleChatBtn.addEventListener('click', () => {
     }
 });
 
-// ================= Theme Customizer =================
 const themeBtn = document.getElementById('themeBtn');
 const themeModal = document.getElementById('themeModal');
 const closeThemeBtn = document.getElementById('closeThemeBtn');
@@ -1087,7 +1054,6 @@ themeOptions.forEach(option => {
     const theme = option.dataset.theme;
     applyTheme(theme);
 
-    // Update selected state
     themeOptions.forEach(opt => opt.style.borderColor = opt.dataset.theme === theme ? '#28a745' : '');
   });
 });
@@ -1097,22 +1063,17 @@ seasonalThemes.forEach(theme => {
   theme.addEventListener('click', () => {
     const season = theme.dataset.season;
     applySeasonal(season === currentSeasonal ? '' : season);
-
-    // Update selected state
     seasonalThemes.forEach(t => t.style.opacity = t.dataset.season === currentSeasonal ? '1' : '0.6');
   });
 });
 
-// Apply saved theme on load
 applyTheme(currentTheme);
 applySeasonal(currentSeasonal);
 
-// ================= Achievement System =================
 const achievementsBtn = document.getElementById('achievementsBtn');
 const achievementsModal = document.getElementById('achievementsModal');
 const closeAchievementsBtn = document.getElementById('closeAchievementsBtn');
 
-// Achievement tracking
 let userStats = JSON.parse(localStorage.getItem('userStats')) || {
   chatMessages: 0,
   drawTime: 0,
@@ -1123,8 +1084,6 @@ let userStats = JSON.parse(localStorage.getItem('userStats')) || {
   dailyMessages: 0,
   lastDailyReset: Date.now()
 };
-
-// Reset daily challenge if it's a new day
 const now = Date.now();
 const lastReset = userStats.lastDailyReset;
 const oneDay = 24 * 60 * 60 * 1000;
@@ -1134,69 +1093,54 @@ if (now - lastReset > oneDay) {
 }
 
 function updateAchievements() {
-  // Chat Master (10 messages)
   const chatProgress = Math.min((userStats.chatMessages / 10) * 100, 100);
   document.getElementById('chatProgress').style.width = chatProgress + '%';
-  document.getElementById('chatCount').textContent = userStats.chatMessages + '/10';
+    document.getElementById('chatCount').textContent = userStats.chatMessages + '/10';
   if (userStats.chatMessages >= 10) {
     document.getElementById('chatBadge').style.borderColor = '#28a745';
     document.getElementById('chatBadge').style.background = '#d4edda';
   }
-
-  // Artist (30 minutes drawing)
   const drawProgress = Math.min((userStats.drawTime / 30) * 100, 100);
   document.getElementById('drawProgress').style.width = drawProgress + '%';
-  document.getElementById('drawCount').textContent = Math.floor(userStats.drawTime) + '/30 min';
+    document.getElementById('drawCount').textContent = Math.floor(userStats.drawTime) + '/30 min';
   if (userStats.drawTime >= 30) {
     document.getElementById('drawBadge').style.borderColor = '#28a745';
     document.getElementById('drawBadge').style.background = '#d4edda';
   }
-
-  // Gamer (60 minutes gaming)
   const gameProgress = Math.min((userStats.gameTime / 60) * 100, 100);
   document.getElementById('gameProgress').style.width = gameProgress + '%';
-  document.getElementById('gameCount').textContent = Math.floor(userStats.gameTime) + '/60 min';
+    document.getElementById('gameCount').textContent = Math.floor(userStats.gameTime) + '/60 min';
   if (userStats.gameTime >= 60) {
     document.getElementById('gameBadge').style.borderColor = '#28a745';
     document.getElementById('gameBadge').style.background = '#d4edda';
   }
-
-  // Social Butterfly (120 minutes online)
   const socialProgress = Math.min((userStats.onlineTime / 120) * 100, 100);
   document.getElementById('socialProgress').style.width = socialProgress + '%';
-  document.getElementById('socialCount').textContent = Math.floor(userStats.onlineTime) + '/120 min';
+    document.getElementById('socialCount').textContent = Math.floor(userStats.onlineTime) + '/120 min';
   if (userStats.onlineTime >= 120) {
     document.getElementById('socialBadge').style.borderColor = '#28a745';
     document.getElementById('socialBadge').style.background = '#d4edda';
   }
-
-  // Explorer (visit all sites)
   const explorerProgress = Math.min((userStats.sitesVisited.length / 2) * 100, 100);
   document.getElementById('explorerProgress').style.width = explorerProgress + '%';
-  document.getElementById('explorerCount').textContent = userStats.sitesVisited.length + '/2';
+    document.getElementById('explorerCount').textContent = userStats.sitesVisited.length + '/2';
   if (userStats.sitesVisited.length >= 2) {
     document.getElementById('explorerBadge').style.borderColor = '#28a745';
     document.getElementById('explorerBadge').style.background = '#d4edda';
   }
-
-  // Stylist (try 3 themes)
   const themeProgress = Math.min((userStats.themesTried.length / 3) * 100, 100);
   document.getElementById('themeProgress').style.width = themeProgress + '%';
-  document.getElementById('themeCount').textContent = userStats.themesTried.length + '/3';
+    document.getElementById('themeCount').textContent = userStats.themesTried.length + '/3';
   if (userStats.themesTried.length >= 3) {
     document.getElementById('themeBadge').style.borderColor = '#28a745';
     document.getElementById('themeBadge').style.background = '#d4edda';
   }
-
-  // Daily Challenge
   const dailyProgress = Math.min((userStats.dailyMessages / 5) * 100, 100);
   document.getElementById('dailyProgress').style.width = dailyProgress + '%';
   document.getElementById('dailyCount').textContent = userStats.dailyMessages + '/5';
 
   localStorage.setItem('userStats', JSON.stringify(userStats));
 }
-
-// Track user activity
 function trackActivity(type, value = 1) {
   switch(type) {
     case 'chat':
@@ -1225,8 +1169,6 @@ function trackActivity(type, value = 1) {
   }
   updateAchievements();
 }
-
-// Achievements button
 achievementsBtn.addEventListener('click', () => {
   updateAchievements();
   achievementsModal.style.display = 'flex';
@@ -1238,16 +1180,12 @@ closeAchievementsBtn.addEventListener('click', () => {
   achievementsModal.style.display = 'none';
   achievementsModal.setAttribute('aria-hidden', 'true');
 });
-
-// Track online time
 let onlineStartTime = Date.now();
 setInterval(() => {
   const minutes = (Date.now() - onlineStartTime) / (1000 * 60);
   trackActivity('online', minutes - userStats.onlineTime);
   onlineStartTime = Date.now();
-}, 60000); // Update every minute
-
-// Track drawing time
+}, 60000);
 let drawingStartTime = null;
 document.getElementById('openDrawingBtn').addEventListener('click', () => {
   drawingStartTime = Date.now();
@@ -1259,36 +1197,25 @@ document.getElementById('closeDrawingBtn').addEventListener('click', () => {
     drawingStartTime = null;
   }
 });
-
-// Track game time (simplified - tracks time on main game)
 let gameStartTime = Date.now();
 setInterval(() => {
   const minutes = (Date.now() - gameStartTime) / (1000 * 60);
   trackActivity('game', minutes - userStats.gameTime);
   gameStartTime = Date.now();
 }, 60000);
-
-// Track site visits
 document.getElementById('extraSiteBtn').addEventListener('click', () => {
   trackActivity('site', 'extra');
 });
 document.getElementById('privacyBtn').addEventListener('click', () => {
   trackActivity('site', 'privacy');
 });
-
-// Track theme changes
 themeOptions.forEach(option => {
   option.addEventListener('click', () => {
     trackActivity('theme', option.dataset.theme);
   });
 });
-
-// Initial update
 updateAchievements();
-
-// ================= Keyboard Shortcuts =================
 document.addEventListener('keydown', (e) => {
-  // Don't trigger shortcuts when typing in inputs
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
   switch(e.key.toLowerCase()) {
@@ -1346,15 +1273,12 @@ document.addEventListener('keydown', (e) => {
       }
       break;
     case 'escape':
-      // Close modals
       document.getElementById('themeModal').style.display = 'none';
       document.getElementById('achievementsModal').style.display = 'none';
       document.getElementById('drawingModal').style.display = 'none';
       break;
   }
 });
-
-// Show keyboard shortcuts hint
 const shortcutsHint = document.createElement('div');
 shortcutsHint.innerHTML = `
   <div style="position:fixed; bottom:10px; left:10px; background:rgba(0,0,0,0.8); color:#fff; padding:10px; border-radius:8px; font-size:12px; max-width:200px; display:none;" id="shortcutsHint">
@@ -1370,11 +1294,7 @@ shortcutsHint.innerHTML = `
     Esc: Close modals
   </div>
 `;
-
-// Add to body
 document.body.appendChild(shortcutsHint);
-
-// Show hints on ? key
 document.addEventListener('keydown', (e) => {
   if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
@@ -1382,21 +1302,16 @@ document.addEventListener('keydown', (e) => {
     hint.style.display = hint.style.display === 'none' ? 'block' : 'none';
   }
 });
-
-// Auto-save user preferences every 30 seconds
 setInterval(() => {
   localStorage.setItem('userStats', JSON.stringify(userStats));
   localStorage.setItem('selectedTheme', currentTheme);
   localStorage.setItem('selectedSeasonal', currentSeasonal);
 }, 30000);
-
-// ================= Stats Dashboard =================
 const statsBtn = document.getElementById('statsBtn');
 const statsModal = document.getElementById('statsModal');
 const closeStatsBtn = document.getElementById('closeStatsBtn');
 
 function updateStatsDisplay() {
-  // Main stats
   document.getElementById('onlineTimeStat').textContent = Math.floor(userStats.onlineTime) + ' min';
   document.getElementById('chatMessagesStat').textContent = userStats.chatMessages;
   document.getElementById('gamingTimeStat').textContent = Math.floor(userStats.gameTime) + ' min';
@@ -3321,3 +3236,1165 @@ if(document.readyState === 'loading') {
         db.ref('profiles/' + visitorId).update(profileData);
     }
 }
+
+// ================= PROFESSIONAL ENHANCEMENTS =================
+
+// Professional Notification System
+class NotificationSystem {
+    constructor() {
+        this.container = null;
+        this.init();
+    }
+
+    init() {
+        this.container = document.createElement('div');
+        this.container.id = 'notificationContainer';
+        this.container.style.cssText = 'position:fixed; top:20px; right:20px; z-index:100000; display:flex; flex-direction:column; gap:12px; pointer-events:none;';
+        document.body.appendChild(this.container);
+    }
+
+    show(message, type = 'info', duration = 5000) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.style.cssText = `
+            padding: 16px 24px;
+            background: rgba(15, 15, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            color: white;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-width: 400px;
+            pointer-events: all;
+            animation: slideInDown 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        `;
+
+        const icons = {
+            success: '✓',
+            error: '✕',
+            info: 'ℹ',
+            warning: '⚠'
+        };
+
+        const colors = {
+            success: 'rgba(40, 167, 69, 0.3)',
+            error: 'rgba(220, 53, 69, 0.3)',
+            info: 'rgba(0, 123, 255, 0.3)',
+            warning: 'rgba(255, 193, 7, 0.3)'
+        };
+
+        notification.style.borderColor = colors[type] || colors.info;
+        notification.innerHTML = `
+            <span style="font-size: 20px; font-weight: bold;">${icons[type] || icons.info}</span>
+            <span style="flex: 1;">${message}</span>
+            <button class="notification-close" style="background:none; border:none; color:rgba(255,255,255,0.7); cursor:pointer; font-size:18px; padding:0; width:24px; height:24px; display:flex; align-items:center; justify-content:center;">&times;</button>
+        `;
+
+        this.container.appendChild(notification);
+
+        const closeBtn = notification.querySelector('.notification-close');
+        const close = () => {
+            notification.style.animation = 'fadeOutScale 0.3s ease-in';
+            setTimeout(() => notification.remove(), 300);
+        };
+
+        closeBtn.addEventListener('click', close);
+        setTimeout(close, duration);
+
+        return notification;
+    }
+}
+
+const notifications = new NotificationSystem();
+
+// Professional Animation Utilities
+const Animations = {
+    fadeIn: (element, duration = 300) => {
+        element.style.opacity = '0';
+        element.style.transition = `opacity ${duration}ms ease`;
+        requestAnimationFrame(() => {
+            element.style.opacity = '1';
+        });
+    },
+
+    fadeOut: (element, duration = 300) => {
+        element.style.transition = `opacity ${duration}ms ease`;
+        element.style.opacity = '0';
+        return new Promise(resolve => setTimeout(resolve, duration));
+    },
+
+    slideIn: (element, direction = 'up', duration = 300) => {
+        const transforms = {
+            up: 'translateY(30px)',
+            down: 'translateY(-30px)',
+            left: 'translateX(30px)',
+            right: 'translateX(-30px)'
+        };
+        element.style.transform = transforms[direction] || transforms.up;
+        element.style.opacity = '0';
+        element.style.transition = `all ${duration}ms ease`;
+        requestAnimationFrame(() => {
+            element.style.transform = 'translate(0, 0)';
+            element.style.opacity = '1';
+        });
+    },
+
+    scale: (element, from = 0.9, to = 1, duration = 300) => {
+        element.style.transform = `scale(${from})`;
+        element.style.opacity = '0';
+        element.style.transition = `all ${duration}ms ease`;
+        requestAnimationFrame(() => {
+            element.style.transform = `scale(${to})`;
+            element.style.opacity = '1';
+        });
+    }
+};
+
+// Professional Loading State Manager
+class LoadingManager {
+    constructor() {
+        this.loaders = new Map();
+    }
+
+    show(element, text = 'Loading...') {
+        const loaderId = `loader_${Date.now()}_${Math.random()}`;
+        const loader = document.createElement('div');
+        loader.className = 'loading-overlay';
+        loader.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-radius: inherit;
+        `;
+        loader.innerHTML = `
+            <div style="text-align: center;">
+                <div class="spinner" style="margin: 0 auto 16px;"></div>
+                <div style="color: white; font-size: 14px;">${text}</div>
+            </div>
+        `;
+        
+        const parent = element.parentElement || document.body;
+        parent.style.position = 'relative';
+        parent.appendChild(loader);
+        this.loaders.set(loaderId, loader);
+        return loaderId;
+    }
+
+    hide(loaderId) {
+        const loader = this.loaders.get(loaderId);
+        if (loader) {
+            Animations.fadeOut(loader).then(() => loader.remove());
+            this.loaders.delete(loaderId);
+        }
+    }
+}
+
+const loadingManager = new LoadingManager();
+
+// Professional Form Validation
+class FormValidator {
+    static validateEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    static validateURL(url) {
+        try {
+            new URL(url);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    static validateRequired(value) {
+        return value && value.trim().length > 0;
+    }
+
+    static validateLength(value, min, max) {
+        const len = value ? value.length : 0;
+        return len >= min && len <= max;
+    }
+
+    static showError(input, message) {
+        input.style.borderColor = 'rgba(220, 53, 69, 0.5)';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'form-error';
+        errorDiv.style.cssText = 'color: #dc3545; font-size: 12px; margin-top: 4px;';
+        errorDiv.textContent = message;
+        input.parentElement.appendChild(errorDiv);
+        setTimeout(() => {
+            input.style.borderColor = '';
+            errorDiv.remove();
+        }, 5000);
+    }
+}
+
+// Professional Debounce and Throttle Utilities
+const Utils = {
+    debounce: (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+
+    throttle: (func, limit) => {
+        let inThrottle;
+        return function(...args) {
+            if (!inThrottle) {
+                func.apply(this, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    },
+
+    formatDate: (timestamp) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (seconds < 60) return 'just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        if (days < 7) return `${days}d ago`;
+        return date.toLocaleDateString();
+    },
+
+    formatNumber: (num) => {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    },
+
+    copyToClipboard: async (text) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            notifications.show('Copied to clipboard!', 'success', 2000);
+            return true;
+        } catch (err) {
+            console.error('Failed to copy:', err);
+            notifications.show('Failed to copy', 'error');
+            return false;
+        }
+    }
+};
+
+// Professional Error Handler (only show notifications for critical errors)
+window.addEventListener('error', (event) => {
+    // Ignore errors from extensions, scripts from other origins, or expected errors
+    if (event.filename && (
+        event.filename.includes('chrome-extension://') ||
+        event.filename.includes('moz-extension://') ||
+        event.filename.includes('safari-extension://') ||
+        event.message && (
+            event.message.includes('Script error') ||
+            event.message.includes('Non-Error promise rejection') ||
+            event.message.includes('ResizeObserver loop')
+        )
+    )) {
+        return; // Ignore these common non-critical errors
+    }
+    
+    // Only show notification for actual JavaScript errors
+    if (event.error && event.error instanceof Error) {
+        console.error('Global error:', event.error);
+        // Don't show notification for every error - only log it
+        // Uncomment the line below if you want to see error notifications
+        // notifications.show('An error occurred. Please check the console.', 'error');
+    }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    // Ignore common promise rejections that are expected
+    const reason = event.reason;
+    if (reason && (
+        typeof reason === 'string' && (
+            reason.includes('aborted') ||
+            reason.includes('cancelled') ||
+            reason.includes('user')
+        ) ||
+        reason && reason.message && (
+            reason.message.includes('aborted') ||
+            reason.message.includes('cancelled')
+        )
+    )) {
+        return; // Ignore expected rejections
+    }
+    
+    console.error('Unhandled promise rejection:', event.reason);
+    // Don't show notification for every rejection - only log it
+    // Uncomment the line below if you want to see rejection notifications
+    // notifications.show('Something went wrong. Please try again.', 'error');
+});
+
+// Professional Performance Monitor
+class PerformanceMonitor {
+    constructor() {
+        this.metrics = {
+            pageLoad: 0,
+            renderTime: 0,
+            interactions: []
+        };
+        this.init();
+    }
+
+    init() {
+        if (window.performance && window.performance.timing) {
+            window.addEventListener('load', () => {
+                const timing = window.performance.timing;
+                this.metrics.pageLoad = timing.loadEventEnd - timing.navigationStart;
+                this.metrics.renderTime = timing.domComplete - timing.domLoading;
+                console.log('Performance metrics:', this.metrics);
+            });
+        }
+    }
+
+    measure(name, fn) {
+        const start = performance.now();
+        const result = fn();
+        const end = performance.now();
+        this.metrics.interactions.push({ name, duration: end - start });
+        return result;
+    }
+}
+
+const perfMonitor = new PerformanceMonitor();
+
+// Professional Keyboard Navigation
+class KeyboardNavigation {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        document.addEventListener('keydown', (e) => {
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                const modals = document.querySelectorAll('[id$="Modal"]');
+                modals.forEach(modal => {
+                    if (modal.style.display !== 'none') {
+                        modal.style.display = 'none';
+                    }
+                });
+            }
+
+            // Ctrl/Cmd + K for search (if search exists)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.getElementById('searchFriendsInput');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+        });
+    }
+}
+
+new KeyboardNavigation();
+
+// Professional Smooth Scroll Enhancement
+const smoothScrollTo = (element, offset = 0) => {
+    const elementPosition = element.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+    window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+    });
+};
+
+// Professional Intersection Observer for Animations
+const observeElements = () => {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-in');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+        observer.observe(el);
+    });
+};
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observeElements);
+} else {
+    observeElements();
+}
+
+// Professional Image Lazy Loading
+const lazyLoadImages = () => {
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                if (img.dataset.src) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    observer.unobserve(img);
+                }
+            }
+        });
+    });
+
+    document.querySelectorAll('img[data-src]').forEach(img => {
+        imageObserver.observe(img);
+    });
+};
+
+lazyLoadImages();
+
+// Professional Toast Notification Helper
+const showToast = (message, type = 'info', duration = 3000) => {
+    return notifications.show(message, type, duration);
+};
+
+// Professional Confirmation Dialog
+const confirmAction = (message, title = 'Confirm') => {
+    return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+        `;
+
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: rgba(15, 15, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        `;
+
+        dialog.innerHTML = `
+            <h3 style="margin: 0 0 16px 0; color: #FFD700; font-size: 20px;">${title}</h3>
+            <p style="margin: 0 0 24px 0; color: rgba(255, 255, 255, 0.9);">${message}</p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="confirm-cancel" style="padding: 10px 20px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 8px; color: rgba(255, 255, 255, 0.9); cursor: pointer;">Cancel</button>
+                <button class="confirm-ok" style="padding: 10px 20px; background: rgba(255, 215, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.4); border-radius: 8px; color: #FFD700; cursor: pointer; font-weight: 600;">Confirm</button>
+            </div>
+        `;
+
+        modal.appendChild(dialog);
+        document.body.appendChild(modal);
+
+        const close = (result) => {
+            Animations.fadeOut(modal).then(() => {
+                modal.remove();
+                resolve(result);
+            });
+        };
+
+        dialog.querySelector('.confirm-ok').addEventListener('click', () => close(true));
+        dialog.querySelector('.confirm-cancel').addEventListener('click', () => close(false));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) close(false);
+        });
+
+        Animations.fadeIn(modal);
+    });
+};
+
+// Professional Local Storage Manager
+class StorageManager {
+    static set(key, value, expiry = null) {
+        const item = {
+            value,
+            expiry: expiry ? Date.now() + expiry : null
+        };
+        localStorage.setItem(key, JSON.stringify(item));
+    }
+
+    static get(key) {
+        const itemStr = localStorage.getItem(key);
+        if (!itemStr) return null;
+
+        try {
+            const item = JSON.parse(itemStr);
+            if (item.expiry && Date.now() > item.expiry) {
+                localStorage.removeItem(key);
+                return null;
+            }
+            return item.value;
+        } catch {
+            return null;
+        }
+    }
+
+    static remove(key) {
+        localStorage.removeItem(key);
+    }
+
+    static clear() {
+        localStorage.clear();
+    }
+}
+
+// Professional URL Parameter Handler
+const URLParams = {
+    get: (key) => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(key);
+    },
+
+    set: (key, value) => {
+        const url = new URL(window.location);
+        url.searchParams.set(key, value);
+        window.history.pushState({}, '', url);
+    },
+
+    remove: (key) => {
+        const url = new URL(window.location);
+        url.searchParams.delete(key);
+        window.history.pushState({}, '', url);
+    }
+};
+
+// Professional Viewport Utilities
+const Viewport = {
+    isMobile: () => window.innerWidth < 768,
+    isTablet: () => window.innerWidth >= 768 && window.innerWidth < 1024,
+    isDesktop: () => window.innerWidth >= 1024,
+    width: () => window.innerWidth,
+    height: () => window.innerHeight
+};
+
+// Professional Device Detection
+const Device = {
+    isIOS: () => /iPad|iPhone|iPod/.test(navigator.userAgent),
+    isAndroid: () => /Android/.test(navigator.userAgent),
+    isMobile: () => /Mobile/.test(navigator.userAgent),
+    isTouch: () => 'ontouchstart' in window || navigator.maxTouchPoints > 0
+};
+
+// Professional Network Status Monitor
+class NetworkMonitor {
+    constructor() {
+        this.online = navigator.onLine;
+        this.init();
+    }
+
+    init() {
+        window.addEventListener('online', () => {
+            this.online = true;
+            notifications.show('Connection restored', 'success');
+        });
+
+        window.addEventListener('offline', () => {
+            this.online = false;
+            notifications.show('Connection lost', 'error');
+        });
+    }
+
+    isOnline() {
+        return this.online;
+    }
+}
+
+const networkMonitor = new NetworkMonitor();
+
+// Professional Theme Manager Enhancement
+class EnhancedThemeManager {
+    constructor() {
+        this.currentTheme = localStorage.getItem('selectedTheme') || 'default';
+        this.init();
+    }
+
+    init() {
+        this.applyTheme(this.currentTheme);
+        this.addThemeToggle();
+    }
+
+    applyTheme(theme) {
+        document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
+        if (theme !== 'default') {
+            document.body.classList.add(`theme-${theme}`);
+        }
+        this.currentTheme = theme;
+        localStorage.setItem('selectedTheme', theme);
+    }
+
+    addThemeToggle() {
+        // Add quick theme switcher if needed
+    }
+}
+
+// Professional Analytics (Privacy-friendly)
+class Analytics {
+    static track(event, data = {}) {
+        console.log('Event:', event, data);
+        // Add your analytics tracking here
+    }
+
+    static pageView(page) {
+        this.track('page_view', { page });
+    }
+
+    static userAction(action, details = {}) {
+        this.track('user_action', { action, ...details });
+    }
+}
+
+// Professional Accessibility Enhancements
+const Accessibility = {
+    init: () => {
+        // Skip to main content link
+        const skipLink = document.createElement('a');
+        skipLink.href = '#main-content';
+        skipLink.textContent = 'Skip to main content';
+        skipLink.className = 'sr-only';
+        skipLink.style.cssText = `
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #000;
+            color: #fff;
+            padding: 8px;
+            z-index: 100000;
+        `;
+        skipLink.addEventListener('focus', () => {
+            skipLink.style.top = '0';
+        });
+        skipLink.addEventListener('blur', () => {
+            skipLink.style.top = '-40px';
+        });
+        document.body.insertBefore(skipLink, document.body.firstChild);
+
+        // Add ARIA labels to interactive elements
+        document.querySelectorAll('button:not([aria-label])').forEach(btn => {
+            if (!btn.textContent.trim() && btn.title) {
+                btn.setAttribute('aria-label', btn.title);
+            }
+        });
+    }
+};
+
+Accessibility.init();
+
+// Professional Performance Optimizations
+const Performance = {
+    // Lazy load heavy components
+    lazyLoad: (selector, callback) => {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    callback(entry.target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        });
+        document.querySelectorAll(selector).forEach(el => observer.observe(el));
+    },
+
+    // Preload critical resources
+    preload: (url, type = 'script') => {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.href = url;
+        link.as = type;
+        document.head.appendChild(link);
+    },
+
+    // Debounced resize handler
+    onResize: (callback, delay = 250) => {
+        let timeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(callback, delay);
+        });
+    }
+};
+
+// Professional Console Styling
+if (console.log) {
+    const originalLog = console.log;
+    console.log = function(...args) {
+        originalLog.apply(console, [
+            '%cSHS Game Hall',
+            'background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold;',
+            ...args
+        ]);
+    };
+}
+
+// Professional Error Recovery
+const ErrorRecovery = {
+    retry: async (fn, maxRetries = 3, delay = 1000) => {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                return await fn();
+            } catch (error) {
+                if (i === maxRetries - 1) throw error;
+                await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+            }
+        }
+    }
+};
+
+// Professional Feature Detection
+const Features = {
+    supports: {
+        webGL: () => {
+            try {
+                const canvas = document.createElement('canvas');
+                return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+            } catch {
+                return false;
+            }
+        },
+        webP: () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+        },
+        localStorage: () => {
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                return true;
+            } catch {
+                return false;
+            }
+        }
+    }
+};
+
+// Professional Image Optimization
+const ImageOptimizer = {
+    compress: (file, maxWidth = 1920, quality = 0.8) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(resolve, 'image/jpeg', quality);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+};
+
+// Professional Color Utilities
+const ColorUtils = {
+    hexToRgb: (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    },
+
+    rgbToHex: (r, g, b) => {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    },
+
+    lighten: (hex, percent) => {
+        const rgb = this.hexToRgb(hex);
+        if (!rgb) return hex;
+        const factor = 1 + percent / 100;
+        return this.rgbToHex(
+            Math.min(255, Math.floor(rgb.r * factor)),
+            Math.min(255, Math.floor(rgb.g * factor)),
+            Math.min(255, Math.floor(rgb.b * factor))
+        );
+    },
+
+    darken: (hex, percent) => {
+        const rgb = this.hexToRgb(hex);
+        if (!rgb) return hex;
+        const factor = 1 - percent / 100;
+        return this.rgbToHex(
+            Math.max(0, Math.floor(rgb.r * factor)),
+            Math.max(0, Math.floor(rgb.g * factor)),
+            Math.max(0, Math.floor(rgb.b * factor))
+        );
+    }
+};
+
+// Professional String Utilities
+const StringUtils = {
+    truncate: (str, length, suffix = '...') => {
+        return str.length > length ? str.substring(0, length) + suffix : str;
+    },
+
+    capitalize: (str) => {
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    },
+
+    slugify: (str) => {
+        return str.toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s_-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    },
+
+    escapeHtml: (str) => {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+};
+
+// Professional Array Utilities
+const ArrayUtils = {
+    shuffle: (array) => {
+        const arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    },
+
+    chunk: (array, size) => {
+        const chunks = [];
+        for (let i = 0; i < array.length; i += size) {
+            chunks.push(array.slice(i, i + size));
+        }
+        return chunks;
+    },
+
+    unique: (array) => {
+        return [...new Set(array)];
+    }
+};
+
+// Professional Object Utilities
+const ObjectUtils = {
+    deepClone: (obj) => {
+        return JSON.parse(JSON.stringify(obj));
+    },
+
+    merge: (...objects) => {
+        return Object.assign({}, ...objects);
+    },
+
+    isEmpty: (obj) => {
+        return Object.keys(obj).length === 0;
+    }
+};
+
+// Professional Date Utilities
+const DateUtils = {
+    format: (date, format = 'YYYY-MM-DD') => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const seconds = String(d.getSeconds()).padStart(2, '0');
+
+        return format
+            .replace('YYYY', year)
+            .replace('MM', month)
+            .replace('DD', day)
+            .replace('HH', hours)
+            .replace('mm', minutes)
+            .replace('ss', seconds);
+    },
+
+    timeAgo: (date) => {
+        return Utils.formatDate(new Date(date).getTime());
+    }
+};
+
+// Professional DOM Utilities
+const DOMUtils = {
+    createElement: (tag, props = {}, children = []) => {
+        const el = document.createElement(tag);
+        Object.entries(props).forEach(([key, value]) => {
+            if (key === 'style' && typeof value === 'object') {
+                Object.assign(el.style, value);
+            } else if (key === 'className') {
+                el.className = value;
+            } else if (key.startsWith('on')) {
+                el.addEventListener(key.substring(2).toLowerCase(), value);
+            } else {
+                el.setAttribute(key, value);
+            }
+        });
+        children.forEach(child => {
+            if (typeof child === 'string') {
+                el.appendChild(document.createTextNode(child));
+            } else {
+                el.appendChild(child);
+            }
+        });
+        return el;
+    },
+
+    ready: (fn) => {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fn);
+        } else {
+            fn();
+        }
+    }
+};
+
+// Professional Event Emitter
+class EventEmitter {
+    constructor() {
+        this.events = {};
+    }
+
+    on(event, callback) {
+        if (!this.events[event]) {
+            this.events[event] = [];
+        }
+        this.events[event].push(callback);
+    }
+
+    off(event, callback) {
+        if (this.events[event]) {
+            this.events[event] = this.events[event].filter(cb => cb !== callback);
+        }
+    }
+
+    emit(event, data) {
+        if (this.events[event]) {
+            this.events[event].forEach(callback => callback(data));
+        }
+    }
+}
+
+const appEvents = new EventEmitter();
+
+
+// Professional Modal Manager
+class ModalManager {
+    constructor() {
+        this.modals = new Map();
+        this.activeModal = null;
+    }
+
+    register(id, element) {
+        this.modals.set(id, element);
+    }
+
+    open(id) {
+        const modal = this.modals.get(id);
+        if (modal) {
+            if (this.activeModal && this.activeModal !== modal) {
+                this.close(this.activeModal.id);
+            }
+            modal.style.display = 'flex';
+            Animations.fadeIn(modal);
+            this.activeModal = { id, element: modal };
+        }
+    }
+
+    close(id) {
+        const modal = this.modals.get(id);
+        if (modal) {
+            Animations.fadeOut(modal).then(() => {
+                modal.style.display = 'none';
+                if (this.activeModal && this.activeModal.id === id) {
+                    this.activeModal = null;
+                }
+            });
+        }
+    }
+}
+
+const modalManager = new ModalManager();
+
+// Professional Tooltip System
+class TooltipSystem {
+    constructor() {
+        this.tooltips = new Map();
+        this.init();
+    }
+
+    init() {
+        document.querySelectorAll('[data-tooltip]').forEach(el => {
+            this.createTooltip(el);
+        });
+    }
+
+    createTooltip(element) {
+        const text = element.dataset.tooltip;
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip';
+        tooltip.textContent = text;
+        tooltip.style.cssText = `
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        `;
+
+        element.style.position = 'relative';
+        element.appendChild(tooltip);
+
+        element.addEventListener('mouseenter', () => {
+            tooltip.style.opacity = '1';
+        });
+
+        element.addEventListener('mouseleave', () => {
+            tooltip.style.opacity = '0';
+        });
+    }
+}
+
+new TooltipSystem();
+
+
+
+// Professional Console Commands (Easter eggs)
+window.gameHallCommands = {
+    help: () => {
+        console.log('%cAvailable Commands:', 'font-weight: bold; color: #FFD700;');
+        console.log('  - gameHallCommands.help() - Show this help');
+        console.log('  - gameHallCommands.theme(name) - Change theme');
+        console.log('  - gameHallCommands.notify(message) - Show notification');
+        console.log('  - gameHallCommands.stats() - Show performance stats');
+    },
+
+    theme: (name) => {
+        if (typeof applyTheme === 'function') {
+            applyTheme(name);
+            console.log(`Theme changed to: ${name}`);
+        }
+    },
+
+    notify: (message) => {
+        notifications.show(message);
+    },
+
+    stats: () => {
+        console.table(perfMonitor.metrics);
+    }
+};
+
+// Initialize professional enhancements
+DOMUtils.ready(() => {
+    console.log('%c✨ Professional enhancements loaded!', 'font-size: 16px; font-weight: bold; color: #FFD700;');
+    
+    // Add smooth animations to modals
+    document.querySelectorAll('[id$="Modal"]').forEach(modal => {
+        modalManager.register(modal.id, modal);
+    });
+
+    // Initialize tooltips
+    new TooltipSystem();
+
+    // Add loading states to buttons
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.dataset.loading !== 'true') {
+                const originalText = this.innerHTML;
+                this.dataset.loading = 'true';
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner spinner-small"></span> Loading...';
+                
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                    this.dataset.loading = 'false';
+                }, 1000);
+            }
+        });
+    });
+
+    // Add professional hover effects
+    document.querySelectorAll('.card, .modalInner').forEach(el => {
+        el.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4)';
+        });
+        el.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '';
+        });
+    });
+});
+
+// Professional Export for global use
+window.ProfessionalUtils = {
+    notifications,
+    Animations,
+    Utils,
+    FormValidator,
+    loadingManager,
+    confirmAction,
+    showToast,
+    StorageManager,
+    URLParams,
+    Viewport,
+    Device,
+    ColorUtils,
+    StringUtils,
+    ArrayUtils,
+    ObjectUtils,
+    DateUtils,
+    DOMUtils,
+    Analytics,
+    appEvents,
+    modalManager
+};
+
+console.log('%c🚀 All professional enhancements are ready!', 'font-size: 14px; color: #28a745;');
