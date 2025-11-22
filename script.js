@@ -4410,13 +4410,20 @@ const emojiBtn = document.getElementById('emojiBtn');
 const emojiPicker = document.getElementById('emojiPicker');
 const emojiOptions = document.querySelectorAll('.emoji-option');
 
+// Ensure emoji picker is hidden by default
+if (emojiPicker) {
+    emojiPicker.style.display = 'none';
+}
+
 emojiBtn?.addEventListener('click', (e) => {
   e.stopPropagation();
-  emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+  if (emojiPicker) {
+      emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+  }
 });
 
 document.addEventListener('click', (e) => {
-  if(!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+  if (emojiPicker && !emojiPicker.contains(e.target) && e.target !== emojiBtn) {
       emojiPicker.style.display = 'none';
   }
 });
@@ -6423,6 +6430,12 @@ function renderGamesGrid(filteredGames = null) {
 
 // Initialize games grid
 function initGamesGrid() {
+    // Ensure games grid is visible
+    const gamesGridContainer = document.getElementById('gamesGridContainer');
+    if (gamesGridContainer) {
+        gamesGridContainer.style.display = 'block';
+    }
+    
     // Load trending category by default
     filterGamesByCategory('trending');
     
@@ -6579,24 +6592,35 @@ function getGameStats(embed) {
 
 // Filter games by category
 function filterGamesByCategory(category) {
-    let filtered = [...gameSites];
-    
-    if (category === 'all') {
-        // Show all games
-        renderGamesGrid(filtered);
-        return;
-    }
-    
-    // Add stats to each game
-    filtered = filtered.map(site => {
-        const stats = getGameStats(site.embed);
-        return {
-            ...site,
-            clicks: stats ? stats.clicks : 0,
-            lastClicked: stats ? stats.lastClicked : 0,
-            firstClicked: stats ? stats.firstClicked : Date.now()
-        };
-    });
+    try {
+        let filtered = [...gameSites];
+        
+        if (category === 'all') {
+            // Show all games
+            renderGamesGrid(filtered);
+            return;
+        }
+        
+        // Add stats to each game (with error handling)
+        filtered = filtered.map(site => {
+            try {
+                const stats = getGameStats(site.embed);
+                return {
+                    ...site,
+                    clicks: stats ? stats.clicks : 0,
+                    lastClicked: stats ? stats.lastClicked : 0,
+                    firstClicked: stats ? stats.firstClicked : Date.now()
+                };
+            } catch (e) {
+                // If stats fail, just use defaults
+                return {
+                    ...site,
+                    clicks: 0,
+                    lastClicked: 0,
+                    firstClicked: Date.now()
+                };
+            }
+        });
     
     if (category === 'popular') {
         // Sort by total clicks (most popular)
@@ -6679,6 +6703,11 @@ function filterGamesByCategory(category) {
     }
     
     renderGamesGrid(filtered);
+    } catch (e) {
+        console.error('Error filtering games:', e);
+        // Fallback: just render all games
+        renderGamesGrid([...gameSites]);
+    }
 }
 
 // Initialize game stats listener
