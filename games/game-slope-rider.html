@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -260,3 +261,267 @@
 </body>
 </html>
 
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Play Descent Runner - Endless downhill racing with simple controls. Navigate obstacles and achieve the highest score in this addictive arcade game.">
+    <meta name="keywords" content="Descent Runner, endless games, arcade games, racing games, unblocked games">
+    <title>Descent Runner - SHS Game Hall</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="icon" type="image/png" href="../images/logoshs.png">
+    <style>
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 25%, #1a2332 50%, #2d2d2d 75%, #1a1a1a 100%);
+        }
+        
+        .game-detail-main {
+            background: transparent;
+        }
+        
+        .game-detail-container {
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+        }
+        
+        .play-fullscreen-btn {
+            background: rgba(255, 215, 0, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #ffd700;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .play-fullscreen-btn:hover {
+            transform: translateY(-3px) scale(1.08);
+            background: rgba(255, 215, 0, 0.3);
+            border-color: rgba(255, 215, 0, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div id="visitorCounter" class="animate-on-scroll">
+        <span id="onlineCount">0</span> Online | <span id="totalCount">0</span> Total Visitors
+        <span class="status-indicator online" style="margin-left: 12px;"></span>
+    </div>
+
+    <header class="glass-effect animate-on-scroll">
+        <button id="adminBtn" title="Admin Panel" class="header-icon-btn hover-lift">
+            <i class="fas fa-cog"></i>
+        </button>
+        <button id="creditsBtn" title="Credits" class="header-icon-btn hover-lift">
+            <i class="fas fa-star"></i>
+        </button>
+        <div class="headerContent">
+            <div class="header-logo-container">
+                <a href="../index.html" style="text-decoration: none;">
+                    <img src="../images/logoshs.png" alt="SHS Game Hall Logo" class="header-logo">
+                </a>
+            </div>
+            <div class="headerText gradient-text">
+                SHS Game Hall
+            </div>
+            <div class="header-actions">
+                <a href="../blog/blog.html" class="header-action-btn hover-lift" title="Blog">
+                    <i class="fas fa-newspaper"></i>
+                    <span>Blog</span>
+                </a>
+                <button id="youtubeWatcherBtn" title="Watch YouTube Videos Privately" class="youtube-watcher-btn hover-lift">
+                    <i class="fab fa-youtube"></i>
+                    <span class="youtube-btn-text">Watch YouTube Privately</span>
+                </button>
+            </div>
+        </div>
+        <button id="notificationBellBtn" title="Notifications" class="header-icon-btn hover-lift notification-bell-btn">
+            <i class="fas fa-bell"></i>
+            <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
+        </button>
+    </header>
+
+    <!-- Notification Dropdown -->
+    <div id="notificationDropdown" class="notification-dropdown">
+        <div class="notification-dropdown-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <button id="clearAllNotificationsBtn" class="clear-notifications-btn" title="Clear All">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div id="notificationList" class="notification-list">
+            <div class="notification-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications</p>
+            </div>
+        </div>
+    </div>
+
+    <main class="game-detail-main">
+        <div class="game-detail-container">
+            <nav class="breadcrumb">
+                <a href="../index.html">Home</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="index.html#games">Games</a>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">Descent Runner</span>
+            </nav>
+
+            <article class="game-detail-article">
+                <div class="game-detail-header">
+                    <h1 class="game-detail-title">Descent Runner</h1>
+                    <div class="game-detail-meta">
+                        <span class="game-genre">Arcade / Endless</span>
+                        <span class="game-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="game-detail-content">
+                    <div class="game-embed-section">
+                        <div class="game-embed-wrapper">
+                            <iframe id="gameEmbed" src="https://game.azgame.io/slope-rider/" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                        <button id="playFullscreenBtn" class="play-fullscreen-btn">
+                            <i class="fas fa-expand"></i> Play Fullscreen
+                        </button>
+                    </div>
+
+                    <div class="game-description">
+                        <h2>About Descent Runner</h2>
+                        <p>Descent Runner is an addictive endless downhill racing game that combines simple controls with challenging gameplay. You control a ball rolling down an endless slope, navigating obstacles and gaps while trying to achieve the highest score possible. The game's minimalist design and smooth controls make it easy to pick up, but the increasing difficulty and speed create a compelling challenge that keeps players coming back.</p>
+                        
+                        <p>What makes Descent Runner engaging is its perfect balance of simplicity and challenge. The game requires quick reflexes and precise timing as the slope becomes steeper and obstacles become more frequent. The endless format means every run is different, and the goal is always to beat your previous best score. This creates a "just one more try" mentality that makes the game incredibly addictive.</p>
+                        
+                        <h3>How to Play</h3>
+                        <p>Descent Runner uses simple arrow key or WASD controls to steer your ball left and right. The ball automatically rolls forward down the slope, and your job is to avoid obstacles, gaps, and walls. The game tracks your distance traveled and speed, with higher speeds and longer distances resulting in better scores. Collisions with obstacles end your run, so precision and quick reactions are essential.</p>
+                        
+                        <p>The slope gradually becomes steeper and more challenging as you progress, with obstacles appearing more frequently and gaps becoming wider. The game's physics create realistic ball movement, with momentum and gravity affecting your control. Learning to anticipate upcoming obstacles and plan your path is key to achieving high scores.</p>
+                        
+                        <h3>Tips and Strategies</h3>
+                        <ul class="game-tips-list">
+                            <li><strong>Look Ahead:</strong> Don't just focus on what's immediately in front of you. Look further down the slope to plan your route.</li>
+                            <li><strong>Maintain Speed:</strong> Higher speeds mean higher scores, but also less reaction time. Find the balance that works for you.</li>
+                            <li><strong>Use the Edges:</strong> Sometimes the safest path is along the edges of the slope, but be careful not to fall off.</li>
+                            <li><strong>Anticipate Gaps:</strong> Large gaps require building up speed. Plan ahead to ensure you have enough momentum to clear them.</li>
+                            <li><strong>Stay Centered When Possible:</strong> The center of the slope often has the most room to maneuver, but don't be afraid to use the sides.</li>
+                            <li><strong>Practice Makes Perfect:</strong> Each run teaches you something. Learn from mistakes and improve your reaction time.</li>
+                            <li><strong>Stay Calm:</strong> Panic leads to mistakes. Take deep breaths and focus on smooth, controlled movements.</li>
+                        </ul>
+                        
+                        <h3>Game Features</h3>
+                        <ul class="game-features-list">
+                            <li>Endless downhill racing with procedurally generated slopes</li>
+                            <li>Simple, responsive controls that are easy to learn</li>
+                            <li>Realistic physics with momentum and gravity</li>
+                            <li>Increasing difficulty that scales with distance</li>
+                            <li>Score tracking for personal bests and competition</li>
+                            <li>Smooth, minimalist visual design</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <aside class="game-detail-sidebar">
+                <div class="sidebar-section">
+                    <h3>Related Games</h3>
+                    <div class="related-games-list">
+                        <div class="related-game-item">
+                            <a href="../index.html">Descent Runner (Default Game)</a>
+                        </div>
+                        <div class="related-game-item">
+                            <a href="game-highway-racer-pro.html">Highway Racer Pro</a>
+                        </div>
+                        <div class="related-game-item">
+                            <a href="game-drift-hunters-pro.html">Drift Hunters Pro</a>
+                        </div>
+                        <div class="related-game-item">
+                            <a href="../blog/blog.html">Gaming Blog</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>Quick Links</h3>
+                    <ul class="sidebar-links">
+                        <li><a href="../index.html">All Games</a></li>
+                        <li><a href="../blog/blog.html">Gaming Blog</a></li>
+                        <li><a href="blog-high-score-strategies.html">High Score Tips</a></li>
+                        <li><a href="../pages/about-us.html">About Us</a></li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <ul>
+                    <li><a href="../pages/privacy-policy.html" class="footer-link">Privacy Policy</a></li>
+                    <li><a href="../pages/about-us.html" class="footer-link">About Us</a></li>
+                    <li><a href="../pages/contact-us.html" class="footer-link">Contact Us</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 SHS Game Hall. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameEmbed = document.getElementById('gameEmbed');
+            const playFullscreenBtn = document.getElementById('playFullscreenBtn');
+            
+            if (playFullscreenBtn && gameEmbed) {
+                playFullscreenBtn.addEventListener('click', () => {
+                    // Try to get the container div first
+                    const container = gameEmbed.closest('.premium-game-embed') || gameEmbed.parentElement;
+                    
+                    if (container && container.requestFullscreen) {
+                        container.requestFullscreen();
+                    } else if (container && container.webkitRequestFullscreen) {
+                        container.webkitRequestFullscreen();
+                    } else if (container && container.mozRequestFullScreen) {
+                        container.mozRequestFullScreen();
+                    } else if (container && container.msRequestFullscreen) {
+                        container.msRequestFullscreen();
+                    } else if (gameEmbed.requestFullscreen) {
+                        // Fallback to iframe (may not work in all browsers)
+                        gameEmbed.requestFullscreen();
+                    } else if (gameEmbed.webkitRequestFullscreen) {
+                        gameEmbed.webkitRequestFullscreen();
+                    } else if (gameEmbed.mozRequestFullScreen) {
+                        gameEmbed.mozRequestFullScreen();
+                    } else if (gameEmbed.msRequestFullscreen) {
+                        gameEmbed.msRequestFullscreen();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
+>>>>>>> 4dc6f7c1eebb0225a85825bf311a9cd1ce826522
