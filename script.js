@@ -6400,10 +6400,33 @@ function initGamesGrid() {
 let gameStats = {};
 let gameStatsListener = null;
 
+// Generate consistent game key from embed URL
+function getGameKey(embed) {
+    if (!embed) return null;
+    try {
+        // Use a more consistent key generation
+        const url = new URL(embed);
+        const path = url.pathname + url.search;
+        // Create a hash-like key from the full URL
+        let hash = 0;
+        const str = embed;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return 'game_' + Math.abs(hash).toString(36);
+    } catch (e) {
+        // Fallback to base64 if URL parsing fails
+        return 'game_' + btoa(embed).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+    }
+}
+
 // Get game stats for a specific embed URL
 function getGameStats(embed) {
     if (!embed || !gameStats) return null;
-    const gameKey = btoa(embed).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+    const gameKey = getGameKey(embed);
+    if (!gameKey) return null;
     return gameStats[gameKey] || null;
 }
 
@@ -6430,20 +6453,49 @@ function filterGamesByCategory(category) {
     
     if (category === 'popular') {
         // Sort by total clicks (most popular)
-        filtered.sort((a, b) => b.clicks - a.clicks);
-        // Show top games (at least 1 click)
-        filtered = filtered.filter(game => game.clicks > 0);
+        // Always show all games, but prioritize those with clicks
+        filtered.sort((a, b) => {
+            // Games with clicks always come first
+            if (a.clicks > 0 && b.clicks === 0) return -1;
+            if (a.clicks === 0 && b.clicks > 0) return 1;
+            // If both have clicks or both have 0, sort by clicks
+            return b.clicks - a.clicks;
+        });
     } else if (category === 'trending') {
-        // Sort by recent clicks (last 24 hours weighted)
+        // Sort by recent activity (last 24-48 hours weighted heavily)
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
+        
         filtered = filtered
             .map(game => {
-                // Calculate trending score (recent clicks weighted more)
-                const recentClicks = game.lastClicked > oneDayAgo ? game.clicks : 0;
-                const score = game.clicks * 0.3 + recentClicks * 0.7;
-                return { ...game, trendingScore: score };
+                const now = Date.now();
+                let trendingScore = 0;
+                
+                if (game.clicks > 0) {
+                    // Base score from total clicks (logarithmic to prevent old games from dominating)
+                    const baseScore = Math.log10(game.clicks + 1) * 10;
+                    
+                    // Recent activity boost
+                    if (game.lastClicked > oneDayAgo) {
+                        // Very recent (last 24 hours) - high boost
+                        trendingScore = baseScore * 3;
+                    } else if (game.lastClicked > twoDaysAgo) {
+                        // Recent (last 48 hours) - medium boost
+                        trendingScore = baseScore * 1.5;
+                    } else {
+                        // Older - lower score
+                        trendingScore = baseScore * 0.5;
+                    }
+                    
+                    // Add recency decay factor
+                    const hoursSinceLastClick = (now - game.lastClicked) / (1000 * 60 * 60);
+                    const recencyFactor = Math.max(0, 1 - (hoursSinceLastClick / 72)); // Decay over 3 days
+                    trendingScore *= (1 + recencyFactor);
+                }
+                
+                return { ...game, trendingScore: trendingScore };
             })
-            .filter(game => game.clicks > 0)
+            .filter(game => game.clicks > 0) // Only show games that have been clicked
             .sort((a, b) => b.trendingScore - a.trendingScore);
     } else if (category === 'new') {
         // Sort by first clicked (newest first)
@@ -6482,8 +6534,8 @@ function initGameStats() {
 function trackGameClick(embed, title) {
     if (!db) return;
     
-    // Create a safe key from the embed URL
-    const gameKey = btoa(embed).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+    const gameKey = getGameKey(embed);
+    if (!gameKey) return;
     
     const gameRef = db.ref(`gameStats/${gameKey}`);
     
@@ -6500,6 +6552,8 @@ function trackGameClick(embed, title) {
         stats.clicks = (stats.clicks || 0) + 1;
         stats.lastClicked = now;
         if (!stats.firstClicked) stats.firstClicked = now;
+        if (!stats.embed) stats.embed = embed;
+        if (!stats.title) stats.title = title;
         
         return stats;
     });
