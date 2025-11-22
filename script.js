@@ -718,7 +718,7 @@ function initSparkles() {
         canvas.width = canvas.offsetWidth; 
         canvas.height = canvas.offsetHeight; 
     }
-    window.addEventListener('resize', resizeCanvas); 
+    window.addEventListener('resize', Utils.debounce(resizeCanvas, 250)); 
     resizeCanvas();
 
 function createSparkle() { 
@@ -735,13 +735,18 @@ function createSparkle() {
     }; 
 }
 
-for(let i = 0; i < 200; i++) {
+// Reduced particle count for better performance
+for(let i = 0; i < 50; i++) {
     sparkles.push(createSparkle());
 }
 
-// Add ripple effect on mouse move
+// Add ripple effect on mouse move (throttled and limited)
+let lastRippleTime = 0;
 document.addEventListener('mousemove', (e) => {
-    if (Math.random() > 0.95) { // Occasional ripples
+    const now = Date.now();
+    // Throttle ripples to max 1 per second
+    if (now - lastRippleTime > 1000 && Math.random() > 0.98 && ripples.length < 3) {
+        lastRippleTime = now;
         ripples.push({
             x: e.clientX,
             y: e.clientY,
@@ -751,22 +756,38 @@ document.addEventListener('mousemove', (e) => {
             speed: 2 + Math.random()
         });
     }
-});
+}, { passive: true });
+
+// Performance optimization: frame throttling
+let lastSparkleFrame = 0;
+let sparkleFrameSkip = 0;
 
 function animateSparkles() {
+    const now = performance.now();
+    const deltaTime = now - lastSparkleFrame;
+    
+    // Throttle to ~30fps for sparkles (less critical animation)
+    if (deltaTime < 33) {
+        requestAnimationFrame(animateSparkles);
+        return;
+    }
+    lastSparkleFrame = now;
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw sparkles
+    // Draw sparkles (optimized)
+    const time = Date.now();
     for(let s of sparkles) {
-        // Twinkle effect
-        s.alpha = s.baseAlpha + Math.sin(Date.now() * s.twinkle) * 0.3;
+        // Twinkle effect (cached calculation)
+        s.alpha = s.baseAlpha + Math.sin(time * s.twinkle) * 0.3;
         s.alpha = Math.max(0.1, Math.min(0.8, s.alpha));
         
-        // Mouse attraction
+        // Mouse attraction (only calculate if close)
         const dx = mouseX - s.x;
         const dy = mouseY - s.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 200) {
+        const distSq = dx * dx + dy * dy;
+        if (distSq < 40000) { // 200^2, avoid sqrt
+            const dist = Math.sqrt(distSq);
             s.vx += dx * 0.0001;
             s.vy += dy * 0.0001;
         }
@@ -783,26 +804,25 @@ function animateSparkles() {
         s.x = Math.max(0, Math.min(canvas.width, s.x));
         s.y = Math.max(0, Math.min(canvas.height, s.y));
         
-        // Draw with glow
-        const gradient = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
-        const rgb = s.color === '#FFD700' ? [255, 215, 0] : 
-                    s.color === '#FFFF99' ? [255, 255, 153] : [255, 255, 255];
-        gradient.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${s.alpha})`);
-        gradient.addColorStop(1, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0)`);
+        // Optimized drawing (reuse color strings)
+        const rgb = s.color === '#FFD700' ? '255, 215, 0' : 
+                    s.color === '#FFFF99' ? '255, 255, 153' : '255, 255, 255';
         
+        // Simple fill instead of gradient for better performance
         ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
+        ctx.arc(s.x, s.y, s.r * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb}, ${s.alpha * 0.5})`;
         ctx.fill();
         
         // Core sparkle
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${s.alpha})`;
+        ctx.fillStyle = `rgba(${rgb}, ${s.alpha})`;
         ctx.fill();
     }
     
-    // Draw and update ripples
+    // Draw and update ripples (limit to 5 max)
+    if (ripples.length > 5) ripples = ripples.slice(-5);
     for (let i = ripples.length - 1; i >= 0; i--) {
         const ripple = ripples[i];
         ripple.radius += ripple.speed;
@@ -844,55 +864,82 @@ function initInteractiveBackground() {
         interactiveBg.width = window.innerWidth;
         interactiveBg.height = window.innerHeight;
     }
-    window.addEventListener('resize', resizeInteractiveBg);
+    window.addEventListener('resize', Utils.debounce(resizeInteractiveBg, 250));
     resizeInteractiveBg();
+    let mouseMoved = false;
+    let lastBgFrame = 0;
+    let animationRunning = true;
+    
     const handleMouseMove = (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
+        mouseMoved = true;
         mouseTrail.push({ x: mouseX, y: mouseY, time: Date.now() });
         if (mouseTrail.length > maxTrailLength) {
             mouseTrail.shift();
         }
     };
     document.addEventListener('mousemove', handleMouseMove, { passive: true, capture: true });
+    
     const handleClick = (e) => {
         if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button') || e.target.closest('input')) {
             return;
         }
-        clickRipples.push({
-            x: e.clientX,
-            y: e.clientY,
-            radius: 0,
-            maxRadius: 300,
-            alpha: 0.8,
-            speed: 5
-        });
+        if (clickRipples.length < 3) { // Limit ripples
+            clickRipples.push({
+                x: e.clientX,
+                y: e.clientY,
+                radius: 0,
+                maxRadius: 300,
+                alpha: 0.8,
+                speed: 5
+            });
+        }
     };
     document.addEventListener('click', handleClick, { passive: true, capture: true });
-    let animationRunning = true;
+    
     function animateInteractiveBg() {
         if (!animationRunning) return;
         
+        const now = performance.now();
+        // Throttle to ~30fps for background
+        if (now - lastBgFrame < 33) {
+            requestAnimationFrame(animateInteractiveBg);
+            return;
+        }
+        lastBgFrame = now;
+        
         try {
             bgCtx.clearRect(0, 0, interactiveBg.width, interactiveBg.height);
-            const gradient = bgCtx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 500);
-            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.12)');
-            gradient.addColorStop(0.3, 'rgba(255, 215, 0, 0.06)');
-            gradient.addColorStop(0.6, 'rgba(255, 215, 0, 0.02)');
-            gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-            bgCtx.fillStyle = gradient;
-            bgCtx.fillRect(0, 0, interactiveBg.width, interactiveBg.height);
-            for (let i = 0; i < mouseTrail.length; i++) {
+            
+            // Only draw mouse glow if mouse has moved recently
+            if (mouseMoved) {
+                const gradient = bgCtx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 500);
+                gradient.addColorStop(0, 'rgba(255, 215, 0, 0.08)');
+                gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.03)');
+                gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+                bgCtx.fillStyle = gradient;
+                bgCtx.fillRect(0, 0, interactiveBg.width, interactiveBg.height);
+                mouseMoved = false;
+            }
+            
+            // Limit trail length and optimize drawing
+            const trailLimit = Math.min(mouseTrail.length, 15);
+            for (let i = 0; i < trailLimit; i++) {
                 const point = mouseTrail[i];
                 const age = Date.now() - point.time;
+                if (age > 800) continue;
                 const alpha = Math.max(0, 1 - age / 800);
-                const size = 4 * alpha;
+                const size = 3 * alpha;
                 
                 bgCtx.beginPath();
                 bgCtx.arc(point.x, point.y, size, 0, Math.PI * 2);
-                bgCtx.fillStyle = `rgba(255, 215, 0, ${alpha * 0.5})`;
+                bgCtx.fillStyle = `rgba(255, 215, 0, ${alpha * 0.4})`;
                 bgCtx.fill();
             }
+            
+            // Limit ripples to 3 max
+            if (clickRipples.length > 3) clickRipples = clickRipples.slice(-3);
             for (let i = clickRipples.length - 1; i >= 0; i--) {
                 const ripple = clickRipples[i];
                 ripple.radius += ripple.speed;
@@ -902,20 +949,16 @@ function initInteractiveBackground() {
                     clickRipples.splice(i, 1);
                     continue;
                 }
-                const rippleGradient = bgCtx.createRadialGradient(ripple.x, ripple.y, ripple.radius - 10, ripple.x, ripple.y, ripple.radius);
-                rippleGradient.addColorStop(0, `rgba(255, 215, 0, ${ripple.alpha * 0.3})`);
-                rippleGradient.addColorStop(1, `rgba(255, 215, 0, 0)`);
                 
+                // Simplified ripple drawing
                 bgCtx.strokeStyle = `rgba(255, 215, 0, ${ripple.alpha})`;
-                bgCtx.lineWidth = 3;
+                bgCtx.lineWidth = 2;
                 bgCtx.beginPath();
                 bgCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
                 bgCtx.stroke();
-                bgCtx.fillStyle = rippleGradient;
-                bgCtx.beginPath();
-                bgCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
-                bgCtx.fill();
             }
+            
+            // Clean up old trail points
             mouseTrail = mouseTrail.filter(p => Date.now() - p.time < 800);
         } catch (err) {
             console.warn('Error in interactive background animation:', err);
@@ -923,18 +966,8 @@ function initInteractiveBackground() {
         
         requestAnimationFrame(animateInteractiveBg);
     }
+    
     animateInteractiveBg();
-    let lastFrameTime = Date.now();
-    setInterval(() => {
-        const now = Date.now();
-        if (now - lastFrameTime > 1000) {
-            if (!animationRunning) {
-                animationRunning = true;
-                animateInteractiveBg();
-            }
-        }
-        lastFrameTime = now;
-    }, 500);
 }
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initInteractiveBackground);
@@ -951,13 +984,13 @@ function initStars() {
     function resizeStarCanvas() {
         starCanvas.width = window.innerWidth;
         starCanvas.height = window.innerHeight;
-        // Recreate stars on resize
+        // Recreate stars on resize (reduced for performance)
         stars = [];
-        for (let i = 0; i < 300; i++) {
+        for (let i = 0; i < 100; i++) {
             stars.push(createStar());
         }
     }
-    window.addEventListener('resize', resizeStarCanvas);
+    window.addEventListener('resize', Utils.debounce(resizeStarCanvas, 250));
     resizeStarCanvas();
 
     function createStar() {
@@ -973,10 +1006,20 @@ function initStars() {
         };
     }
 
+    let lastStarFrame = 0;
     function animateStars() {
+        const now = performance.now();
+        // Throttle to ~30fps for stars
+        if (now - lastStarFrame < 33) {
+            requestAnimationFrame(animateStars);
+            return;
+        }
+        lastStarFrame = now;
+        
         starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
         const centerX = starCanvas.width / 2;
         const centerY = starCanvas.height / 2;
+        const time = Date.now();
         
         for (let star of stars) {
             // Enhanced parallax with mouse interaction
@@ -991,33 +1034,31 @@ function initStars() {
             if (drawY < 0) drawY += starCanvas.height;
             if (drawY > starCanvas.height) drawY -= starCanvas.height;
 
-            // Enhanced mouse interaction - stars glow when mouse is near
+            // Enhanced mouse interaction - stars glow when mouse is near (optimized)
             const dx = mouseX - drawX;
             const dy = mouseY - drawY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const mouseEffect = Math.max(0, 1 - distance / 150);
+            const distSq = dx * dx + dy * dy;
+            const mouseEffect = distSq < 22500 ? Math.max(0, 1 - Math.sqrt(distSq) / 150) : 0; // 150^2
             star.brightness = star.baseBrightness + mouseEffect * 0.7;
             
             // Twinkle animation
-            star.brightness += Math.sin(Date.now() * star.twinkle) * 0.15;
+            star.brightness += Math.sin(time * star.twinkle) * 0.15;
             star.brightness = Math.max(0.2, Math.min(1, star.brightness));
             
-            // Draw star with glow effect
-            const glowSize = star.size * (1 + mouseEffect * 2);
-            const gradient = starCtx.createRadialGradient(drawX, drawY, 0, drawX, drawY, glowSize * 2);
-            gradient.addColorStop(0, star.color === '#FFD700' ? `rgba(255, 215, 0, ${star.brightness})` : `rgba(255, 255, 255, ${star.brightness})`);
-            gradient.addColorStop(0.5, star.color === '#FFD700' ? `rgba(255, 215, 0, ${star.brightness * 0.5})` : `rgba(255, 255, 255, ${star.brightness * 0.5})`);
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            // Simplified drawing (no gradient for better performance)
+            const color = star.color === '#FFD700' ? '255, 215, 0' : '255, 255, 255';
+            const glowSize = star.size * (1 + mouseEffect);
             
+            // Simple glow
             starCtx.beginPath();
-            starCtx.arc(drawX, drawY, glowSize, 0, Math.PI * 2);
-            starCtx.fillStyle = gradient;
+            starCtx.arc(drawX, drawY, glowSize * 1.5, 0, Math.PI * 2);
+            starCtx.fillStyle = `rgba(${color}, ${star.brightness * 0.3})`;
             starCtx.fill();
             
             // Core star
             starCtx.beginPath();
             starCtx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
-            starCtx.fillStyle = star.color === '#FFD700' ? `rgba(255, 215, 0, ${star.brightness})` : `rgba(255, 255, 255, ${star.brightness})`;
+            starCtx.fillStyle = `rgba(${color}, ${star.brightness})`;
             starCtx.fill();
         }
         requestAnimationFrame(animateStars);
