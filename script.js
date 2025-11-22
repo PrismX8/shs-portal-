@@ -1173,16 +1173,239 @@ const toggleChatBtn = document.getElementById('toggleChatBtn');
 
 toggleChatBtn.addEventListener('click', () => {
     if(chatContainer.style.display === 'none' || chatContainer.style.display === '') {
-        chatContainer.style.display = 'block';
+        chatContainer.style.display = 'flex';
         // Auto-scroll to bottom when opening
         setTimeout(() => {
             const chatMessages = document.getElementById('chatMessages');
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
         }, 100);
     } else {
         chatContainer.style.display = 'none';
     }
 });
+
+// ================= Expandable Chat System =================
+const expandChatBtn = document.getElementById('expandChatBtn');
+const minimizeChatBtn = document.getElementById('minimizeChatBtn');
+const fullScreenChatModal = document.getElementById('fullScreenChatModal');
+const closeFullscreenChatBtn = document.getElementById('closeFullscreenChatBtn');
+const fullscreenChatMessages = document.getElementById('fullscreenChatMessages');
+const fullscreenChatInput = document.getElementById('fullscreenChatInput');
+const fullscreenSendBtn = document.getElementById('fullscreenSendBtn');
+const fullscreenChatSidebar = document.getElementById('fullscreenChatSidebar');
+const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+const fullscreenChatSearchBar = document.getElementById('fullscreenChatSearchBar');
+const fullscreenChatSearchBtn = document.getElementById('fullscreenChatSearchBtn');
+const closeSearchBtn = document.getElementById('closeSearchBtn');
+const fullscreenChatSearchInput = document.getElementById('fullscreenChatSearchInput');
+const fullscreenChatUsersBtn = document.getElementById('fullscreenChatUsersBtn');
+const fullscreenChatOnlineUsers = document.getElementById('fullscreenChatOnlineUsers');
+const onlineUsersCount = document.getElementById('onlineUsersCount');
+
+// Expand chat to full screen
+expandChatBtn?.addEventListener('click', () => {
+    if (fullScreenChatModal) {
+        fullScreenChatModal.style.display = 'block';
+        // Sync messages
+        syncChatMessages();
+        // Load online users
+        loadOnlineUsers();
+        // Auto-scroll
+        setTimeout(() => {
+            if (fullscreenChatMessages) {
+                fullscreenChatMessages.scrollTop = fullscreenChatMessages.scrollHeight;
+            }
+        }, 100);
+    }
+});
+
+// Minimize from full screen
+minimizeChatBtn?.addEventListener('click', () => {
+    if (fullScreenChatModal) {
+        fullScreenChatModal.style.display = 'none';
+    }
+});
+
+// Close full screen chat
+closeFullscreenChatBtn?.addEventListener('click', () => {
+    if (fullScreenChatModal) {
+        fullScreenChatModal.style.display = 'none';
+    }
+});
+
+fullScreenChatModal?.addEventListener('click', (e) => {
+    if (e.target === fullScreenChatModal) {
+        fullScreenChatModal.style.display = 'none';
+    }
+});
+
+// Toggle sidebar
+toggleSidebarBtn?.addEventListener('click', () => {
+    if (fullscreenChatSidebar) {
+        fullscreenChatSidebar.classList.toggle('open');
+        const icon = toggleSidebarBtn.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        }
+    }
+});
+
+// Toggle search bar
+fullscreenChatSearchBtn?.addEventListener('click', () => {
+    if (fullscreenChatSearchBar) {
+        const isVisible = fullscreenChatSearchBar.style.display !== 'none';
+        fullscreenChatSearchBar.style.display = isVisible ? 'none' : 'flex';
+        if (!isVisible) {
+            fullscreenChatSearchInput?.focus();
+        }
+    }
+});
+
+closeSearchBtn?.addEventListener('click', () => {
+    if (fullscreenChatSearchBar) {
+        fullscreenChatSearchBar.style.display = 'none';
+        if (fullscreenChatSearchInput) {
+            fullscreenChatSearchInput.value = '';
+        }
+    }
+});
+
+// Search functionality
+fullscreenChatSearchInput?.addEventListener('input', Utils.debounce((e) => {
+    const query = e.target.value.toLowerCase().trim();
+    if (!query) {
+        syncChatMessages();
+        return;
+    }
+    
+    // Filter messages
+    const messages = fullscreenChatMessages?.querySelectorAll('.chat-message');
+    if (messages) {
+        messages.forEach(msg => {
+            const text = msg.textContent.toLowerCase();
+            if (text.includes(query)) {
+                msg.style.display = '';
+                msg.style.backgroundColor = 'rgba(255, 215, 0, 0.1)';
+            } else {
+                msg.style.display = 'none';
+            }
+        });
+    }
+}, 300));
+
+// Toggle online users sidebar
+fullscreenChatUsersBtn?.addEventListener('click', () => {
+    if (fullscreenChatSidebar) {
+        fullscreenChatSidebar.classList.toggle('open');
+        loadOnlineUsers();
+    }
+});
+
+// Send message from fullscreen chat
+function sendFullscreenMessage() {
+    const input = fullscreenChatInput;
+    if (!input || !input.value.trim()) return;
+    
+    // Use the existing send message function
+    const regularInput = document.getElementById('chatInput');
+    if (regularInput) {
+        regularInput.value = input.value;
+        regularInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter' }));
+        input.value = '';
+    }
+}
+
+fullscreenSendBtn?.addEventListener('click', sendFullscreenMessage);
+fullscreenChatInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        sendFullscreenMessage();
+    }
+});
+
+// Sync messages between regular and fullscreen chat
+function syncChatMessages() {
+    const regularMessages = document.getElementById('chatMessages');
+    const fullscreenMessages = fullscreenChatMessages;
+    
+    if (!regularMessages || !fullscreenMessages) return;
+    
+    // Copy messages from regular to fullscreen
+    fullscreenMessages.innerHTML = regularMessages.innerHTML;
+    
+    // Auto-scroll
+    setTimeout(() => {
+        fullscreenMessages.scrollTop = fullscreenMessages.scrollHeight;
+    }, 50);
+}
+
+// Load online users
+function loadOnlineUsers() {
+    if (!fullscreenChatOnlineUsers || !db) return;
+    
+    db.ref('online').once('value').then(snap => {
+        const online = snap.val() || {};
+        const onlineIds = Object.keys(online);
+        
+        if (onlineUsersCount) {
+            onlineUsersCount.textContent = onlineIds.length;
+        }
+        
+        // Load profiles
+        db.ref('profiles').once('value').then(profilesSnap => {
+            const profiles = profilesSnap.val() || {};
+            const users = onlineIds.map(id => ({
+                id,
+                profile: profiles[id] || {},
+                timestamp: online[id]?.timestamp || Date.now()
+            })).sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (users.length === 0) {
+                fullscreenChatOnlineUsers.innerHTML = '<div class="empty-state">No users online</div>';
+                return;
+            }
+            
+            fullscreenChatOnlineUsers.innerHTML = users.map(({id, profile}) => {
+                const avatarStyle = profile.avatarImage 
+                    ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
+                    : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
+                const avatarContent = profile.avatarImage ? '' : (profile.avatar || '👤');
+                
+                return `
+                    <div class="online-user-item">
+                        <div class="online-user-avatar" style="${avatarStyle} display:flex; align-items:center; justify-content:center; font-size:24px;">
+                            ${avatarContent}
+                            <div class="online-user-status-dot"></div>
+                        </div>
+                        <div class="online-user-info">
+                            <div class="online-user-name">${profile.username || 'User'}</div>
+                            <div class="online-user-status">🟢 Online</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        });
+    }).catch(err => {
+        console.error('Error loading online users:', err);
+    });
+}
+
+// Sync messages when regular chat updates
+const chatMessagesObserver = new MutationObserver(() => {
+    if (fullScreenChatModal && fullScreenChatModal.style.display !== 'none') {
+        syncChatMessages();
+    }
+});
+
+const regularChatMessages = document.getElementById('chatMessages');
+if (regularChatMessages) {
+    chatMessagesObserver.observe(regularChatMessages, { childList: true, subtree: true });
+}
+
+// Update online users count periodically
+if (db) {
+    setInterval(loadOnlineUsers, 10000); // Every 10 seconds
+}
 
 const themeBtn = document.getElementById('themeBtn');
 const themeModal = document.getElementById('themeModal');
@@ -3521,66 +3744,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
 });
 
-// ================= ONE-TIME USER DATA CLEAR =================
-// THIS WILL CLEAR ALL USERS, PROFILES, FRIENDS, REQUESTS, AND BLOCKED USERS
-// Run this ONCE to start from scratch, then DELETE this entire section
-(function clearAllUsersOneTime() {
-    // Check if we've already run this
-    if (localStorage.getItem('userClearExecuted') === 'true') {
-        console.log('User clear already executed. Remove this section if you want to run it again.');
-        return;
-    }
-    
-    if (!db) {
-        console.error('Firebase not initialized. Cannot clear users.');
-        return;
-    }
-    
-    // Confirm before clearing
-    const confirmed = confirm(
-        '⚠️ WARNING: This will DELETE ALL users, profiles, friends, requests, and blocked users from the database.\n\n' +
-        'This action CANNOT be undone!\n\n' +
-        'Click OK to proceed, or Cancel to abort.'
-    );
-    
-    if (!confirmed) {
-        console.log('User clear cancelled by user.');
-        return;
-    }
-    
-    console.log('Starting one-time user data clear...');
-    
-    // Clear all data
-    Promise.all([
-        db.ref('profiles').remove(),
-        db.ref('online').remove(),
-        db.ref('friends').remove(),
-        db.ref('friendRequests').remove(),
-        db.ref('blocked').remove(),
-        db.ref('totalVisitors').set(127349) // Reset to initial count
-    ]).then(() => {
-        console.log('✅ Successfully cleared all user data!');
-        console.log('✅ Reset visitor count to 127,349');
-        
-        // Mark as executed so it won't run again
-        localStorage.setItem('userClearExecuted', 'true');
-        
-        alert('✅ All user data has been cleared!\n\n' +
-              'The database is now empty and ready for new users.\n\n' +
-              'Visitor count reset to 127,349.\n\n' +
-              'This script will not run again automatically.\n' +
-              'Remove this section from script.js if you want to run it again in the future.');
-        
-        // Reload the page to reflect changes
-        setTimeout(() => {
-            window.location.reload();
-        }, 2000);
-    }).catch(error => {
-        console.error('❌ Error clearing user data:', error);
-        alert('❌ Error clearing user data. Check console for details.');
-    });
-})();
-// ================= END ONE-TIME USER DATA CLEAR =================
 
 // ---------------- Polls/Voting ----------------
 const pollsBtn = document.getElementById('pollsBtn');
