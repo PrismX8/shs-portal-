@@ -2510,6 +2510,7 @@ header small {
     overflow-y: auto;
     z-index: 10001;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    display: none; /* Hidden by default */
 }
 
 .emoji-grid {
