@@ -235,12 +235,28 @@ function renderChatMessage(msg, msgId, snapshot) {
     if(msg.uid === visitorId && snapshot){
         const delBtn = document.createElement('button');
         delBtn.innerHTML='✖';
-        delBtn.style.border='none';
-        delBtn.style.background='transparent';
-        delBtn.style.color='rgba(255,255,255,0.5)';
-        delBtn.style.cursor='pointer';
-        delBtn.title='Delete';
-        delBtn.onclick = () => snapshot.ref.remove();
+        delBtn.className = 'chat-delete-btn';
+        delBtn.style.cssText = 'border:none; background:rgba(255,0,0,0.2); color:#ff4444; cursor:pointer; padding:4px 8px; border-radius:4px; font-size:14px; margin-left:8px; transition:all 0.2s;';
+        delBtn.title='Delete message';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            if(confirm('Delete this message?')) {
+                snapshot.ref.remove().catch(err => {
+                    console.error('Error deleting message:', err);
+                    if (typeof notifications !== 'undefined' && notifications.show) {
+                        notifications.show('Error deleting message', 'error', 2000);
+                    }
+                });
+            }
+        };
+        delBtn.onmouseenter = () => {
+            delBtn.style.background = 'rgba(255,0,0,0.4)';
+            delBtn.style.transform = 'scale(1.1)';
+        };
+        delBtn.onmouseleave = () => {
+            delBtn.style.background = 'rgba(255,0,0,0.2)';
+            delBtn.style.transform = 'scale(1)';
+        };
         leftDiv.appendChild(delBtn);
     }
 
@@ -1587,6 +1603,26 @@ function syncChatMessages() {
     
     // Copy messages from regular to fullscreen
     fullscreenMessages.innerHTML = regularMessages.innerHTML;
+    
+    // Re-attach delete button handlers for fullscreen messages
+    fullscreenMessages.querySelectorAll('[data-msg-id]').forEach(msgDiv => {
+        const msgId = msgDiv.getAttribute('data-msg-id');
+        const delBtn = msgDiv.querySelector('.chat-delete-btn');
+        if (delBtn && msgId && db) {
+            // Recreate delete functionality
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                if(confirm('Delete this message?')) {
+                    db.ref(`chat/${msgId}`).remove().catch(err => {
+                        console.error('Error deleting message:', err);
+                        if (typeof notifications !== 'undefined' && notifications.show) {
+                            notifications.show('Error deleting message', 'error', 2000);
+                        }
+                    });
+                }
+            };
+        }
+    });
     
     // Auto-scroll
     setTimeout(() => {
@@ -5794,6 +5830,64 @@ window.gameHallCommands = {
     }
 };
 
+// Dynamic tooltip positioning to prevent clipping
+function setupTooltips() {
+    document.querySelectorAll('[title]').forEach(el => {
+        if (el.hasAttribute('data-tooltip-setup')) return;
+        el.setAttribute('data-tooltip-setup', 'true');
+        
+        el.addEventListener('mouseenter', function(e) {
+            const tooltip = this.getAttribute('title');
+            if (!tooltip) return;
+            
+            // Remove title temporarily to prevent default tooltip
+            const originalTitle = this.getAttribute('title');
+            this.setAttribute('data-original-title', originalTitle);
+            this.removeAttribute('title');
+            
+            // Create custom tooltip
+            const tooltipEl = document.createElement('div');
+            tooltipEl.className = 'custom-tooltip';
+            tooltipEl.textContent = tooltip;
+            document.body.appendChild(tooltipEl);
+            
+            // Position tooltip
+            const rect = this.getBoundingClientRect();
+            const tooltipRect = tooltipEl.getBoundingClientRect();
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.top - tooltipRect.height - 12;
+            
+            // Keep tooltip in viewport
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            if (top < 10) {
+                top = rect.bottom + 12;
+                tooltipEl.classList.add('tooltip-below');
+            }
+            
+            tooltipEl.style.left = left + 'px';
+            tooltipEl.style.top = top + 'px';
+            
+            // Store reference for cleanup
+            this._tooltipEl = tooltipEl;
+        });
+        
+        el.addEventListener('mouseleave', function() {
+            if (this._tooltipEl) {
+                this._tooltipEl.remove();
+                this._tooltipEl = null;
+            }
+            // Restore title
+            const originalTitle = this.getAttribute('data-original-title');
+            if (originalTitle) {
+                this.setAttribute('title', originalTitle);
+            }
+        });
+    });
+}
+
 // Initialize professional enhancements
 DOMUtils.ready(() => {
     console.log('%c✨ Professional enhancements loaded!', 'font-size: 16px; font-weight: bold; color: #FFD700;');
@@ -5805,6 +5899,13 @@ DOMUtils.ready(() => {
 
     // Initialize tooltips
     new TooltipSystem();
+    setupTooltips();
+    
+    // Re-setup tooltips for dynamically added elements
+    const observer = new MutationObserver(() => {
+        setupTooltips();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     // Add loading states to buttons
     document.querySelectorAll('button').forEach(btn => {
