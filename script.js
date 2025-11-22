@@ -70,8 +70,8 @@ if (db) {
     });
 }
 
-// Increment visitor count for new visitors
-if (db && !localStorage.getItem('visitorCounted')) {
+// Increment visitor count on every page load (including refreshes)
+if (db) {
     db.ref('totalVisitors').transaction(val => {
         const currentVal = val || INITIAL_VISITOR_COUNT;
         // If count is less than initial, set to initial first
@@ -82,7 +82,6 @@ if (db && !localStorage.getItem('visitorCounted')) {
     }).catch(error => {
       console.error('Error updating visitor count:', error);
     });
-    localStorage.setItem('visitorCounted', 'yes');
 }
 
 const totalRef = db ? db.ref('totalVisitors') : null;
