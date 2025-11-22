@@ -1243,9 +1243,6 @@ const fullscreenNameBtn = document.getElementById('fullscreenNameBtn');
 // Connect fullscreen name button now that it's declared
 fullscreenNameBtn?.addEventListener('click', openNameColorPopup);
 
-// Connect fullscreen name button now that it's declared
-fullscreenNameBtn?.addEventListener('click', openNameColorPopup);
-
 // Expand chat to full screen
 expandChatBtn?.addEventListener('click', () => {
     if (!fullScreenChatModal) {
@@ -1315,24 +1312,55 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Toggle sidebar
-toggleSidebarBtn?.addEventListener('click', () => {
+toggleSidebarBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (fullscreenChatSidebar) {
-        fullscreenChatSidebar.classList.toggle('open');
+        const isOpen = fullscreenChatSidebar.classList.contains('open');
+        if (isOpen) {
+            fullscreenChatSidebar.classList.remove('open');
+        } else {
+            fullscreenChatSidebar.classList.add('open');
+            loadOnlineUsers(); // Load users when opening
+        }
         const icon = toggleSidebarBtn.querySelector('i');
         if (icon) {
-            icon.classList.toggle('fa-chevron-left');
-            icon.classList.toggle('fa-chevron-right');
+            if (isOpen) {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            } else {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            }
         }
     }
 });
 
+// Initialize sidebar state - open by default on desktop
+if (fullscreenChatSidebar && window.innerWidth > 768) {
+    fullscreenChatSidebar.classList.add('open');
+    const icon = toggleSidebarBtn?.querySelector('i');
+    if (icon) {
+        icon.classList.remove('fa-chevron-left');
+        icon.classList.add('fa-chevron-right');
+    }
+}
+
 // Toggle search bar
-fullscreenChatSearchBtn?.addEventListener('click', () => {
+fullscreenChatSearchBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (fullscreenChatSearchBar) {
-        const isVisible = fullscreenChatSearchBar.style.display !== 'none';
-        fullscreenChatSearchBar.style.display = isVisible ? 'none' : 'flex';
-        if (!isVisible) {
-            fullscreenChatSearchInput?.focus();
+        const isVisible = fullscreenChatSearchBar.style.display !== 'none' && fullscreenChatSearchBar.style.display !== '';
+        if (isVisible) {
+            fullscreenChatSearchBar.style.display = 'none';
+            if (fullscreenChatSearchInput) {
+                fullscreenChatSearchInput.value = '';
+                syncChatMessages(); // Restore all messages
+            }
+        } else {
+            fullscreenChatSearchBar.style.display = 'flex';
+            setTimeout(() => {
+                fullscreenChatSearchInput?.focus();
+            }, 100);
         }
     }
 });
