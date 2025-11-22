@@ -6292,7 +6292,14 @@ function initGamesGrid() {
                 const query = e.target.value.trim();
                 
                 if (query === '') {
-                    renderGamesGrid();
+                    // If no search query, apply category filter
+                    const activeCategory = document.querySelector('.category-btn.active');
+                    if (activeCategory) {
+                        const category = activeCategory.getAttribute('data-category');
+                        filterGamesByCategory(category);
+                    } else {
+                        renderGamesGrid();
+                    }
                     if (clearSearchBtn) clearSearchBtn.style.display = 'none';
                     return;
                 }
@@ -6300,8 +6307,38 @@ function initGamesGrid() {
                 // Show clear button
                 if (clearSearchBtn) clearSearchBtn.style.display = 'flex';
                 
-                // Filter games using fuzzy search
-                const filtered = gameSites
+                // Get current category filter
+                const activeCategory = document.querySelector('.category-btn.active');
+                const category = activeCategory ? activeCategory.getAttribute('data-category') : 'all';
+                
+                // Start with category-filtered games
+                let gamesToSearch = [...gameSites];
+                
+                if (category !== 'all') {
+                    // Apply category filter first
+                    gamesToSearch = gamesToSearch.map(site => {
+                        const stats = getGameStats(site.embed);
+                        return {
+                            ...site,
+                            clicks: stats ? stats.clicks : 0,
+                            lastClicked: stats ? stats.lastClicked : 0,
+                            firstClicked: stats ? stats.firstClicked : Date.now()
+                        };
+                    });
+                    
+                    if (category === 'popular') {
+                        gamesToSearch = gamesToSearch.filter(game => game.clicks > 0);
+                    } else if (category === 'trending') {
+                        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+                        gamesToSearch = gamesToSearch.filter(game => game.clicks > 0 && game.lastClicked > oneDayAgo);
+                    } else if (category === 'new') {
+                        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                        gamesToSearch = gamesToSearch.filter(game => game.firstClicked > sevenDaysAgo || game.clicks === 0);
+                    }
+                }
+                
+                // Then apply search filter
+                const filtered = gamesToSearch
                     .map(site => ({
                         ...site,
                         similarity: calculateSimilarity(query, site.title || '')
@@ -6329,10 +6366,143 @@ function initGamesGrid() {
     const defaultGameBtn = document.getElementById('defaultGameBtn');
     if (defaultGameBtn) {
         defaultGameBtn.addEventListener('click', () => {
-            // Load slope game - using a common slope game URL
-            loadGameSite('https://slope-game.com/', 'Slope - Default Game');
+            // Load slope game
+            loadGameSite('https://slopeonline.online/', 'Slope - Default Game');
         });
     }
+    
+    // Category buttons
+    const categoryButtons = document.querySelectorAll('.category-btn');
+    categoryButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all buttons
+            categoryButtons.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
+            btn.classList.add('active');
+            
+            // Filter games by category
+            const category = btn.getAttribute('data-category');
+            filterGamesByCategory(category);
+            
+            // Clear search when changing category
+            if (searchInput) {
+                searchInput.value = '';
+                if (clearSearchBtn) clearSearchBtn.style.display = 'none';
+            }
+        });
+    });
+    
+    // Initialize game stats tracking
+    initGameStats();
+}
+
+// Game stats tracking
+let gameStats = {};
+let gameStatsListener = null;
+
+// Get game stats for a specific embed URL
+function getGameStats(embed) {
+    if (!embed || !gameStats) return null;
+    const gameKey = btoa(embed).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+    return gameStats[gameKey] || null;
+}
+
+// Filter games by category
+function filterGamesByCategory(category) {
+    let filtered = [...gameSites];
+    
+    if (category === 'all') {
+        // Show all games
+        renderGamesGrid(filtered);
+        return;
+    }
+    
+    // Add stats to each game
+    filtered = filtered.map(site => {
+        const stats = getGameStats(site.embed);
+        return {
+            ...site,
+            clicks: stats ? stats.clicks : 0,
+            lastClicked: stats ? stats.lastClicked : 0,
+            firstClicked: stats ? stats.firstClicked : Date.now()
+        };
+    });
+    
+    if (category === 'popular') {
+        // Sort by total clicks (most popular)
+        filtered.sort((a, b) => b.clicks - a.clicks);
+        // Show top games (at least 1 click)
+        filtered = filtered.filter(game => game.clicks > 0);
+    } else if (category === 'trending') {
+        // Sort by recent clicks (last 24 hours weighted)
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        filtered = filtered
+            .map(game => {
+                // Calculate trending score (recent clicks weighted more)
+                const recentClicks = game.lastClicked > oneDayAgo ? game.clicks : 0;
+                const score = game.clicks * 0.3 + recentClicks * 0.7;
+                return { ...game, trendingScore: score };
+            })
+            .filter(game => game.clicks > 0)
+            .sort((a, b) => b.trendingScore - a.trendingScore);
+    } else if (category === 'new') {
+        // Sort by first clicked (newest first)
+        filtered.sort((a, b) => b.firstClicked - a.firstClicked);
+        // Show games added in last 7 days
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        filtered = filtered.filter(game => game.firstClicked > sevenDaysAgo || game.clicks === 0);
+    }
+    
+    renderGamesGrid(filtered);
+}
+
+// Initialize game stats listener
+function initGameStats() {
+    if (!db) return;
+    
+    const statsRef = db.ref('gameStats');
+    
+    // Listen for real-time updates
+    gameStatsListener = statsRef.on('value', (snapshot) => {
+        const stats = snapshot.val() || {};
+        gameStats = stats;
+        
+        // Update UI if category is active
+        const activeCategory = document.querySelector('.category-btn.active');
+        if (activeCategory) {
+            const category = activeCategory.getAttribute('data-category');
+            filterGamesByCategory(category);
+        }
+    }, (error) => {
+        console.error('Error loading game stats:', error);
+    });
+}
+
+// Track game click
+function trackGameClick(embed, title) {
+    if (!db) return;
+    
+    // Create a safe key from the embed URL
+    const gameKey = btoa(embed).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+    
+    const gameRef = db.ref(`gameStats/${gameKey}`);
+    
+    gameRef.transaction((current) => {
+        const now = Date.now();
+        const stats = current || {
+            embed: embed,
+            title: title,
+            clicks: 0,
+            lastClicked: now,
+            firstClicked: now
+        };
+        
+        stats.clicks = (stats.clicks || 0) + 1;
+        stats.lastClicked = now;
+        if (!stats.firstClicked) stats.firstClicked = now;
+        
+        return stats;
+    });
 }
 
 // Load game site in iframe
@@ -6341,6 +6511,9 @@ function loadGameSite(embed, title) {
     const gamesGridContainer = document.getElementById('gamesGridContainer');
     const embeddedSite = document.getElementById('embeddedSite');
     const currentSiteTitle = document.getElementById('currentSiteTitle');
+    
+    // Track the game click
+    trackGameClick(embed, title);
     
     if (iframeContainer && embeddedSite && gamesGridContainer) {
         // Hide games grid
