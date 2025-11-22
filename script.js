@@ -328,16 +328,50 @@ function updateMessageReactions(msgId, reactions) {
 }
 
 // Change Name/Color popup
-const changeNameBtn = document.getElementById('changeNameBtn');
+// Change name button (works for both regular and fullscreen)
+function openNameColorPopup() {
+    const popup = document.getElementById('chatNameColorPopup');
+    if (popup) {
+        const usernameInput = document.getElementById('chatPopupUsername');
+        const colorInput = document.getElementById('chatPopupColor');
+        if (usernameInput) usernameInput.value = username;
+        if (colorInput) colorInput.value = userColor;
+        popup.style.display = 'block';
+    } else {
+        notifications.show('Name/Color popup not found', 'error', 2000);
+    }
+}
+
+// Connect change name buttons (remove old listener if exists)
+if (changeNameBtn) {
+    changeNameBtn.replaceWith(changeNameBtn.cloneNode(true)); // Remove old listeners
+    document.getElementById('changeNameBtn')?.addEventListener('click', openNameColorPopup);
+}
+// Get popup elements
 const chatNameColorPopup = document.getElementById('chatNameColorPopup');
 const chatPopupUsername = document.getElementById('chatPopupUsername');
 const chatPopupColor = document.getElementById('chatPopupColor');
 const chatSaveNameColor = document.getElementById('chatSaveNameColor');
-changeNameBtn.addEventListener('click', () => {
-    chatPopupUsername.value = username;
-    chatPopupColor.value = userColor;
-    chatNameColorPopup.style.display = 'block';
-});
+
+// Update openNameColorPopup function to use actual elements
+const originalOpenNameColorPopup = openNameColorPopup;
+openNameColorPopup = function() {
+    if (chatNameColorPopup && chatPopupUsername && chatPopupColor) {
+        chatPopupUsername.value = username;
+        chatPopupColor.value = userColor;
+        chatNameColorPopup.style.display = 'block';
+    } else {
+        notifications.show('Name/Color popup not found', 'error', 2000);
+    }
+};
+
+// Remove duplicate listener by replacing the button
+if (changeNameBtn) {
+    const newBtn = changeNameBtn.cloneNode(true);
+    changeNameBtn.parentNode.replaceChild(newBtn, changeNameBtn);
+    document.getElementById('changeNameBtn')?.addEventListener('click', openNameColorPopup);
+}
+fullscreenNameBtn?.addEventListener('click', openNameColorPopup);
 chatSaveNameColor.addEventListener('click', () => {
     if(chatPopupUsername.value.trim() !== '') username = chatPopupUsername.value.trim();
     userColor = chatPopupColor.value;
@@ -1202,9 +1236,21 @@ const fullscreenChatUsersBtn = document.getElementById('fullscreenChatUsersBtn')
 const fullscreenChatOnlineUsers = document.getElementById('fullscreenChatOnlineUsers');
 const onlineUsersCount = document.getElementById('onlineUsersCount');
 
+// Fullscreen chat buttons
+const fullscreenEmojiBtn = document.getElementById('fullscreenEmojiBtn');
+const fullscreenVoiceBtn = document.getElementById('fullscreenVoiceBtn');
+const fullscreenLinkBtn = document.getElementById('fullscreenLinkBtn');
+const fullscreenFileBtn = document.getElementById('fullscreenFileBtn');
+const fullscreenNameBtn = document.getElementById('fullscreenNameBtn');
+
 // Expand chat to full screen
 expandChatBtn?.addEventListener('click', () => {
-    if (fullScreenChatModal) {
+    if (!fullScreenChatModal) {
+        console.error('Fullscreen chat modal not found');
+        return;
+    }
+    
+    try {
         fullScreenChatModal.style.display = 'block';
         // Sync messages
         syncChatMessages();
@@ -1216,26 +1262,52 @@ expandChatBtn?.addEventListener('click', () => {
                 fullscreenChatMessages.scrollTop = fullscreenChatMessages.scrollHeight;
             }
         }, 100);
+    } catch (error) {
+        console.error('Error expanding chat:', error);
+        notifications.show('Error opening fullscreen chat', 'error', 2000);
     }
 });
 
 // Minimize from full screen
 minimizeChatBtn?.addEventListener('click', () => {
-    if (fullScreenChatModal) {
-        fullScreenChatModal.style.display = 'none';
+    try {
+        if (fullScreenChatModal) {
+            fullScreenChatModal.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error minimizing chat:', error);
     }
 });
 
 // Close full screen chat
 closeFullscreenChatBtn?.addEventListener('click', () => {
-    if (fullScreenChatModal) {
-        fullScreenChatModal.style.display = 'none';
+    try {
+        if (fullScreenChatModal) {
+            fullScreenChatModal.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error closing fullscreen chat:', error);
     }
 });
 
 fullScreenChatModal?.addEventListener('click', (e) => {
     if (e.target === fullScreenChatModal) {
-        fullScreenChatModal.style.display = 'none';
+        try {
+            fullScreenChatModal.style.display = 'none';
+        } catch (error) {
+            console.error('Error closing chat on backdrop click:', error);
+        }
+    }
+});
+
+// Escape key to close fullscreen chat
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && fullScreenChatModal && fullScreenChatModal.style.display !== 'none') {
+        try {
+            fullScreenChatModal.style.display = 'none';
+        } catch (error) {
+            console.error('Error closing chat with Escape:', error);
+        }
     }
 });
 
@@ -1302,24 +1374,50 @@ fullscreenChatUsersBtn?.addEventListener('click', () => {
     }
 });
 
-// Send message from fullscreen chat
-function sendFullscreenMessage() {
-    const input = fullscreenChatInput;
-    if (!input || !input.value.trim()) return;
-    
-    // Use the existing send message function
-    const regularInput = document.getElementById('chatInput');
-    if (regularInput) {
-        regularInput.value = input.value;
-        regularInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter' }));
-        input.value = '';
+// Send message function (works for both regular and fullscreen)
+function sendChatMessage(inputElement) {
+    if (!inputElement || !inputElement.value.trim()) return;
+    if (!db) {
+        notifications.show('Database not available', 'error', 2000);
+        return;
     }
+    
+    const messageText = inputElement.value.trim();
+    inputElement.value = '';
+    
+    // Stop typing indicator
+    if (db) {
+        db.ref('chatTyping/' + visitorId).remove();
+    }
+    
+    // Send message
+    db.ref('chat').push({
+        user: username,
+        text: messageText,
+        color: userColor,
+        time: Date.now(),
+        uid: visitorId,
+        avatar: userProfile.avatar || '👤',
+        avatarImage: userProfile.avatarImage || null
+    });
 }
 
-fullscreenSendBtn?.addEventListener('click', sendFullscreenMessage);
+// Regular chat send
+const sendChatBtn = document.getElementById('sendChatBtn');
+sendChatBtn?.addEventListener('click', () => {
+    const input = document.getElementById('chatInput');
+    if (input) sendChatMessage(input);
+});
+
+// Fullscreen chat send
+fullscreenSendBtn?.addEventListener('click', () => {
+    if (fullscreenChatInput) sendChatMessage(fullscreenChatInput);
+});
+
+// Enter key for both inputs
 fullscreenChatInput?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-        sendFullscreenMessage();
+        sendChatMessage(fullscreenChatInput);
     }
 });
 
@@ -3970,14 +4068,31 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Emoji selection handler (works for both regular and fullscreen)
+function handleEmojiClick(emoji) {
+    const regularInput = document.getElementById('chatInput');
+    const fullscreenInput = document.getElementById('fullscreenChatInput');
+    
+    // Determine which input is active
+    const activeInput = document.activeElement === fullscreenInput ? fullscreenInput : regularInput;
+    
+    if (activeInput) {
+        activeInput.value += emoji.textContent;
+        activeInput.focus();
+    } else if (regularInput) {
+        regularInput.value += emoji.textContent;
+        regularInput.focus();
+    }
+    
+    // Hide both emoji pickers
+    const regularPicker = document.getElementById('emojiPicker');
+    const fullscreenPicker = document.getElementById('fullscreenEmojiPicker');
+    if (regularPicker) regularPicker.style.display = 'none';
+    if (fullscreenPicker) fullscreenPicker.style.display = 'none';
+}
+
 emojiOptions.forEach(emoji => {
-    emoji.addEventListener('click', () => {
-        if(chatInput) {
-            chatInput.value += emoji.textContent;
-            chatInput.focus();
-        }
-        emojiPicker.style.display = 'none';
-    });
+    emoji.addEventListener('click', () => handleEmojiClick(emoji));
     emoji.addEventListener('mouseenter', () => {
         emoji.style.background = 'rgba(255,215,0,0.2)';
     });
@@ -3986,8 +4101,17 @@ emojiOptions.forEach(emoji => {
     });
 });
 
+// Fullscreen emoji button
+fullscreenEmojiBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const fullscreenPicker = document.getElementById('fullscreenEmojiPicker') || emojiPicker;
+    if (fullscreenPicker) {
+        fullscreenPicker.style.display = fullscreenPicker.style.display === 'none' ? 'block' : 'none';
+    }
+});
 
-// File send button
+
+// File send button (works for both regular and fullscreen)
 const sendFileBtn = document.getElementById('sendFileBtn');
 const chatFileInput = document.createElement('input');
 chatFileInput.type = 'file';
@@ -3995,6 +4119,10 @@ chatFileInput.style.display = 'none';
 document.body.appendChild(chatFileInput);
 
 sendFileBtn?.addEventListener('click', () => {
+    chatFileInput.click();
+});
+
+fullscreenFileBtn?.addEventListener('click', () => {
     chatFileInput.click();
 });
 
@@ -4027,9 +4155,8 @@ chatFileInput.addEventListener('change', (e) => {
     }
 });
 
-// ---------------- Attach Link ----------------
-const attachLinkBtn = document.getElementById('attachLinkBtn');
-attachLinkBtn?.addEventListener('click', () => {
+// ---------------- Attach Link (works for both regular and fullscreen) ----------------
+function attachLink() {
     const url = prompt('Enter a URL to share:');
     if(url && url.trim()) {
         let linkUrl = url.trim();
@@ -4051,12 +4178,18 @@ attachLinkBtn?.addEventListener('click', () => {
                     avatarImage: userProfile.avatarImage || null,
                     link: linkUrl
                 });
+                notifications.show('Link shared!', 'success', 2000);
+            } else {
+                notifications.show('Database not available', 'error', 2000);
             }
         } catch(e) {
-            alert('Invalid URL. Please enter a valid web address.');
+            notifications.show('Invalid URL. Please enter a valid web address.', 'error', 3000);
         }
     }
-});
+}
+
+attachLinkBtn?.addEventListener('click', attachLink);
+fullscreenLinkBtn?.addEventListener('click', attachLink);
 
 // ---------------- Voice Chat ----------------
 const voiceChatBtn = document.getElementById('voiceChatBtn');
@@ -4067,7 +4200,7 @@ let audioChunks = [];
 let isRecording = false;
 let recordingStream = null;
 
-async function startRecording() {
+async function startRecording(indicatorId = 'voiceIndicator') {
     if(isRecording) return;
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -4100,67 +4233,90 @@ async function startRecording() {
                 };
                 reader.readAsDataURL(audioBlob);
             }
-            if(recordingStream) {
-                recordingStream.getTracks().forEach(track => track.stop());
-                recordingStream = null;
-            }
-            isRecording = false;
-            if(voiceIndicator) voiceIndicator.style.display = 'none';
+            stopRecording(); // Use the centralized stop function
         };
         
         mediaRecorder.onerror = (e) => {
             console.error('MediaRecorder error:', e);
-            isRecording = false;
-            if(voiceIndicator) voiceIndicator.style.display = 'none';
+            stopRecording(); // Use the centralized stop function
         };
         
         mediaRecorder.start();
-        if(voiceIndicator) voiceIndicator.style.display = 'block';
+        
+        // Show indicator (check both regular and fullscreen)
+        const indicator = document.getElementById(indicatorId);
+        const fullscreenIndicator = document.getElementById('fullscreenVoiceIndicator');
+        if (indicator) indicator.style.display = 'flex';
+        if (fullscreenIndicator && fullScreenChatModal && fullScreenChatModal.style.display !== 'none') {
+            fullscreenIndicator.style.display = 'flex';
+        }
     } catch(err) {
         console.error('Microphone access error:', err);
-        alert('Microphone access denied. Please allow microphone access to use voice chat.');
-        isRecording = false;
+        notifications.show('Microphone access denied. Please allow microphone access to use voice chat.', 'error', 3000);
+        stopRecording(); // Ensure state is reset
     }
 }
 
 function stopRecording() {
     if(mediaRecorder && mediaRecorder.state !== 'inactive' && isRecording) {
         mediaRecorder.stop();
-        isRecording = false;
     }
+    // Always ensure recording state is reset and indicator is hidden
+    isRecording = false;
+    if(recordingStream) {
+        recordingStream.getTracks().forEach(track => track.stop());
+        recordingStream = null;
+    }
+    // Hide indicator in both regular and fullscreen modes
+    const regularIndicator = document.getElementById('voiceIndicator');
+    const fullscreenIndicator = document.getElementById('fullscreenVoiceIndicator');
+    if(regularIndicator) regularIndicator.style.display = 'none';
+    if(fullscreenIndicator) fullscreenIndicator.style.display = 'none';
+    // Reset media recorder
+    if(mediaRecorder) {
+        mediaRecorder = null;
+    }
+    audioChunks = [];
 }
 
-// Mouse events
-voiceChatBtn?.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    startRecording();
-});
+// Voice recording handlers (works for both regular and fullscreen)
+function setupVoiceButton(button, indicatorId) {
+    if (!button) return;
+    
+    button.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        startRecording(indicatorId);
+    });
+    
+    button.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        stopRecording();
+    });
+    
+    button.addEventListener('mouseleave', (e) => {
+        e.preventDefault();
+        stopRecording();
+    });
+    
+    button.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        startRecording(indicatorId);
+    });
+    
+    button.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        stopRecording();
+    });
+    
+    button.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        stopRecording();
+    });
+}
 
-voiceChatBtn?.addEventListener('mouseup', (e) => {
-    e.preventDefault();
-    stopRecording();
-});
-
-voiceChatBtn?.addEventListener('mouseleave', (e) => {
-    e.preventDefault();
-    stopRecording();
-});
-
-// Touch events for mobile
-voiceChatBtn?.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    startRecording();
-});
-
-voiceChatBtn?.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    stopRecording();
-});
-
-voiceChatBtn?.addEventListener('touchcancel', (e) => {
-    e.preventDefault();
-    stopRecording();
-});
+// Setup both voice buttons
+setupVoiceButton(voiceChatBtn, 'voiceIndicator');
+setupVoiceButton(fullscreenVoiceBtn, 'fullscreenVoiceIndicator');
 
 // Listen for voice messages
 if(db) {
