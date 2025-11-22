@@ -14,15 +14,31 @@
 <body>
 <canvas id="starCanvas"></canvas>
 <canvas id="interactiveBackground"></canvas>
-<!-- Cool Intro Loading Screen -->
+<!-- Modern Fancy Loading Screen -->
 <div id="introScreen">
-  <div class="introParticles"></div>
+  <div class="loading-background">
+    <div class="loading-gradient"></div>
+    <div class="loading-particles"></div>
+  </div>
   <div class="introContent">
-    <div class="logoBounce">
-      <img src="logoshs.png" alt="Logo" />
+    <div class="logo-container">
+      <div class="logo-glow"></div>
+      <div class="logoBounce">
+        <img src="logoshs.png" alt="Logo" />
+      </div>
     </div>
-    <div class="introText">Welcome to SHS Game Hall</div>
-    <div class="typingDots"><span></span><span></span><span></span></div>
+    <div class="introText">
+      <span class="text-gradient">Welcome to</span>
+      <span class="text-main">SHS Game Hall</span>
+    </div>
+    <div class="loading-progress-container">
+      <div class="loading-progress-bar">
+        <div class="loading-progress-fill"></div>
+        <div class="loading-progress-shine"></div>
+      </div>
+      <div class="loading-percentage">0%</div>
+    </div>
+    <div class="loading-status">Initializing...</div>
   </div>
 </div>
 
