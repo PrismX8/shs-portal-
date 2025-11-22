@@ -6198,16 +6198,16 @@ const gameSites = [
     { title: 'Kick the Pirate', embed: 'https://cloud.onlinegames.io/games/2022/construct/92/kick-the-pirate/index-og.html', image: 'https://www.onlinegames.io/media/posts/1012/responsive/Kick-The-Pirate-xs.jpg' },
     { title: 'Hill Climb Cars', embed: 'https://www.onlinegames.io/games/2021/3/hill-climb-cars/index.html', image: 'https://www.onlinegames.io/media/posts/648/responsive/Hill-Climb-Cars-xs.jpg' },
     { title: 'Run 3 Space', embed: 'https://www.onlinegames.io/games/2023/construct/192/run-3-space/index.html', image: 'https://www.onlinegames.io/media/posts/579/responsive/Run-3-Space-xs.jpg' },
-    { title: 'Slope Rider', embed: 'https://game.azgame.io/slope-rider/', image: 'https://via.placeholder.com/300x300/FFD700/000000?text=Slope+Rider' },
-    { title: 'Wacky Flip', embed: 'https://game.azgame.io/wacky-flip/', image: 'https://via.placeholder.com/300x300/FF6B6B/FFFFFF?text=Wacky+Flip' },
-    { title: 'Steal Brainrots', embed: 'https://gamea.azgame.io/steal-brainrots/', image: 'https://via.placeholder.com/300x300/4ECDC4/FFFFFF?text=Steal+Brainrots' },
-    { title: 'Escape Road', embed: 'https://azgames.io/escape-road.embed', image: 'https://via.placeholder.com/300x300/95E1D3/FFFFFF?text=Escape+Road' },
-    { title: 'Curve Rush', embed: 'https://game.azgame.io/curve-rush/', image: 'https://via.placeholder.com/300x300/F38181/FFFFFF?text=Curve+Rush' },
-    { title: 'Traffic Road', embed: 'https://azgames.io/traffic-road.embed', image: 'https://via.placeholder.com/300x300/AA96DA/FFFFFF?text=Traffic+Road' },
-    { title: 'Italian Brainrot Clicker 2', embed: 'https://game.azgame.io/italian-brainrot-clicker-2/', image: 'https://via.placeholder.com/300x300/FCBAD3/FFFFFF?text=Italian+Clicker' },
-    { title: 'Undead Corridor', embed: 'https://gamea.azgame.io/undead-corridor/', image: 'https://via.placeholder.com/300x300/2D3436/FFFFFF?text=Undead+Corridor' },
-    { title: 'Golf Hit', embed: 'https://game.azgame.io/golf-hit/', image: 'https://via.placeholder.com/300x300/00B894/FFFFFF?text=Golf+Hit' },
-    { title: 'Geometry Dash Lite', embed: 'https://www.rocketgames.io/game/geometry-dash-lite', image: 'https://www.onlinegames.io/media/posts/510/responsive/Geometry-Dash-FreezeNova-xs.jpg' }
+    { title: 'Slope Rider', embed: 'https://game.azgame.io/slope-rider/', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Wacky Flip', embed: 'https://game.azgame.io/wacky-flip/', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Steal Brainrots', embed: 'https://gamea.azgame.io/steal-brainrots/', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Escape Road', embed: 'https://azgames.io/escape-road.embed', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Curve Rush', embed: 'https://game.azgame.io/curve-rush/', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Traffic Road', embed: 'https://azgames.io/traffic-road.embed', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Italian Brainrot Clicker 2', embed: 'https://game.azgame.io/italian-brainrot-clicker-2/', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Undead Corridor', embed: 'https://gamea.azgame.io/undead-corridor/', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Golf Hit', embed: 'https://game.azgame.io/golf-hit/', image: 'https://img.itch.zone/aW1nLzE0MjU0NzYwLmpwZw==/347x500/5%2B%2B%2B%2B%2B.jpg' },
+    { title: 'Geometry Dash Lite', embed: 'https://www.rocketgames.io/game/geometry-dash-lite', image: 'https://www.onlinegames.io/media/posts/510/responsive/Geometry-Dash-FreezeNova-xs.jpg', customEmbed: true, customHTML: '<!DOCTYPE html><html lang="en-US"><head><title>Geometry Dash</title><meta name="description" content="Play Geometry Dash Lite Online For Free"><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><base href="https://www.rocketgames.io/game/geometry-dash-lite/"><style>html{box-sizing:border-box;}*,*:before,*:after{box-sizing:inherit;}body{margin:0;background-image:linear-gradient(rgb(0,0,0),rgb(0,102,255));overflow:hidden;}#gameContainer{width:100vw;height:100vh;}canvas{width:100%;height:100%;display:block;}canvas+*{z-index:2;}.logo{position:absolute;display:block;max-width:100vw;max-height:70vh;top:300px;}.pos_progress{position:absolute;bottom:15%;width:100%;}.progress{margin:1.5em auto;max-width:436px;height:auto;display:none;position:relative;}.full{width:97%;transform-origin:top left;}.box_process{width:100%;}.process{width:98%;}.progress .posfull,.progress .posbox{position:absolute;display:flex;align-items:center;justify-content:center;}.progress .posfull{top:8px;z-index:1;}.progress .posbox{top:0;z-index:2;}#loader{position:absolute;left:0;top:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background-image:linear-gradient(rgb(0,0,0),rgb(0,102,255));}.spinner,.spinner:after{display:none;border-radius:50%;width:5em;height:5em;}.spinner{margin:10px;font-size:10px;position:relative;text-indent:-9999em;border-top:1.1em solid rgba(255,255,255,0.2);border-right:1.1em solid rgba(255,255,255,0.2);border-bottom:1.1em solid rgba(255,255,255,0.2);border-left:1.1em solid #ffffff;transform:translateZ(0);animation:spinner-spin 1.1s infinite linear;}@keyframes spinner-spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style></head><body><div id="gameContainer" style="padding:0px;margin:0px;border:0px;position:relative;background:rgb(35,31,32);"><canvas id="#canvas" width="1031" height="580" style="width:100%;height:100%;cursor:default;"></canvas></div><div id="loader" style="display:none;"><img class="logo" src="image/loading.png?v=1"><div class="spinner" style="display:none;"></div><div class="pos_progress"><div class="progress" style="display:block;"><div class="posfull"><img class="full" src="image/process_bar_back.png" style="transform:scaleX(1);"></div><div class="posbox"><img class="box_process" src="image/process_bar_front.png"></div></div></div></div><script src="Build/UnityLoader.js"></script><script>var gameInstance=UnityLoader.instantiate("gameContainer","Build/GeometryDashLite.json",{onProgress:UnityProgress});function UnityProgress(gameInstance,progress){if(!gameInstance.Module){return;}const loader=document.querySelector("#loader");if(!gameInstance.progress){const progress=document.querySelector("#loader .progress");progress.style.display="block";gameInstance.progress=progress.querySelector(".full");loader.querySelector(".spinner").style.display="none";}gameInstance.progress.style.transform=`scaleX(${progress})`;if(progress===1&&!gameInstance.removeTimeout){gameInstance.removeTimeout=setTimeout(function(){loader.style.display="none";},2000);}}</script><script>document.addEventListener("DOMContentLoaded",function(){let buttondiv=document.getElementsByTagName("button");for(let i=0;i<buttondiv.length;i++){if(buttondiv[i].innerHTML=="OK"){buttondiv[i].click();}}setTimeout(function(){let buttonok=document.getElementsByTagName("button");for(let i=0;i<buttondiv.length;i++){if(buttonok[i].innerHTML=="OK"){buttonok[i].click();}}},1000);});</script></body></html>' }
 ];
 
 
@@ -6508,11 +6508,19 @@ function filterGamesByCategory(category) {
             .filter(game => game.clicks > 0) // Only show games that have been clicked
             .sort((a, b) => b.trendingScore - a.trendingScore);
     } else if (category === 'new') {
-        // Sort by first clicked (newest first)
-        filtered.sort((a, b) => b.firstClicked - a.firstClicked);
-        // Show games added in last 7 days
-        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-        filtered = filtered.filter(game => game.firstClicked > sevenDaysAgo || game.clicks === 0);
+        // Show games that haven't been clicked yet (newly added) or recently added
+        // Prioritize games with 0 clicks (newest additions)
+        filtered = filtered.filter(game => game.clicks === 0);
+        // Sort by array index (newer games are at the end of the array)
+        const gameIndexMap = new Map();
+        gameSites.forEach((site, index) => {
+            gameIndexMap.set(site.embed, index);
+        });
+        filtered.sort((a, b) => {
+            const indexA = gameIndexMap.get(a.embed) || 0;
+            const indexB = gameIndexMap.get(b.embed) || 0;
+            return indexB - indexA; // Newer games (higher index) first
+        });
     }
     
     renderGamesGrid(filtered);
@@ -6595,6 +6603,9 @@ function loadGameSite(embed, title) {
     const embeddedSite = document.getElementById('embeddedSite');
     const currentSiteTitle = document.getElementById('currentSiteTitle');
     
+    // Find the game in the array to check for custom embed
+    const game = gameSites.find(site => site.embed === embed);
+    
     // Track the game click
     trackGameClick(embed, title);
     
@@ -6610,8 +6621,16 @@ function loadGameSite(embed, title) {
             currentSiteTitle.textContent = title;
         }
         
-        // Load site
-        embeddedSite.src = embed;
+        // Load site - use custom HTML if available, otherwise use src
+        if (game && game.customEmbed && game.customHTML) {
+            // Use srcdoc for custom HTML with base tag for relative URLs
+            embeddedSite.src = '';
+            embeddedSite.srcdoc = game.customHTML;
+        } else {
+            // Use regular src
+            embeddedSite.srcdoc = '';
+            embeddedSite.src = embed;
+        }
         
         // Scroll to iframe
         setTimeout(() => {
