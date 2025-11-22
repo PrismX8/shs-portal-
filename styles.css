@@ -2200,11 +2200,31 @@ header small {
     padding: 12px 18px;
     border-radius: 12px;
     font-weight: 600;
-    display: flex;
+    display: none;
     align-items: center;
     gap: 10px;
     box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
     animation: voicePulse 1s ease-in-out infinite;
+    z-index: 10002;
+}
+
+.fullscreen-voice-indicator {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(220, 53, 69, 0.95);
+    backdrop-filter: blur(20px);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 16px;
+    font-weight: 600;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 12px 35px rgba(220, 53, 69, 0.5);
+    animation: voicePulse 1s ease-in-out infinite;
+    z-index: 20001;
 }
 
 @keyframes voicePulse {
