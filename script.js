@@ -375,6 +375,98 @@ function showStep(step){
 function startTutorial(){ currentStep=0; showStep(currentStep); localStorage.setItem('tutorialShown','true'); }
 document.getElementById('replayTutorialBtn').addEventListener('click', startTutorial);
 
+// YouTube Video Watcher
+const youtubeWatcherBtn = document.getElementById('youtubeWatcherBtn');
+const youtubeWatcherModal = document.getElementById('youtubeWatcherModal');
+const closeYoutubeWatcherBtn = document.getElementById('closeYoutubeWatcherBtn');
+const youtubeUrlInput = document.getElementById('youtubeUrlInput');
+const watchYoutubeBtn = document.getElementById('watchYoutubeBtn');
+
+// Open YouTube Watcher Modal
+youtubeWatcherBtn?.addEventListener('click', () => {
+    youtubeWatcherModal.style.display = 'flex';
+    youtubeUrlInput.focus();
+});
+
+// Close YouTube Watcher Modal
+closeYoutubeWatcherBtn?.addEventListener('click', () => {
+    youtubeWatcherModal.style.display = 'none';
+    youtubeUrlInput.value = '';
+});
+
+youtubeWatcherModal?.addEventListener('click', (e) => {
+    if (e.target === youtubeWatcherModal) {
+        youtubeWatcherModal.style.display = 'none';
+        youtubeUrlInput.value = '';
+    }
+});
+
+// Watch YouTube Video
+watchYoutubeBtn?.addEventListener('click', () => {
+    let url = youtubeUrlInput.value.trim();
+    
+    if (!url) {
+        youtubeUrlInput.style.borderColor = '#ff0000';
+        youtubeUrlInput.placeholder = 'Please enter a YouTube URL';
+        setTimeout(() => {
+            youtubeUrlInput.style.borderColor = 'rgba(255, 0, 0, 0.3)';
+            youtubeUrlInput.placeholder = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        }, 2000);
+        return;
+    }
+    
+    // Extract video ID from various YouTube URL formats
+    let videoId = '';
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+        /youtube\.com\/.*[?&]v=([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            videoId = match[1];
+            break;
+        }
+    }
+    
+    if (!videoId) {
+        youtubeUrlInput.style.borderColor = '#ff0000';
+        youtubeUrlInput.value = '';
+        youtubeUrlInput.placeholder = 'Invalid YouTube URL. Please try again.';
+        setTimeout(() => {
+            youtubeUrlInput.style.borderColor = 'rgba(255, 0, 0, 0.3)';
+            youtubeUrlInput.placeholder = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        }, 2000);
+        return;
+    }
+    
+    // Transform URL: yout-ube.com instead of youtube.com
+    const unblockedUrl = `https://www.yout-ube.com/watch?v=${videoId}`;
+    
+    // Open in new tab
+    window.open(unblockedUrl, '_blank');
+    
+    // Close modal and reset
+    youtubeWatcherModal.style.display = 'none';
+    youtubeUrlInput.value = '';
+    
+    // Show success feedback
+    watchYoutubeBtn.innerHTML = '<i class="fas fa-check" style="margin-right:10px;"></i>Opening...';
+    watchYoutubeBtn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+    setTimeout(() => {
+        watchYoutubeBtn.innerHTML = '<i class="fas fa-play" style="margin-right:10px;"></i>Watch Video';
+        watchYoutubeBtn.style.background = 'linear-gradient(135deg, #ff0000, #cc0000)';
+    }, 1500);
+});
+
+// Allow Enter key to submit
+youtubeUrlInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        watchYoutubeBtn.click();
+    }
+});
+
 // ---------------- Popup ----------------
 const popup = document.getElementById('fullscreenPopup');
 // Close when clicking the X button
@@ -3502,18 +3594,32 @@ const Utils = {
 
 // Professional Error Handler (only show notifications for critical errors)
 window.addEventListener('error', (event) => {
-    // Ignore errors from extensions, scripts from other origins, or expected errors
+    // Ignore errors from extensions, scripts from other origins, AdSense, or expected errors
     if (event.filename && (
         event.filename.includes('chrome-extension://') ||
         event.filename.includes('moz-extension://') ||
         event.filename.includes('safari-extension://') ||
+        event.filename.includes('googlesyndication.com') ||
+        event.filename.includes('doubleclick.net') ||
+        event.filename.includes('googleads.g.doubleclick.net') ||
         event.message && (
             event.message.includes('Script error') ||
             event.message.includes('Non-Error promise rejection') ||
-            event.message.includes('ResizeObserver loop')
+            event.message.includes('ResizeObserver loop') ||
+            event.message.includes('Failed to fetch') ||
+            event.message.includes('ERR_BLOCKED_BY_CLIENT')
         )
     )) {
         return; // Ignore these common non-critical errors
+    }
+    
+    // Ignore AdSense-related errors by URL
+    if (event.target && event.target.src && (
+        event.target.src.includes('googlesyndication.com') ||
+        event.target.src.includes('doubleclick.net') ||
+        event.target.src.includes('googleads.g.doubleclick.net')
+    )) {
+        return; // Ignore AdSense resource loading errors
     }
     
     // Only show notification for actual JavaScript errors
@@ -3526,6 +3632,24 @@ window.addEventListener('error', (event) => {
 });
 
 window.addEventListener('unhandledrejection', (event) => {
+    // Ignore AdSense-related promise rejections
+    if (event.reason && (
+        (typeof event.reason === 'string' && (
+            event.reason.includes('googlesyndication.com') ||
+            event.reason.includes('doubleclick.net') ||
+            event.reason.includes('ERR_BLOCKED_BY_CLIENT') ||
+            event.reason.includes('Failed to fetch')
+        )) ||
+        (event.reason && event.reason.message && (
+            event.reason.message.includes('googlesyndication.com') ||
+            event.reason.message.includes('doubleclick.net') ||
+            event.reason.message.includes('ERR_BLOCKED_BY_CLIENT') ||
+            event.reason.message.includes('Failed to fetch')
+        ))
+    )) {
+        return; // Ignore AdSense-related promise rejections
+    }
+    
     // Ignore common promise rejections that are expected
     const reason = event.reason;
     if (reason && (
@@ -3545,8 +3669,25 @@ window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
     // Don't show notification for every rejection - only log it
     // Uncomment the line below if you want to see rejection notifications
-    // notifications.show('Something went wrong. Please try again.', 'error');
 });
+
+// Suppress AdSense-related console errors (they're expected and harmless)
+const originalConsoleError = console.error;
+console.error = function(...args) {
+    const message = args.join(' ');
+    // Filter out AdSense-related errors
+    if (message.includes('googlesyndication.com') ||
+        message.includes('doubleclick.net') ||
+        message.includes('googleads.g.doubleclick.net') ||
+        message.includes('ERR_BLOCKED_BY_CLIENT') ||
+        message.includes('Failed to fetch') && message.includes('ads')) {
+        return; // Suppress these errors
+    }
+    originalConsoleError.apply(console, args);
+};
+
+// Note: AdSense errors in the Network tab are normal and expected
+// They occur when ad blockers block ad requests or when the site isn't fully approved yet
 
 // Professional Performance Monitor
 class PerformanceMonitor {
