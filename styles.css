@@ -1480,6 +1480,14 @@ header small {
     z-index: 10;
 }
 
+#adminBtn {
+    left: 20px;
+}
+
+#replayTutorialBtn {
+    right: 20px;
+}
+
 .header-icon-btn i,
 #adminBtn i,
 #replayTutorialBtn i {
