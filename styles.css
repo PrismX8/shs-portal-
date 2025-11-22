@@ -3306,7 +3306,7 @@ input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
 [title]:hover::after {
     content: attr(title);
     position: absolute;
-    bottom: 125%;
+    bottom: calc(100% + 12px);
     left: 50%;
     transform: translateX(-50%);
     padding: 10px 16px;
@@ -3329,13 +3329,14 @@ input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
 [title]:hover::before {
     content: '';
     position: absolute;
-    bottom: 115%;
+    bottom: calc(100% + 2px);
     left: 50%;
     transform: translateX(-50%);
-    border: 6px solid transparent;
+    border: 8px solid transparent;
     border-top-color: rgba(255, 215, 0, 0.4);
     z-index: 100001;
     pointer-events: none;
+    filter: drop-shadow(0 -2px 4px rgba(0, 0, 0, 0.3));
 }
 
 @keyframes tooltipFadeIn {
@@ -3354,7 +3355,7 @@ input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
 .chat-toolbar-btn[title]:hover::after,
 .fullscreen-chat-btn[title]:hover::after,
 .fullscreen-chat-toolbar-btn[title]:hover::after {
-    bottom: 130%;
+    bottom: calc(100% + 12px);
 }
 
 .chat-header-btn[title]:hover::after,
@@ -3369,6 +3370,7 @@ input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
     left: auto;
     right: 12px;
     transform: translateX(0);
+    bottom: calc(100% + 2px);
 }
 
 /* ================= Chat Name/Color Popup ================= */
