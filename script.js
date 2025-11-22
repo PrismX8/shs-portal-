@@ -6197,7 +6197,17 @@ const gameSites = [
     { title: 'Dino Chaos Idle', embed: 'https://www.onlinegames.io/games/2023/unity3/dino-chaos-idle/index.html', image: 'https://www.onlinegames.io/media/posts/614/responsive/Dino-Chaos-Idle-xs.jpg' },
     { title: 'Kick the Pirate', embed: 'https://cloud.onlinegames.io/games/2022/construct/92/kick-the-pirate/index-og.html', image: 'https://www.onlinegames.io/media/posts/1012/responsive/Kick-The-Pirate-xs.jpg' },
     { title: 'Hill Climb Cars', embed: 'https://www.onlinegames.io/games/2021/3/hill-climb-cars/index.html', image: 'https://www.onlinegames.io/media/posts/648/responsive/Hill-Climb-Cars-xs.jpg' },
-    { title: 'Run 3 Space', embed: 'https://www.onlinegames.io/games/2023/construct/192/run-3-space/index.html', image: 'https://www.onlinegames.io/media/posts/579/responsive/Run-3-Space-xs.jpg' }
+    { title: 'Run 3 Space', embed: 'https://www.onlinegames.io/games/2023/construct/192/run-3-space/index.html', image: 'https://www.onlinegames.io/media/posts/579/responsive/Run-3-Space-xs.jpg' },
+    { title: 'Slope Rider', embed: 'https://game.azgame.io/slope-rider/', image: 'https://via.placeholder.com/300x300/FFD700/000000?text=Slope+Rider' },
+    { title: 'Wacky Flip', embed: 'https://game.azgame.io/wacky-flip/', image: 'https://via.placeholder.com/300x300/FF6B6B/FFFFFF?text=Wacky+Flip' },
+    { title: 'Steal Brainrots', embed: 'https://gamea.azgame.io/steal-brainrots/', image: 'https://via.placeholder.com/300x300/4ECDC4/FFFFFF?text=Steal+Brainrots' },
+    { title: 'Escape Road', embed: 'https://azgames.io/escape-road.embed', image: 'https://via.placeholder.com/300x300/95E1D3/FFFFFF?text=Escape+Road' },
+    { title: 'Curve Rush', embed: 'https://game.azgame.io/curve-rush/', image: 'https://via.placeholder.com/300x300/F38181/FFFFFF?text=Curve+Rush' },
+    { title: 'Traffic Road', embed: 'https://azgames.io/traffic-road.embed', image: 'https://via.placeholder.com/300x300/AA96DA/FFFFFF?text=Traffic+Road' },
+    { title: 'Italian Brainrot Clicker 2', embed: 'https://game.azgame.io/italian-brainrot-clicker-2/', image: 'https://via.placeholder.com/300x300/FCBAD3/FFFFFF?text=Italian+Clicker' },
+    { title: 'Undead Corridor', embed: 'https://gamea.azgame.io/undead-corridor/', image: 'https://via.placeholder.com/300x300/2D3436/FFFFFF?text=Undead+Corridor' },
+    { title: 'Golf Hit', embed: 'https://game.azgame.io/golf-hit/', image: 'https://via.placeholder.com/300x300/00B894/FFFFFF?text=Golf+Hit' },
+    { title: 'Geometry Dash Lite', embed: 'https://www.rocketgames.io/game/geometry-dash-lite', image: 'https://www.onlinegames.io/media/posts/510/responsive/Geometry-Dash-FreezeNova-xs.jpg' }
 ];
 
 
@@ -6513,6 +6523,25 @@ function initGameStats() {
     if (!db) return;
     
     const statsRef = db.ref('gameStats');
+    
+    // Make Slope Rider popular by initializing it with clicks
+    const slopeRiderEmbed = 'https://game.azgame.io/slope-rider/';
+    const slopeRiderKey = getGameKey(slopeRiderEmbed);
+    if (slopeRiderKey) {
+        const slopeRiderRef = db.ref(`gameStats/${slopeRiderKey}`);
+        slopeRiderRef.once('value', (snapshot) => {
+            if (!snapshot.exists()) {
+                // Initialize with popularity boost
+                slopeRiderRef.set({
+                    embed: slopeRiderEmbed,
+                    title: 'Slope Rider',
+                    clicks: 50,
+                    lastClicked: Date.now(),
+                    firstClicked: Date.now() - (7 * 24 * 60 * 60 * 1000) // 7 days ago to make it seem established
+                });
+            }
+        });
+    }
     
     // Listen for real-time updates
     gameStatsListener = statsRef.on('value', (snapshot) => {
