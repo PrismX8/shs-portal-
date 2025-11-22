@@ -1882,20 +1882,28 @@ header small {
     transform: translateY(-5px) scale(0.98);
 }
 
-.game-cube-icon {
-    font-size: 48px;
+.game-cube-image {
+    width: 100%;
+    min-height: 150px;
+    height: 150px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 12px;
     filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.4));
     transition: all 0.3s ease;
-    animation: iconFloat 3s ease-in-out infinite;
+    animation: imageFloat 3s ease-in-out infinite;
+    margin-bottom: 10px;
+    flex-shrink: 0;
 }
 
-@keyframes iconFloat {
+@keyframes imageFloat {
     0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-8px) scale(1.05); }
+    50% { transform: translateY(-5px) scale(1.02); }
 }
 
-.game-cube:hover .game-cube-icon {
-    transform: scale(1.2) rotate(5deg);
+.game-cube:hover .game-cube-image {
+    transform: scale(1.1);
     filter: drop-shadow(0 6px 12px rgba(255, 215, 0, 0.6));
 }
 
