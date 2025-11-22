@@ -2982,8 +2982,11 @@ if (loadingParticlesContainer) {
     
     // Handle window resize
     window.addEventListener('resize', () => {
-        particleCanvas.width = window.innerWidth;
-        particleCanvas.height = window.innerHeight;
+        // Check if canvas still exists (loading screen might have been removed)
+        if (particleCanvas && particleCanvas.parentNode) {
+            particleCanvas.width = window.innerWidth;
+            particleCanvas.height = window.innerHeight;
+        }
     });
 }
 
