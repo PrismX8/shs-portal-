@@ -3435,7 +3435,15 @@ friendsModal?.addEventListener('click', (e) => {
 });
 
 friendsBtn?.addEventListener('click', () => {
+    if (!friendsModal) {
+        console.error('Friends modal not found');
+        return;
+    }
+    
     friendsModal.style.display = 'block';
+    friendsModal.style.visibility = 'visible';
+    friendsModal.style.opacity = '1';
+    
     // Load fresh data
     if (db) {
         Promise.all([
@@ -3445,18 +3453,48 @@ friendsBtn?.addEventListener('click', () => {
             profilesCache = profilesSnap.val() || {};
             onlineCache = onlineSnap.val() || {};
             cacheTimestamp = Date.now();
+        }).catch(err => {
+            console.error('Error loading friends data:', err);
         });
     }
+    
     // Activate friends tab by default
-    document.querySelector('.friends-tab-btn[data-tab="friends"]')?.click();
+    setTimeout(() => {
+        const friendsTab = document.querySelector('.friends-tab-btn[data-tab="friends"]');
+        if (friendsTab) {
+            friendsTab.click();
+        } else {
+            // Fallback: manually activate
+            renderFriendsTab();
+        }
+    }, 100);
 });
 
 // Initialize on page load
 if (db) {
     initFriendsSystem();
 } else {
+    // Initialize even without db for UI
     updateAllDisplays();
 }
+
+// Ensure friends modal is accessible and background effects are running
+document.addEventListener('DOMContentLoaded', () => {
+    // Verify friends modal exists
+    const modal = document.getElementById('friendsModal');
+    if (!modal) {
+        console.error('Friends modal not found in DOM');
+    }
+    
+    // Ensure background effects are initialized
+    setTimeout(() => {
+        const starCanvas = document.getElementById('starCanvas');
+        const interactiveBg = document.getElementById('interactiveBackground');
+        if (!starCanvas || !interactiveBg) {
+            console.warn('Background canvas elements not found');
+        }
+    }, 500);
+});
 
 // ---------------- Polls/Voting ----------------
 const pollsBtn = document.getElementById('pollsBtn');
