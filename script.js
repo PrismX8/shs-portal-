@@ -6201,12 +6201,55 @@ const gameSites = [
 ];
 
 
-// Initialize games grid
-function initGamesGrid() {
+// Fuzzy search function for game titles
+function fuzzySearch(query, text) {
+    if (!query) return true;
+    query = query.toLowerCase();
+    text = text.toLowerCase();
+    
+    // Exact match gets highest priority
+    if (text.includes(query)) return true;
+    
+    // Check if all characters in query appear in order in text
+    let queryIndex = 0;
+    for (let i = 0; i < text.length && queryIndex < query.length; i++) {
+        if (text[i] === query[queryIndex]) {
+            queryIndex++;
+        }
+    }
+    return queryIndex === query.length;
+}
+
+// Calculate similarity score for sorting
+function calculateSimilarity(query, text) {
+    query = query.toLowerCase();
+    text = text.toLowerCase();
+    
+    if (text === query) return 100;
+    if (text.startsWith(query)) return 90;
+    if (text.includes(query)) return 80;
+    
+    // Count matching characters in order
+    let matches = 0;
+    let queryIndex = 0;
+    for (let i = 0; i < text.length && queryIndex < query.length; i++) {
+        if (text[i] === query[queryIndex]) {
+            matches++;
+            queryIndex++;
+        }
+    }
+    
+    return (matches / query.length) * 70;
+}
+
+// Filter and render games
+function renderGamesGrid(filteredGames = null) {
     const gamesGrid = document.getElementById('gamesGrid');
     if (!gamesGrid) return;
     
-    gamesGrid.innerHTML = gameSites.map((site, index) => {
+    const gamesToRender = filteredGames || gameSites;
+    
+    gamesGrid.innerHTML = gamesToRender.map((site, index) => {
         const title = site.title || 'Game';
         const embed = site.embed || '';
         const image = site.image || '';
@@ -6230,6 +6273,66 @@ function initGamesGrid() {
             loadGameSite(embed, title);
         });
     });
+}
+
+// Initialize games grid
+function initGamesGrid() {
+    renderGamesGrid();
+    
+    // Setup search functionality
+    const searchInput = document.getElementById('gamesSearchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    
+    if (searchInput) {
+        // Debounce search for real-time updates
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = e.target.value.trim();
+                
+                if (query === '') {
+                    renderGamesGrid();
+                    if (clearSearchBtn) clearSearchBtn.style.display = 'none';
+                    return;
+                }
+                
+                // Show clear button
+                if (clearSearchBtn) clearSearchBtn.style.display = 'flex';
+                
+                // Filter games using fuzzy search
+                const filtered = gameSites
+                    .map(site => ({
+                        ...site,
+                        similarity: calculateSimilarity(query, site.title || '')
+                    }))
+                    .filter(site => fuzzySearch(query, site.title || ''))
+                    .sort((a, b) => b.similarity - a.similarity);
+                
+                renderGamesGrid(filtered);
+            }, 150);
+        });
+    }
+    
+    // Clear search button
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.dispatchEvent(new Event('input'));
+            }
+            clearSearchBtn.style.display = 'none';
+        });
+    }
+    
+    // Default game button
+    const defaultGameBtn = document.getElementById('defaultGameBtn');
+    if (defaultGameBtn) {
+        defaultGameBtn.addEventListener('click', () => {
+            // Load slope game - using a common slope game URL
+            loadGameSite('https://slope-game.com/', 'Slope - Default Game');
+        });
+    }
 }
 
 // Load game site in iframe
