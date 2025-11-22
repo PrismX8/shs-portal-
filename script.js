@@ -164,9 +164,10 @@ if (!cookieConsent.consented) {
     }, 1000);
 }
 
-// Generate a unique visitor ID (persistent across sessions) - only if analytics is enabled
+// Generate a unique visitor ID (persistent across sessions)
+let visitorId;
 if (cookieConsent.analytics || cookieConsent.essential) {
-    let visitorId = localStorage.getItem('visitorId');
+    visitorId = localStorage.getItem('visitorId');
     if (!visitorId) {
         visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
         localStorage.setItem('visitorId', visitorId);
@@ -174,13 +175,13 @@ if (cookieConsent.analytics || cookieConsent.essential) {
     console.log('Visitor ID:', visitorId);
 } else {
     // Use session-only ID if analytics not consented
-    let visitorId = sessionStorage.getItem('visitorId');
+    visitorId = sessionStorage.getItem('visitorId');
     if (!visitorId) {
         visitorId = 'visitor_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
         sessionStorage.setItem('visitorId', visitorId);
     }
 }
-if (db) {
+if (db && visitorId) {
   const onlineRef = db.ref('online/' + visitorId);
   onlineRef.set({online:true, timestamp: Date.now()}).catch(error => {
     console.error('Error setting online status:', error);
@@ -9062,16 +9063,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Cookie Consent Functions
 function saveCookieConsent() {
+    console.log('Saving cookie consent:', cookieConsent);
     cookieConsent.consented = true;
     localStorage.setItem('cookieConsent', JSON.stringify(cookieConsent));
+    console.log('Cookie consent saved to localStorage');
     
     // Hide banner
     const banner = document.getElementById('cookieConsentBanner');
     if (banner) {
+        console.log('Hiding cookie banner');
         banner.style.animation = 'slideDown 0.3s ease-out';
         setTimeout(() => {
             banner.style.display = 'none';
         }, 300);
+    } else {
+        console.error('Cookie banner not found!');
     }
 }
 
@@ -9085,6 +9091,7 @@ function updateCookieToggleUI() {
 
 // Initialize cookie consent event listeners
 function initCookieConsent() {
+    console.log('Initializing cookie consent...');
     const cookieSettingsBtn = document.getElementById('cookieSettingsBtn');
     const closeCookieSettingsBtn = document.getElementById('closeCookieSettingsBtn');
     const acceptAllCookiesBtn = document.getElementById('acceptAllCookiesBtn');
@@ -9095,17 +9102,34 @@ function initCookieConsent() {
     const marketingCookiesToggle = document.getElementById('marketingCookiesToggle');
     const cookieSettingsModal = document.getElementById('cookieSettingsModal');
 
+    console.log('Cookie buttons found:', {
+        cookieSettingsBtn: !!cookieSettingsBtn,
+        acceptAllCookiesBtn: !!acceptAllCookiesBtn,
+        rejectOptionalCookiesBtn: !!rejectOptionalCookiesBtn,
+        cookieSettingsModal: !!cookieSettingsModal
+    });
+
     // Open cookie settings
     if (cookieSettingsBtn) {
-        cookieSettingsBtn.addEventListener('click', () => {
+        cookieSettingsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Cookie settings button clicked');
             updateCookieToggleUI();
-            if (cookieSettingsModal) cookieSettingsModal.style.display = 'flex';
+            if (cookieSettingsModal) {
+                cookieSettingsModal.style.display = 'flex';
+            }
         });
+    } else {
+        console.error('cookieSettingsBtn not found!');
     }
 
     // Close cookie settings
     if (closeCookieSettingsBtn) {
-        closeCookieSettingsBtn.addEventListener('click', () => {
+        closeCookieSettingsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Close cookie settings clicked');
             if (cookieSettingsModal) cookieSettingsModal.style.display = 'none';
         });
     }
@@ -9120,15 +9144,23 @@ function initCookieConsent() {
 
     // Accept all cookies
     if (acceptAllCookiesBtn) {
-        acceptAllCookiesBtn.addEventListener('click', () => {
+        acceptAllCookiesBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Accept all cookies clicked');
             cookieConsent.analytics = true;
             cookieConsent.marketing = true;
             saveCookieConsent();
         });
+    } else {
+        console.error('acceptAllCookiesBtn not found!');
     }
 
     if (acceptAllInSettingsBtn) {
-        acceptAllInSettingsBtn.addEventListener('click', () => {
+        acceptAllInSettingsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Accept all in settings clicked');
             cookieConsent.analytics = true;
             cookieConsent.marketing = true;
             updateCookieToggleUI();
@@ -9139,16 +9171,24 @@ function initCookieConsent() {
 
     // Reject optional cookies (essential only)
     if (rejectOptionalCookiesBtn) {
-        rejectOptionalCookiesBtn.addEventListener('click', () => {
+        rejectOptionalCookiesBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Reject optional cookies clicked');
             cookieConsent.analytics = false;
             cookieConsent.marketing = false;
             saveCookieConsent();
         });
+    } else {
+        console.error('rejectOptionalCookiesBtn not found!');
     }
 
     // Save preferences
     if (saveCookiePreferencesBtn) {
-        saveCookiePreferencesBtn.addEventListener('click', () => {
+        saveCookiePreferencesBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Save preferences clicked');
             cookieConsent.analytics = analyticsCookiesToggle?.checked || false;
             cookieConsent.marketing = marketingCookiesToggle?.checked || false;
             saveCookieConsent();
