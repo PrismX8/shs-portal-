@@ -1,25 +1,79 @@
 
 (function() {
+  let progress = 0;
+  const progressFill = document.querySelector('.loading-progress-fill');
+  const progressPercentage = document.querySelector('.loading-percentage');
+  const loadingStatus = document.querySelector('.loading-status');
+  
+  const statusMessages = [
+      'Initializing...',
+      'Loading assets...',
+      'Connecting to server...',
+      'Preparing interface...',
+      'Almost ready...'
+  ];
+  
+  function updateProgress(targetProgress, statusIndex) {
+      const startProgress = progress;
+      const duration = 800;
+      const startTime = performance.now();
+      
+      function animate(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progressRatio = Math.min(elapsed / duration, 1);
+          const easeProgress = 1 - Math.pow(1 - progressRatio, 3); // Ease out cubic
+          
+          progress = startProgress + (targetProgress - startProgress) * easeProgress;
+          
+          if (progressFill) {
+              progressFill.style.width = progress + '%';
+          }
+          if (progressPercentage) {
+              progressPercentage.textContent = Math.round(progress) + '%';
+          }
+          
+          if (progressRatio < 1) {
+              requestAnimationFrame(animate);
+          }
+      }
+      
+      requestAnimationFrame(animate);
+      
+      if (loadingStatus && statusIndex < statusMessages.length) {
+          loadingStatus.textContent = statusMessages[statusIndex];
+      }
+  }
+  
   function removeLoadingScreen() {
       const introScreen = document.getElementById('introScreen');
       if (introScreen) {
-          introScreen.style.transition = 'opacity 0.5s ease';
+          introScreen.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
           introScreen.style.opacity = '0';
+          introScreen.style.transform = 'scale(0.95)';
           setTimeout(function() {
               if (introScreen && introScreen.parentNode) {
                   introScreen.remove();
               }
-          }, 500);
+          }, 600);
       }
   }
+  
+  // Animate progress
+  setTimeout(() => updateProgress(20, 0), 200);
+  setTimeout(() => updateProgress(45, 1), 600);
+  setTimeout(() => updateProgress(70, 2), 1200);
+  setTimeout(() => updateProgress(90, 3), 1800);
+  setTimeout(() => updateProgress(100, 4), 2400);
+  
+  // Remove loading screen
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      setTimeout(removeLoadingScreen, 1500);
+      setTimeout(removeLoadingScreen, 2800);
   } else {
       window.addEventListener('load', function() {
-          setTimeout(removeLoadingScreen, 1500);
+          setTimeout(removeLoadingScreen, 2800);
       });
   }
-  setTimeout(removeLoadingScreen, 3000);
+  setTimeout(removeLoadingScreen, 3500);
 })();
 const firebaseConfig = {
 apiKey: "AIzaSyBn1apVsFafY2-2a2QPeslX17XR0gWE9qs",
@@ -1083,9 +1137,9 @@ function initStars() {
   const starCtx = starCanvas.getContext('2d');
   let particles = [];
   const maxConnectionDistance = 150;
-  const mouseRepelRadius = 120;
-  const mouseRepelStrength = 0.8;
-  const particleCount = 80;
+  const mouseRepelRadius = 150;
+  const mouseRepelStrength = 2.5;
+  const particleCount = 250;
 
   function resizeStarCanvas() {
       starCanvas.width = window.innerWidth;
@@ -1103,8 +1157,8 @@ function initStars() {
       return {
           x: Math.random() * starCanvas.width,
           y: Math.random() * starCanvas.height,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: (Math.random() - 0.5) * 1.2,
           radius: Math.random() * 1.5 + 0.5,
           connections: [] // Array of particle indices this particle is connected to
       };
@@ -1114,14 +1168,14 @@ function initStars() {
       for (let i = 0; i < particles.length; i++) {
           const p = particles[i];
           
-          // Mouse repulsion
+          // Mouse repulsion - stronger and more noticeable
           const dx = mouseX - p.x;
           const dy = mouseY - p.y;
           const distSq = dx * dx + dy * dy;
           const dist = Math.sqrt(distSq);
           
           if (dist < mouseRepelRadius && dist > 0) {
-              const force = (mouseRepelRadius - dist) / mouseRepelRadius;
+              const force = Math.pow((mouseRepelRadius - dist) / mouseRepelRadius, 1.5);
               const angle = Math.atan2(dy, dx);
               p.vx -= Math.cos(angle) * force * mouseRepelStrength;
               p.vy -= Math.sin(angle) * force * mouseRepelStrength;
@@ -1131,18 +1185,30 @@ function initStars() {
           p.x += p.vx;
           p.y += p.vy;
           
-          // Boundary wrapping
-          if (p.x < 0) p.x = starCanvas.width;
-          if (p.x > starCanvas.width) p.x = 0;
-          if (p.y < 0) p.y = starCanvas.height;
-          if (p.y > starCanvas.height) p.y = 0;
+          // Boundary bouncing
+          if (p.x < p.radius) {
+              p.x = p.radius;
+              p.vx = -p.vx * 0.8; // Bounce with some energy loss
+          }
+          if (p.x > starCanvas.width - p.radius) {
+              p.x = starCanvas.width - p.radius;
+              p.vx = -p.vx * 0.8;
+          }
+          if (p.y < p.radius) {
+              p.y = p.radius;
+              p.vy = -p.vy * 0.8;
+          }
+          if (p.y > starCanvas.height - p.radius) {
+              p.y = starCanvas.height - p.radius;
+              p.vy = -p.vy * 0.8;
+          }
           
           // Friction
-          p.vx *= 0.98;
-          p.vy *= 0.98;
+          p.vx *= 0.99;
+          p.vy *= 0.99;
           
           // Limit velocity
-          const maxVel = 2;
+          const maxVel = 4;
           const vel = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
           if (vel > maxVel) {
               p.vx = (p.vx / vel) * maxVel;
