@@ -98,9 +98,102 @@ header small {
     transition: all 0.3s ease;
     color: #FFD700;
     display: flex;
+}
+
+/* YouTube Watcher Button */
+#youtubeWatcherBtn {
+    position: absolute;
+    top: 50%;
+    right: 60px;
+    transform: translateY(-50%);
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 0, 0, 0.4);
+    background: linear-gradient(135deg, rgba(255, 0, 0, 0.15), rgba(200, 0, 0, 0.1));
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #ff0000;
+    display: flex;
     align-items: center;
     justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(255, 0, 0, 0.2);
     backdrop-filter: blur(10px);
+}
+
+#youtubeWatcherBtn:hover {
+    background: linear-gradient(135deg, rgba(255, 0, 0, 0.25), rgba(200, 0, 0, 0.2));
+    border-color: rgba(255, 0, 0, 0.6);
+    transform: translateY(-50%) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 0, 0, 0.4);
+}
+
+#youtubeWatcherBtn .youtube-btn-text {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 8px rgba(255, 0, 0, 0.3);
+    white-space: nowrap;
+}
+
+#youtubeWatcherBtn i {
+    filter: drop-shadow(0 2px 4px rgba(255, 0, 0, 0.4));
+}
+
+/* YouTube Modal Styles */
+.youtube-modal-content {
+    animation: modalSlideIn 0.4s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+#youtubeUrlInput:focus {
+    outline: none;
+    border-color: rgba(255, 0, 0, 0.6);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+}
+
+#watchYoutubeBtn:hover {
+    background: linear-gradient(135deg, #cc0000, #990000);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(255, 0, 0, 0.6);
+}
+
+#watchYoutubeBtn:active {
+    transform: translateY(0);
+}
+
+#closeYoutubeWatcherBtn:hover {
+    background: rgba(255, 0, 0, 0.3);
+    border-color: rgba(255, 0, 0, 0.5);
+    transform: rotate(90deg);
+}
+
+@media (max-width: 768px) {
+    #youtubeWatcherBtn {
+        right: 50px;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    #youtubeWatcherBtn .youtube-btn-text {
+        display: none;
+    }
+    
+    #youtubeWatcherBtn i {
+        margin-right: 0;
+    }
 }
 
 #adminBtn {
