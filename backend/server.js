@@ -1,3 +1,4 @@
+const cors = require('cors');
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -70,12 +71,29 @@ const io = socketIo(server, {
 
 // Middleware
 app.use(cors({
-  origin: (origin, callback) => {
-    if (isOriginAllowed(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true
+  origin: [
+    'https://shsportal.vercel.app',
+    'https://shs-portal-qa1n1tfz2-prism-xs-projects.vercel.app',
+    'http://127.0.0.1:5501',
+    'http://localhost:5501',
+    'https://127.0.0.1:5501',
+    'https://localhost:5501',
+    'http://127.0.0.1:8080',
+    'http://localhost:8080',
+    'https://127.0.0.1:8080',
+    'https://localhost:8080',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    'https://127.0.0.1:3000',
+    'https://localhost:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
