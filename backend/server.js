@@ -31,6 +31,7 @@ const server = http.createServer(app);
 // Allowed origins
 const allowedOrigins = [
   'https://shsportal.vercel.app',
+  'https://shs-portal-qa1n1tfz2-prism-xs-projects.vercel.app',
   'http://127.0.0.1:5501',
   'http://localhost:5501',
   'https://127.0.0.1:5501',
