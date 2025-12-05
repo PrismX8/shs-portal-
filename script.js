@@ -5972,7 +5972,12 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
             const strokes = await backendApi.getCanvasStrokes();
             const latest = Array.isArray(strokes) ? strokes : [];
             const latestMap = {};
-            latest.forEach(s => { if (s.id && s.strokeData) latestMap[s.id] = s.strokeData; });
+            latest.forEach(s => {
+              if (s && s.id) {
+                const data = s.strokeData || s;
+                latestMap[s.id] = data;
+              }
+            });
             const latestIds = Object.keys(latestMap);
             const existingIds = Object.keys(strokesCache);
             // If stroke count shrank, clear and redraw everything
