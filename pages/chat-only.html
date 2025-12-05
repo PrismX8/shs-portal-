@@ -237,6 +237,18 @@
         return `<a href="${safe}" target="_blank" rel="noopener noreferrer" style="color:#FFD700;">${safe}</a>`;
       });
     }
+
+    async function deleteMessage(msgId, wrapEl) {
+      const base = window.BACKEND_API_URL.replace(/\/api$/, '');
+      try {
+        const resp = await fetch(`${base}/api/admin/chat/${encodeURIComponent(msgId)}?password=${encodeURIComponent('12344321')}`, { method: 'DELETE' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if (wrapEl) wrapEl.remove();
+      } catch (err) {
+        console.error('Failed to delete message', err);
+        alert('Delete failed');
+      }
+    }
     function renderMessage(msg) {
       if (loadingOverlay) loadingOverlay.style.display = 'none';
       const wrap = document.createElement('div');
@@ -247,14 +259,23 @@
         avatarDiv.style.backgroundImage = `url(${msg.avatarImage})`;
         avatarDiv.textContent = '';
       } else {
-        avatarDiv.textContent = msg.avatar || '👤';
+        avatarDiv.textContent = msg.avatar || '??';
       }
       const body = document.createElement('div');
       body.className = 'msg-body';
       const meta = document.createElement('div');
       meta.className = 'meta';
       const t = msg.time ? new Date(msg.time).toLocaleTimeString() : '';
-      meta.textContent = `${msg.user || 'User'} • ${t}`;
+      meta.textContent = `${msg.user || 'User'} ? ${t}`;
+      if (msg.id) {
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.style.cssText = 'margin-left:10px; padding:4px 8px; border:1px solid rgba(255,215,0,0.4); background:rgba(255,215,0,0.12); color:#FFD700; border-radius:6px; cursor:pointer; font-size:11px;';
+        delBtn.addEventListener('click', () => {
+          if (confirm('Delete this message?')) deleteMessage(msg.id, wrap);
+        });
+        meta.appendChild(delBtn);
+      }
       const text = document.createElement('div');
       text.className = 'text';
       text.innerHTML = linkify(msg.text || '');

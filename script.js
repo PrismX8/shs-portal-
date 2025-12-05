@@ -1619,7 +1619,7 @@ let counterPollInterval = null;
       leftDiv.style.overflowWrap='break-word';
       if(msg.uid === visitorId && snapshot){
           const delBtn = document.createElement('button');
-          delBtn.innerHTML='✖';
+          delBtn.innerHTML='?-';
         delBtn.className = 'chat-delete-btn';
         delBtn.style.cssText = 'border:none; background:rgba(255,0,0,0.2); color:#ff4444; cursor:pointer; padding:4px 8px; border-radius:4px; font-size:14px; margin-left:8px; transition:all 0.2s;';
         delBtn.title='Delete message';
@@ -1642,6 +1642,35 @@ let counterPollInterval = null;
             delBtn.style.background = 'rgba(255,0,0,0.2)';
             delBtn.style.transform = 'scale(1)';
         };
+          leftDiv.appendChild(delBtn);
+      } else if (msgId) {
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.style.cssText = 'border:none; background:rgba(255,0,0,0.2); color:#ff4444; cursor:pointer; padding:4px 8px; border-radius:4px; font-size:12px; margin-left:8px; transition:all 0.2s;';
+          delBtn.title='Delete message';
+          delBtn.onclick = (e) => {
+              e.stopPropagation();
+              if(confirm('Delete this message?')) {
+                  const base = BACKEND_API_URL.replace(/\/api$/, '');
+                  fetch(`${base}/api/admin/chat/${encodeURIComponent(msgId)}?password=${encodeURIComponent(ADMIN_PASSWORD)}`, { method:'DELETE' })
+                    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); })
+                    .then(() => msgDiv.remove())
+                    .catch(err => {
+                        console.error('Error deleting message:', err);
+                        if (typeof notifications !== 'undefined' && notifications.show) {
+                            notifications.show('Error deleting message', 'error', 2000);
+                        } else { alert('Error deleting message'); }
+                    });
+              }
+          };
+          delBtn.onmouseenter = () => {
+              delBtn.style.background = 'rgba(255,0,0,0.35)';
+              delBtn.style.transform = 'scale(1.05)';
+          };
+          delBtn.onmouseleave = () => {
+              delBtn.style.background = 'rgba(255,0,0,0.2)';
+              delBtn.style.transform = 'scale(1)';
+          };
           leftDiv.appendChild(delBtn);
       }
   
