@@ -1735,9 +1735,11 @@ let counterPollInterval = null;
 
   async function pollBackendChat(initial = false) {
       if (!backendApi || !chatMessages) return;
+      // Skip polling if chat UI is hidden/minimized
+      if (chatMessages.offsetParent === null) return;
       try {
           // Fetch from public endpoint
-          const recent = await backendApi.getRecentChat(100, true);
+          const recent = await backendApi.getRecentChat(50, true);
           if (!Array.isArray(recent)) {
               console.warn('Chat response was not an array:', recent);
               throw new Error('Invalid chat response');
@@ -1829,7 +1831,7 @@ let counterPollInterval = null;
       // Start polling loop
       pollBackendChat(true);
       stopBackendChatPolling();
-      chatPollInterval = setInterval(() => pollBackendChat(false), 2000);
+      chatPollInterval = setInterval(() => pollBackendChat(false), 8000);
   }
 
 async function ensureBackendChatConnection() {
