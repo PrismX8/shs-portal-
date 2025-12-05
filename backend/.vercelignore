@@ -2,6 +2,7 @@
 firebase_export.json
 firebase_export_clean.json
 *.log
+data/database.db
 
 # Exclude development files
 .DS_Store
