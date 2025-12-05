@@ -2442,7 +2442,7 @@ async function ensureBackendChatConnection() {
   }
   
   // Load chat messages for admin panel (including voice messages)
-  function loadAdminChatMessages() {
+  async function loadAdminChatMessages() {
     const adminChatList = document.getElementById('adminChatList');
     if(!adminChatList) return;
     
@@ -2453,80 +2453,95 @@ async function ensureBackendChatConnection() {
     const offsetInput = document.getElementById('adminChatOffset');
     const limit = limitInput ? limitInput.value || 50 : 50;
     const offset = offsetInput ? offsetInput.value || 0 : 0;
-    const url = `${baseUrl}/admin/chat?password=${encodeURIComponent(ADMIN_PASSWORD)}&limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`;
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        const msgs = data.messages || data || [];
-        if (!msgs.length) {
-          adminChatList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">No messages found.</p>';
-          return;
-        }
-        adminChatList.innerHTML = msgs.map((m) => {
-          const time = new Date(m.time || Date.now()).toLocaleString();
-          const preview = m.text ? (m.text.length > 80 ? m.text.slice(0,80)+'…' : m.text) : '(no text)';
-          const uid = (m.uid||'').toString();
-          return `
-            <div style="padding:10px; margin-bottom:8px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid rgba(255,215,0,0.5); display:flex; gap:10px;">
-              <div style="flex:1; min-width:0;">
-                <div style="font-weight:600; color:#FFD700; margin-bottom:4px; font-size:13px;">
-                  ${m.user || 'Unknown'}
-                </div>
-                <div style="font-size:12px; color:rgba(255,255,255,0.85); margin-bottom:4px; word-break:break-word;">${preview}</div>
-                <div style="font-size:10px; color:rgba(255,255,255,0.5);">${time} • UID: ${uid.slice(0,8)}…</div>
-              </div>
-              <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
-                <button class="adminBanUserBtn" data-uid="${uid}" data-username="${m.user || 'Unknown'}" style="padding:6px 10px; background:#ff6b00; border:1px solid #ff6b00; color:#ffffff; border-radius:6px; cursor:pointer; font-size:12px;">Ban</button>
-                <button class="adminDeleteChatBtn" data-msg-id="${m.id}" style="padding:6px 10px; background:#dc3545; border:1px solid #dc3545; color:#ffffff; border-radius:6px; cursor:pointer; font-size:12px;">Delete</button>
-              </div>
-            </div>
-          `;
-        }).join('');
+    const adminUrl = `${baseUrl}/admin/chat?password=${encodeURIComponent(ADMIN_PASSWORD)}&limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`;
+    const fallbackUrl = `${baseUrl}/chat/recent?limit=${encodeURIComponent(limit)}&images=1`;
 
-        // wire buttons
-        adminChatList.querySelectorAll('.adminDeleteChatBtn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const msgId = btn.dataset.msgId;
-            if (!msgId) return;
-            if (!confirm('Delete this message?')) return;
-            fetch(`${baseUrl}/admin/chat/${encodeURIComponent(msgId)}`, {
-              method: 'DELETE',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ password: ADMIN_PASSWORD })
-            }).then(r => r.json()).then(() => {
-              loadAdminChatMessages();
-            }).catch(err => {
-              console.error(err);
-              alert('Failed to delete message');
-            });
-          });
-        });
-
-        adminChatList.querySelectorAll('.adminBanUserBtn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const uid = btn.dataset.uid;
-            const uname = btn.dataset.username || 'User';
-            if (!uid) return;
-            const reason = prompt(`Ban ${uname}? Enter reason (optional):`, 'Admin action');
-            if (reason === null) return;
-            fetch(`${baseUrl}/admin/ban`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ password: ADMIN_PASSWORD, uid, username: uname, reason })
-            }).then(r => r.json()).then(() => {
-              alert(`${uname} banned`);
-              loadAdminChatMessages();
-            }).catch(err => {
-              console.error(err);
-              alert('Failed to ban user');
-            });
-          });
-        });
-      })
-      .catch(err => {
-        console.error('Error loading messages:', err);
+    let msgs = [];
+    try {
+      const adminRes = await fetch(adminUrl, { headers: { 'x-admin-password': ADMIN_PASSWORD } });
+      if (!adminRes.ok) throw new Error(`Admin endpoint ${adminRes.status}`);
+      const adminData = await adminRes.json();
+      msgs = adminData.messages || adminData || [];
+      if (!Array.isArray(msgs)) throw new Error('Unexpected admin payload');
+    } catch (adminErr) {
+      console.warn('Admin endpoint failed, falling back to public chat feed', adminErr);
+      try {
+        const fallbackRes = await fetch(fallbackUrl);
+        if (!fallbackRes.ok) throw new Error(`Fallback endpoint ${fallbackRes.status}`);
+        const fallbackData = await fallbackRes.json();
+        msgs = Array.isArray(fallbackData) ? fallbackData : (fallbackData.messages || []);
+        if (!Array.isArray(msgs)) throw new Error('Unexpected fallback payload');
+      } catch (fallbackErr) {
+        console.error('Error loading messages:', fallbackErr);
         adminChatList.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading messages.</p>';
+        return;
+      }
+    }
+
+    if (!msgs.length) {
+      adminChatList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">No messages found.</p>';
+      return;
+    }
+
+    adminChatList.innerHTML = msgs.map((m) => {
+      const time = new Date(m.time || Date.now()).toLocaleString();
+      const preview = m.text ? (m.text.length > 80 ? m.text.slice(0,80)+'…' : m.text) : '(no text)';
+      const uid = (m.uid||'').toString();
+      return `
+        <div style="padding:10px; margin-bottom:8px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid rgba(255,215,0,0.5); display:flex; gap:10px;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:600; color:#FFD700; margin-bottom:4px; font-size:13px;">
+              ${m.user || 'Unknown'}
+            </div>
+            <div style="font-size:12px; color:rgba(255,255,255,0.85); margin-bottom:4px; word-break:break-word;">${preview}</div>
+            <div style="font-size:10px; color:rgba(255,255,255,0.5);">${time} • UID: ${uid.slice(0,8)}…</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+            <button class="adminBanUserBtn" data-uid="${uid}" data-username="${m.user || 'Unknown'}" style="padding:6px 10px; background:#ff6b00; border:1px solid #ff6b00; color:#ffffff; border-radius:6px; cursor:pointer; font-size:12px;">Ban</button>
+            <button class="adminDeleteChatBtn" data-msg-id="${m.id}" style="padding:6px 10px; background:#dc3545; border:1px solid #dc3545; color:#ffffff; border-radius:6px; cursor:pointer; font-size:12px;">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    adminChatList.querySelectorAll('.adminDeleteChatBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const msgId = btn.dataset.msgId;
+        if (!msgId) return;
+        if (!confirm('Delete this message?')) return;
+        fetch(`${baseUrl}/admin/chat/${encodeURIComponent(msgId)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: ADMIN_PASSWORD })
+        }).then(r => r.json()).then(() => {
+          loadAdminChatMessages();
+        }).catch(err => {
+          console.error(err);
+          alert('Failed to delete message');
+        });
       });
+    });
+
+    adminChatList.querySelectorAll('.adminBanUserBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const uid = btn.dataset.uid;
+        const uname = btn.dataset.username || 'User';
+        if (!uid) return;
+        const reason = prompt(`Ban ${uname}? Enter reason (optional):`, 'Admin action');
+        if (reason === null) return;
+        fetch(`${baseUrl}/admin/ban`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: ADMIN_PASSWORD, uid, username: uname, reason })
+        }).then(r => r.json()).then(() => {
+          alert(`${uname} banned`);
+          loadAdminChatMessages();
+        }).catch(err => {
+          console.error(err);
+          alert('Failed to ban user');
+        });
+      });
+    });
   }
   
   logoutAdminBtn?.addEventListener('click', () => {
