@@ -88,17 +88,17 @@
   };
   const IS_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
-  const BACKEND_API_URL = 
+  const BACKEND_API_URL =
     window.BACKEND_API_URL ||
     (IS_LOCAL
       ? "http://localhost:3000/api"
-      : "https://shs-portal-production.up.railway.app/api");
+      : "https://shs-portal-backend-c2eg4u309-prism-xs-projects.vercel.app/api");
 
   const BACKEND_WS_URL =
     window.BACKEND_WS_URL ||
     (IS_LOCAL
       ? "ws://localhost:3000"
-      : "wss://shs-portal-production.up.railway.app");
+      : "wss://shs-portal-backend-c2eg4u309-prism-xs-projects.vercel.app");
 
   const backendApiAvailable = typeof BackendAPI !== 'undefined';
   let backendApi = backendApiAvailable ? new BackendAPI({ apiUrl: BACKEND_API_URL, wsUrl: BACKEND_WS_URL }) : null;
