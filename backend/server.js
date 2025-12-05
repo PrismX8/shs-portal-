@@ -130,6 +130,9 @@ if (uploadsDir) {
 // Pass io instance to friends routes for socket events
 friendsRoutes.setIO(io);
 
+// Export app for Vercel serverless
+module.exports = app;
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({ 
