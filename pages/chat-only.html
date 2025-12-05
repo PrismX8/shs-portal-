@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fullscreen Chat</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    body {
+      margin: 0;
+      background: #05060a;
+      color: #f8f9ff;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 0;
+    }
+.chat-shell {
+      width: 100%;
+      height: 100vh;
+      background: radial-gradient(circle at 10% 20%, rgba(255,215,0,0.08), transparent 25%),
+                  radial-gradient(circle at 80% 0%, rgba(255,140,0,0.08), transparent 20%),
+                  #0b0c12;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .chat-header-mini {
+      padding: 16px 24px;
+      border-bottom: 2px solid rgba(255,215,0,0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,165,0,0.12));
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+    .chat-messages-mini {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      scroll-behavior: smooth;
+    }
+    .chat-toolbar {
+      padding: 10px 24px 4px;
+      border-top: 2px solid rgba(255,215,0,0.2);
+      display: flex;
+      gap: 10px;
+      background: rgba(255,255,255,0.02);
+    }
+    .chat-toolbar button {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,215,0,0.25);
+      background: rgba(255,215,0,0.12);
+      color: #FFD700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .chat-toolbar button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(255,215,0,0.15);
+    }
+    .chat-input-row {
+      padding: 8px 24px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: rgba(255,255,255,0.02);
+    }
+    .chat-input-row input {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,215,0,0.2);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      font-size: 14px;
+    }
+    .chat-input-row button {
+      border: none;
+      background: rgba(255,215,0,0.2);
+      color: #FFD700;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .chat-input-row button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(255,215,0,0.15);
+    }
+    .msg {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .msg-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #0b0c12;
+      overflow: hidden;
+      background-size: cover;
+      background-position: center;
+    }
+    .msg-body {
+      flex: 1;
+      min-width: 0;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,215,0,0.08);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .msg-body .meta {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 2px;
+    }
+    .msg-body .text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #f8f9ff;
+    }
+    .typing {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      padding: 4px 18px 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-shell">
+    <div id="chatLoading" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(5,6,12,0.9); color:#FFD700; font-size:26px; font-weight:800; z-index:5;">Loading chat messages...</div>
+    <div class="chat-header-mini">
+      <div>
+        <div style="font-weight:700; font-size:18px;">Chat</div>
+        <div id="status" style="font-size:12px; color:rgba(255,255,255,0.7);">Connecting…</div>
+      </div>
+    </div>
+    <div id="messages" class="chat-messages-mini"></div>
+    <div id="typing" class="typing"></div>
+    <div class="chat-toolbar">
+      <button id="emojiBtn" title="Emoji">😊</button>
+      <button id="attachBtn" title="Attach">📎</button>
+    </div>
+    <div class="chat-input-row">
+      <input id="chatInput" placeholder="Type a message..." />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <input type="file" id="attachFile" style="display:none" />
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="../backend-api-client.js"></script>
+  <script>
+    // Config
+    window.BACKEND_API_URL = window.BACKEND_API_URL || 'https://shs-portal-production.up.railway.app/api';
+    window.BACKEND_WS_URL = window.BACKEND_WS_URL || 'https://shs-portal-production.up.railway.app';
+
+    const api = new BackendAPI({ apiUrl: window.BACKEND_API_URL, wsUrl: window.BACKEND_WS_URL });
+  const messagesEl = document.getElementById('messages');
+  const typingEl = document.getElementById('typing');
+  const statusEl = document.getElementById('status');
+  const inputEl = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const attachBtn = document.getElementById('attachBtn');
+  const attachFile = document.getElementById('attachFile');
+  const emojiBtn = document.getElementById('emojiBtn');
+  const loadingOverlay = document.getElementById('chatLoading');
+  const emojiSet = ("😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 🤥 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 🤤 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 ☠️ 💩 🤡 👹 👺 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 🤲 👐 🙌 👏 🤝 👍 👎 👊 ✊ 🤛 🤜 🤞 ✌️ 🤟 🤘 👌 🤌 🤏 👈 👉 👆 👇 ☝️ ✋ 🖐 🖖 🤙 🤚 👋 🤟 💪 🦵 🦶 👂 👃 🧠 🫀 🫁 🦷 🦴 👀 👁 👅 👄 💋 🩸 🧠").split(' ');
+
+  // Build emoji panel (hidden by default)
+  const emojiPanel = document.createElement('div');
+  emojiPanel.id = 'emojiPanel';
+  emojiPanel.style.cssText = 'display:none; position:absolute; bottom:110px; right:24px; width:240px; max-height:260px; overflow-y:auto; background:rgba(15,15,25,0.98); border:1px solid rgba(255,215,0,0.2); border-radius:12px; padding:10px; z-index:10; display:grid; grid-template-columns:repeat(auto-fill, minmax(42px,1fr)); gap:6px;';
+  emojiPanel.style.display = 'none';
+  document.querySelector('.chat-shell').appendChild(emojiPanel);
+
+    function populateEmojiPanel(target) {
+      if (!target) return;
+      target.innerHTML = '';
+      emojiSet.forEach(e => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = e;
+        btn.style.cssText = 'border:none; background:transparent; font-size:20px; cursor:pointer; padding:6px; border-radius:10px;';
+        btn.addEventListener('click', () => {
+          inputEl.value += e + ' ';
+          inputEl.focus();
+          target.style.display = 'none';
+        });
+        btn.addEventListener('mouseenter', () => btn.style.background = 'rgba(255,215,0,0.2)');
+        btn.addEventListener('mouseleave', () => btn.style.background = 'transparent');
+        target.appendChild(btn);
+      });
+    }
+    populateEmojiPanel(emojiPanel);
+
+    function loadProfile() {
+      let profile = {};
+      try {
+        profile = JSON.parse(localStorage.getItem('userProfile')) || {};
+      } catch (_) {}
+      const created = !!profile.profileCreated;
+      return {
+        username: created ? (profile.username || 'User') : (localStorage.getItem('username') || 'Guest'),
+        color: created ? (profile.favoriteColor || '#FFD700') : (localStorage.getItem('userColor') || '#FFD700'),
+        avatar: created ? (profile.avatar || '👤') : (localStorage.getItem('userAvatar') || '👤'),
+        avatarImage: created ? (profile.avatarImage || null) : (localStorage.getItem('userAvatarImage') || null)
+      };
+    }
+
+    let { username, color: userColor, avatar, avatarImage } = loadProfile();
+
+    function escapeHtml(str='') {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+    function linkify(text='') {
+      const escaped = escapeHtml(text);
+      return escaped.replace(/(https?:\/\/[^\s]+)/g, url => {
+        const safe = url.replace(/\"/g,'%22');
+        return `<a href="${safe}" target="_blank" rel="noopener noreferrer" style="color:#FFD700;">${safe}</a>`;
+      });
+    }
+    function renderMessage(msg) {
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
+      const wrap = document.createElement('div');
+      wrap.className = 'msg';
+      const avatarDiv = document.createElement('div');
+      avatarDiv.className = 'msg-avatar';
+      if (msg.avatarImage) {
+        avatarDiv.style.backgroundImage = `url(${msg.avatarImage})`;
+        avatarDiv.textContent = '';
+      } else {
+        avatarDiv.textContent = msg.avatar || '👤';
+      }
+      const body = document.createElement('div');
+      body.className = 'msg-body';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const t = msg.time ? new Date(msg.time).toLocaleTimeString() : '';
+      meta.textContent = `${msg.user || 'User'} • ${t}`;
+      const text = document.createElement('div');
+      text.className = 'text';
+      text.innerHTML = linkify(msg.text || '');
+      body.appendChild(meta);
+      body.appendChild(text);
+      wrap.appendChild(avatarDiv);
+      wrap.appendChild(body);
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    inputEl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+      else api.setTypingIndicator();
+    });
+    inputEl.addEventListener('blur', () => api.stopTypingIndicator());
+
+    attachBtn.addEventListener('click', () => {
+      attachFile.value = '';
+      attachFile.click();
+    });
+    emojiBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      emojiPanel.style.display = emojiPanel.style.display === 'none' ? 'grid' : 'none';
+    });
+
+    attachFile.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        await new Promise((res, rej) => { reader.onload = res; reader.onerror = rej; });
+        const dataUrl = reader.result;
+        let uploaded = null;
+        try {
+          const resp = await api.uploadAttachment(file.name, dataUrl);
+          uploaded = resp?.url || resp?.path || null;
+        } catch {}
+        const link = uploaded || dataUrl;
+        api.sendChatMessage({
+          user: username,
+          text: `📎 Attachment (${file.name}): ${link}`,
+          color: userColor,
+          time: Date.now(),
+          uid: api.visitorId,
+          avatar,
+          avatarImage
+        });
+      } catch (err) {
+        console.error('Upload failed', err);
+        alert('Upload failed. Try again.');
+      }
+    });
+
+    async function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      api.sendChatMessage({
+        user: username,
+        text,
+        color: userColor,
+        time: Date.now(),
+        uid: api.visitorId,
+        avatar,
+        avatarImage
+      });
+      inputEl.value = '';
+    }
+
+    function initListeners() {
+      api.on('chat:initial', (msgs) => {
+        messagesEl.innerHTML = '';
+        if (Array.isArray(msgs) && msgs.length) {
+          msgs.forEach(renderMessage);
+          if (loadingOverlay) loadingOverlay.style.display = 'none';
+        } else {
+          if (loadingOverlay) loadingOverlay.textContent = 'No messages yet';
+          setTimeout(() => { if (loadingOverlay) loadingOverlay.style.display = 'none'; }, 800);
+        }
+      });
+      api.on('chat:message', (msg) => renderMessage(msg));
+      api.on('chat:typing', (users) => {
+        typingEl.textContent = users && users.length ? `${users.join(', ')} typing...` : '';
+      });
+      api.on('chat:error', (err) => {
+        console.error(err);
+        alert(err?.message || 'Chat error');
+      });
+    }
+
+    async function bootstrap() {
+      try {
+        // Refresh profile in case user opened this after changing it
+        ({ username, color: userColor, avatar, avatarImage } = loadProfile());
+        initListeners();
+        setStatus('Connecting…');
+        await api.connect(username);
+        setStatus('Connected');
+      } catch (err) {
+        console.error(err);
+        setStatus('Offline');
+        alert('Backend unavailable. Please retry.');
+      } finally {
+        // wait for socket initial; handled in listeners
+      }
+    }
+
+    bootstrap();
+
+    document.addEventListener('click', (e) => {
+      if (emojiPanel.style.display !== 'none') {
+        const isBtn = e.target === emojiBtn;
+        const inside = emojiPanel.contains(e.target);
+        if (!isBtn && !inside) emojiPanel.style.display = 'none';
+      }
+    });
+  </script>

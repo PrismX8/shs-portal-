@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Recently Played - Global Game Hall</title>
+<meta name="description" content="View your recently played games on Global Game Hall.">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
+     crossorigin="anonymous"></script>
+<link rel="icon" type="image/png" href="../images/logoshs.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body class="all-games-page">
+<div id="visitorCounter" class="animate-on-scroll">
+    <span id="onlineCount">0</span> Online | <span id="totalCount">0</span> Total Visitors
+    <span class="status-indicator online" style="margin-left: 12px;"></span>
+</div>
+<header class="glass-effect animate-on-scroll">
+        <button id="adminBtn" title="Admin Panel" class="header-icon-btn hover-lift">
+            <i class="fas fa-cog"></i>
+        </button>
+        <button id="creditsBtn" title="Credits" class="header-icon-btn hover-lift">
+            <i class="fas fa-star"></i>
+        </button>
+        <div class="headerContent">
+            <div class="header-logo-container">
+                <a href="../index.html" style="text-decoration: none;">
+                    <img src="../images/logoshs.png" alt="Global Game Hall Logo" class="header-logo">
+                </a>
+        </div>
+            <div class="headerText gradient-text">
+            Global Game Hall
+        </div>
+            <div class="header-actions">
+                <a href="../index.html" class="header-action-btn hover-lift" title="Back to Homepage">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="blog/blog.html" class="header-action-btn hover-lift" title="Blog">
+                    <i class="fas fa-newspaper"></i>
+                    <span>Blog</span>
+                </a>
+                <button id="youtubeWatcherBtn" title="Watch YouTube Videos Privately" class="youtube-watcher-btn hover-lift">
+                    <i class="fab fa-youtube"></i>
+                    <span class="youtube-btn-text">Watch YouTube Privately</span>
+                </button>
+            </div>
+        </div>
+        <button id="notificationBellBtn" title="Notifications" class="header-icon-btn hover-lift notification-bell-btn">
+            <i class="fas fa-bell"></i>
+            <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
+        </button>
+    </header>
+
+<!-- Category Side Panel -->
+<div id="categorySidePanel" class="category-side-panel">
+        <div class="category-panel-header">
+            <h3><i class="fas fa-th"></i> Categories</h3>
+            <button id="closeCategoryPanel" class="close-panel-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="category-panel-content">
+            <a href="../index.html" class="category-panel-item">
+                <i class="fas fa-home"></i>
+                <div class="category-panel-label-container">Home</div>
+            </a>
+            <a href="recently-played.html" class="category-panel-item active">
+                <i class="fas fa-history"></i>
+                <div class="category-panel-label-container">Recently played</div>
+            </a>
+            <a href="games-new.html" class="category-panel-item">
+                <i class="fas fa-star"></i>
+                <div class="category-panel-label-container">New</div>
+            </a>
+            <a href="all-games.html?category=popular" class="category-panel-item">
+                <i class="fas fa-fire"></i>
+                <div class="category-panel-label-container">Popular Games</div>
+            </a>
+            <a href="all-games.html?category=trending" class="category-panel-item">
+                <i class="fas fa-chart-line"></i>
+                <div class="category-panel-label-container">Updated</div>
+            </a>
+            <hr class="category-panel-divider">
+            <a href="all-games.html?category=racing" class="category-panel-item">
+                <i class="fas fa-car"></i>
+                <div class="category-panel-label-container">Racing</div>
+            </a>
+            <a href="all-games.html?category=action" class="category-panel-item">
+                <i class="fas fa-crosshairs"></i>
+                <div class="category-panel-label-container">Action</div>
+            </a>
+            <a href="all-games.html?category=puzzle" class="category-panel-item">
+                <i class="fas fa-puzzle-piece"></i>
+                <div class="category-panel-label-container">Puzzle</div>
+            </a>
+            <a href="all-games.html?category=shooting" class="category-panel-item">
+                <i class="fas fa-gun"></i>
+                <div class="category-panel-label-container">Shooting</div>
+            </a>
+            <a href="all-games.html" class="category-panel-item">
+                <i class="fas fa-th"></i>
+                <div class="category-panel-label-container">All Games</div>
+            </a>
+        </div>
+        <hr class="category-panel-divider">
+        <div class="category-panel-nav">
+            <button id="sidePanelDrawingBtn" class="category-panel-item">
+                <i class="fas fa-paint-brush"></i>
+                <div class="category-panel-label-container">Drawing</div>
+            </button>
+            <button id="sidePanelChatBtn" class="category-panel-item">
+                <i class="fas fa-comments"></i>
+                <div class="category-panel-label-container">Chat</div>
+            </button>
+            <a href="#" id="sidePanelProfileBtn" class="category-panel-item">
+                <i class="fas fa-user-circle"></i>
+                <div class="category-panel-label-container">Profile</div>
+            </a>
+            <a href="#" id="sidePanelLeaderboardBtn" class="category-panel-item">
+                <i class="fas fa-medal"></i>
+                <div class="category-panel-label-container">Leaderboard</div>
+            </a>
+            <a href="#" id="sidePanelFriendsBtn" class="category-panel-item">
+                <i class="fas fa-user-friends"></i>
+                <div class="category-panel-label-container">Friends</div>
+            </a>
+            <hr class="category-panel-divider">
+            <a href="about-us.html" class="category-panel-item">
+                <i class="fas fa-info-circle"></i>
+                <div class="category-panel-label-container">About</div>
+            </a>
+            <a href="contact-us.html" class="category-panel-item">
+                <i class="fas fa-envelope"></i>
+                <div class="category-panel-label-container">Contact</div>
+            </a>
+            <a href="privacy-policy.html" class="category-panel-item">
+                <i class="fas fa-shield-alt"></i>
+                <div class="category-panel-label-container">Privacy</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="page-container">
+    <div id="gamesGridContainer" class="games-grid-container">
+        <div class="games-grid-header">
+            <h2><i class="fas fa-clock"></i> Recently Played</h2>
+            <p>Games you've played recently will appear here</p>
+        </div>
+        <div class="games-search-container">
+            <div class="games-search-wrapper">
+                <i class="fas fa-search games-search-icon"></i>
+                <input type="text" id="gamesSearchInput" class="games-search-input" placeholder="Search recently played games...">
+                <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div id="recentlyPlayedGrid" class="games-grid">
+            <!-- Recently played games will be loaded here -->
+        </div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-clock"></i>
+            <h3>No Recently Played Games</h3>
+            <p>Start playing games to see them here!</p>
+            <a href="../index.html" class="view-all-games-btn">
+                <i class="fas fa-gamepad"></i> Browse Games
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+    // Load recently played games when page loads
+    function loadRecentlyPlayedGames() {
+        const recentlyPlayedGrid = document.getElementById('recentlyPlayedGrid');
+        const emptyState = document.getElementById('emptyState');
+        
+        if (!recentlyPlayedGrid || !emptyState) return;
+        
+        // Get recently played from localStorage
+        let recentlyPlayed = [];
+        try {
+            const stored = localStorage.getItem('recentlyPlayedGames');
+            if (stored) {
+                recentlyPlayed = JSON.parse(stored);
+            }
+        } catch (e) {
+            console.error('Error loading recently played:', e);
+        }
+        
+        if (!Array.isArray(recentlyPlayed) || recentlyPlayed.length === 0) {
+            recentlyPlayedGrid.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
+        }
+        
+        emptyState.style.display = 'none';
+        recentlyPlayedGrid.style.display = 'grid';
+        
+        // Reverse to show most recent first (copy array to avoid mutating original)
+        const reversed = [...recentlyPlayed].reverse();
+        
+        // Wait for script.js functions to be available
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds max wait
+        
+        function tryRender() {
+            attempts++;
+            
+            if (typeof createBigGameCubeHTML === 'function') {
+                // Render manually with available functions
+                const getGameKeyFunc = typeof getGameKey === 'function' ? getGameKey : (embed) => {
+                    return embed.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+                };
+                const ratingData = typeof gameRatings !== 'undefined' ? gameRatings : {};
+                
+                // Fix image paths for games
+                const gamesWithFixedImages = reversed.map(game => {
+                    if (game.image && !game.image.startsWith('http') && !game.image.startsWith('/') && !game.image.startsWith('../')) {
+                        return { ...game, image: '../' + game.image };
+                    }
+                    return game;
+                });
+                
+                recentlyPlayedGrid.innerHTML = gamesWithFixedImages.map((game, index) => {
+                    const key = getGameKeyFunc(game.embed);
+                    const rating = ratingData[key] || { average: 0, count: 0 };
+                    return createBigGameCubeHTML(game, index, key, rating);
+                }).join('');
+                
+                // Add click handlers
+                recentlyPlayedGrid.querySelectorAll('.big-game-cube').forEach(cube => {
+                    cube.addEventListener('click', (e) => {
+                        const filename = cube.getAttribute('data-filename');
+                        if (filename) {
+                            window.location.href = '../games/' + filename;
+                        }
+                    });
+                });
+            } else if (attempts < maxAttempts) {
+                // Retry after a short delay
+                setTimeout(tryRender, 100);
+            } else {
+                // Fallback: render basic HTML
+                recentlyPlayedGrid.innerHTML = reversed.map((game, index) => {
+                    const filename = `game-${game.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.html`;
+                    // Fix image path - ensure it's absolute or relative to root
+                    let imageUrl = game.image || '';
+                    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/') && !imageUrl.startsWith('../')) {
+                        imageUrl = '../' + imageUrl;
+                    }
+                    return `
+                        <div class="big-game-cube" data-embed="${game.embed}" data-title="${game.title}" data-filename="${filename}" style="background-image: url('${imageUrl}');">
+                            <div class="big-game-cube-gradient-ring"></div>
+                            <div class="big-game-cube-hover-overlay">
+                                <div class="big-game-cube-title-overlay">${game.title}</div>
+                                <div class="big-game-cube-rating-overlay">
+                                    <span>Recently Played</span>
+                                </div>
+                            </div>
+                            <div class="big-game-cube-gold-ring"></div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click handlers
+                recentlyPlayedGrid.querySelectorAll('.big-game-cube').forEach(cube => {
+                    cube.addEventListener('click', (e) => {
+                        const filename = cube.getAttribute('data-filename');
+                        if (filename) {
+                            window.location.href = '../games/' + filename;
+                        }
+                    });
+                });
+            }
+        }
+        
+        tryRender();
+    }
+    
+    // Wait for DOM and script.js to load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(loadRecentlyPlayedGames, 300);
+        });
+    } else {
+        setTimeout(loadRecentlyPlayedGames, 300);
+    }
+</script>
+</body>
+</html>
+

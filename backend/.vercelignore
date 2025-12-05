@@ -1,0 +1,16 @@
+# Exclude large files
+firebase_export.json
+firebase_export_clean.json
+*.log
+
+# Exclude development files
+.DS_Store
+Thumbs.db
+
+# Keep only necessary files for deployment
+!server.js
+!package.json
+!database/
+!routes/
+!socket/
+!scripts/

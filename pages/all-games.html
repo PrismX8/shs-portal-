@@ -1,0 +1,396 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>All Games - Global Game Hall</title>
+<meta name="description" content="Browse all games available on Global Game Hall. Search, filter, and discover your next favorite game.">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
+     crossorigin="anonymous"></script>
+<link rel="icon" type="image/png" href="../images/logoshs.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body class="all-games-page">
+<div id="categorySidePanel" class="category-side-panel">
+    <div class="category-panel-header">
+        <h3><i class="fas fa-th"></i> Categories</h3>
+        <button id="closeCategoryPanel" class="close-panel-btn">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="category-panel-content">
+        <a href="../index.html" class="category-panel-item">
+            <i class="fas fa-home"></i>
+            <div class="category-panel-label-container">Home</div>
+        </a>
+        <a href="recently-played.html" class="category-panel-item">
+            <i class="fas fa-history"></i>
+            <div class="category-panel-label-container">Recently played</div>
+        </a>
+        <a href="games-new.html" class="category-panel-item">
+            <i class="fas fa-star"></i>
+            <div class="category-panel-label-container">New</div>
+        </a>
+        <a href="all-games.html?category=popular" class="category-panel-item">
+            <i class="fas fa-fire"></i>
+            <div class="category-panel-label-container">Popular Games</div>
+        </a>
+        <a href="all-games.html?category=trending" class="category-panel-item">
+            <i class="fas fa-chart-line"></i>
+            <div class="category-panel-label-container">Updated</div>
+        </a>
+        <hr class="category-panel-divider">
+        <a href="all-games.html?category=racing" class="category-panel-item">
+            <i class="fas fa-car"></i>
+            <div class="category-panel-label-container">Racing</div>
+        </a>
+        <a href="all-games.html?category=action" class="category-panel-item">
+            <i class="fas fa-crosshairs"></i>
+            <div class="category-panel-label-container">Action</div>
+        </a>
+        <a href="all-games.html?category=puzzle" class="category-panel-item">
+            <i class="fas fa-puzzle-piece"></i>
+            <div class="category-panel-label-container">Puzzle</div>
+        </a>
+        <a href="all-games.html?category=shooting" class="category-panel-item">
+            <i class="fas fa-gun"></i>
+            <div class="category-panel-label-container">Shooting</div>
+        </a>
+        <a href="all-games.html" class="category-panel-item active">
+            <i class="fas fa-th"></i>
+            <div class="category-panel-label-container">All Games</div>
+        </a>
+    </div>
+    <hr class="category-panel-divider">
+    <div class="category-panel-nav">
+        <button id="sidePanelDrawingBtn" class="category-panel-item">
+            <i class="fas fa-paint-brush"></i>
+            <div class="category-panel-label-container">Drawing</div>
+        </button>
+        <button id="sidePanelChatBtn" class="category-panel-item">
+            <i class="fas fa-comments"></i>
+            <div class="category-panel-label-container">Chat</div>
+        </button>
+        <a href="#" id="sidePanelProfileBtn" class="category-panel-item">
+            <i class="fas fa-user-circle"></i>
+            <div class="category-panel-label-container">Profile</div>
+        </a>
+        <a href="#" id="sidePanelLeaderboardBtn" class="category-panel-item">
+            <i class="fas fa-medal"></i>
+            <div class="category-panel-label-container">Leaderboard</div>
+        </a>
+        <a href="#" id="sidePanelFriendsBtn" class="category-panel-item">
+            <i class="fas fa-user-friends"></i>
+            <div class="category-panel-label-container">Friends</div>
+        </a>
+        <hr class="category-panel-divider">
+        <a href="about-us.html" class="category-panel-item">
+            <i class="fas fa-info-circle"></i>
+            <div class="category-panel-label-container">About</div>
+        </a>
+        <a href="contact-us.html" class="category-panel-item">
+            <i class="fas fa-envelope"></i>
+            <div class="category-panel-label-container">Contact</div>
+        </a>
+        <a href="privacy-policy.html" class="category-panel-item">
+            <i class="fas fa-shield-alt"></i>
+            <div class="category-panel-label-container">Privacy</div>
+        </a>
+    </div>
+</div>
+<div class="page-container">
+    <header class="page-header">
+        <button id="mobileMenuBtn" title="Menu" class="header-icon-btn hover-lift mobile-menu-btn"><i class="fas fa-bars"></i></button>
+        <a href="../index.html" class="back-home-btn">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+        <h1><i class="fas fa-th"></i> All Games</h1>
+    </header>
+
+    <div id="gamesGridContainer" class="games-grid-container">
+        <div class="games-search-container">
+            <div class="games-search-wrapper">
+                <i class="fas fa-search games-search-icon"></i>
+                <input type="text" id="gamesSearchInput" class="games-search-input" placeholder="Search games...">
+                <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="games-categories">
+            <button class="category-btn active" data-category="all">
+                <i class="fas fa-th"></i> All Games
+            </button>
+            <button class="category-btn" data-category="trending">
+                <i class="fas fa-chart-line"></i> Trending
+            </button>
+            <button class="category-btn" data-category="popular">
+                <i class="fas fa-fire"></i> Most Popular
+            </button>
+            <button class="category-btn" data-category="new">
+                <i class="fas fa-star"></i> New
+            </button>
+            <button class="category-btn" data-category="racing">
+                <i class="fas fa-car"></i> Racing
+            </button>
+            <button class="category-btn" data-category="puzzle">
+                <i class="fas fa-puzzle-piece"></i> Puzzle
+            </button>
+            <button class="category-btn" data-category="action">
+                <i class="fas fa-crosshairs"></i> Action
+            </button>
+            <button class="category-btn" data-category="shooting">
+                <i class="fas fa-gun"></i> Shooting
+            </button>
+        </div>
+        <div id="gamesGrid" class="games-grid">
+            <!-- Games will be dynamically loaded here -->
+        </div>
+        <div id="loadMoreContainer" class="load-more-container" style="display: none;">
+            <button id="loadMoreBtn" class="load-more-btn">
+                <i class="fas fa-arrow-down"></i> Load More Games
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ================ User Profile Modal ================ -->
+<div id="profileModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
+  <div style="width:min(600px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
+      <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;"><i class="fas fa-user-circle"></i> <span id="profileModalTitle">My Profile</span></h2>
+      <button id="closeProfileBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
+    </div>
+    <div style="text-align:center; margin-bottom:20px;">
+      <div id="profileAvatarContainer" style="position:relative; display:inline-block; margin-bottom:15px;">
+        <div id="profileAvatar" style="width:120px; height:120px; border-radius:50%; background:linear-gradient(135deg, #FFD700, #FFA500); margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:48px; cursor:pointer; border:3px solid rgba(255,215,0,0.5); background-size:cover; background-position:center; background-repeat:no-repeat; position:relative;" title="Click to upload profile picture">
+          <span id="profileAvatarEmoji" style="display:block;">ðŸ‘¤</span>
+          <button id="removePfpBtn" style="display:none; position:absolute; top:-5px; right:-5px; width:28px; height:28px; border-radius:50%; background:rgba(255,0,0,0.8); border:2px solid rgba(255,255,255,0.9); color:white; cursor:pointer; font-size:14px; font-weight:bold; z-index:10;" title="Remove photo">&times;</button>
+        </div>
+        <input type="file" id="profilePictureInput" accept="image/*" style="display:none;">
+        <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
+          <button id="uploadPfpBtn" style="padding:8px 16px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer; font-size:12px;"><i class="fas fa-camera"></i> Upload Photo</button>
+        </div>
+      </div>
+      <input type="text" id="profileUsername" placeholder="Enter your username..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:10px; font-size:16px; font-weight:500;" required>
+      <input type="text" id="profileStatus" placeholder="Set your status message (optional)..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,215,0,0.2); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.9); margin-bottom:10px;">
+      <div class="profile-customization-panel" style="margin:15px 0 20px 0; padding:18px; border-radius:16px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,215,0,0.08); text-align:left;">
+        <div class="profile-customization-heading" style="margin-bottom:14px;">
+          <h3 style="margin:0; font-size:16px; color:#FFD700;">Make it yours <span style="font-size:12px; color:rgba(255,255,255,0.6); font-weight:400;">(everything below is optional)</span></h3>
+          <p style="margin:6px 0 0 0; font-size:13px; color:rgba(255,255,255,0.65);">Add extra details so friends know a little more about you.</p>
+        </div>
+        <div class="profile-custom-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+          <div class="profile-custom-field" style="display:flex; flex-direction:column; gap:6px;">
+            <label for="profilePronouns" style="font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(255,255,255,0.6);">Pronouns</label>
+            <input type="text" id="profilePronouns" placeholder="they/them" maxlength="40" style="padding:9px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.9); font-size:14px;">
+          </div>
+          <div class="profile-custom-field" style="display:flex; flex-direction:column; gap:6px;">
+            <label for="profileLocation" style="font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(255,255,255,0.6);">Location</label>
+            <input type="text" id="profileLocation" placeholder="City, Country" maxlength="80" style="padding:9px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.9); font-size:14px;">
+          </div>
+          <div class="profile-custom-field" style="display:flex; flex-direction:column; gap:6px;">
+            <label for="profileFavoriteColor" style="font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(255,255,255,0.6);">Favorite Color</label>
+            <div style="display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+              <input type="color" id="profileFavoriteColor" value="#FFD700" style="width:42px; height:32px; border:none; background:transparent; cursor:pointer;">
+              <span id="profileFavoriteColorValue" style="font-size:13px; color:rgba(255,255,255,0.85); letter-spacing:0.05em;">#FFD700</span>
+            </div>
+          </div>
+        </div>
+        <div class="profile-custom-field" style="margin-top:14px; display:flex; flex-direction:column; gap:6px;">
+          <label for="profileBio" style="font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(255,255,255,0.6);">Mini Bio</label>
+          <textarea id="profileBio" rows="3" maxlength="200" placeholder="Share a sentence or two about yourself..." style="padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.9); font-size:14px; resize:vertical;"></textarea>
+          <div id="profileBioCounter" style="text-align:right; font-size:12px; color:rgba(255,255,255,0.5);">0 / 200</div>
+        </div>
+        <div class="profile-custom-field" style="margin-top:12px;">
+          <label style="font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(255,255,255,0.6); display:block; margin-bottom:8px;">Interests</label>
+          <div class="profile-interests-grid" style="display:flex; flex-wrap:wrap; gap:10px;">
+            <label class="profile-interest-chip" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.85); font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" class="profile-interest-input" value="gaming" style="accent-color:#FFD700;">
+              <span>Gaming</span>
+            </label>
+            <label class="profile-interest-chip" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.85); font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" class="profile-interest-input" value="music" style="accent-color:#FFD700;">
+              <span>Music</span>
+            </label>
+            <label class="profile-interest-chip" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.85); font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" class="profile-interest-input" value="art" style="accent-color:#FFD700;">
+              <span>Art & Design</span>
+            </label>
+            <label class="profile-interest-chip" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.85); font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" class="profile-interest-input" value="tech" style="accent-color:#FFD700;">
+              <span>Tech & Coding</span>
+            </label>
+            <label class="profile-interest-chip" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.85); font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" class="profile-interest-input" value="sports" style="accent-color:#FFD700;">
+              <span>Sports</span>
+            </label>
+            <label class="profile-interest-chip" style="padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.85); font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" class="profile-interest-input" value="travel" style="accent-color:#FFD700;">
+              <span>Travel</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <button id="saveProfileBtn" style="width:100%; padding:12px; background:rgba(255,215,0,0.2); border:1px solid rgba(255,215,0,0.4); border-radius:8px; color:#FFD700; cursor:pointer; font-weight:500; margin-bottom:15px;"><i class="fas fa-save"></i> Save Profile</button>
+      <div id="activityHistory" style="margin-top:20px; text-align:left;">
+        <h3 style="color:#FFD700; margin-bottom:15px;">Activity History</h3>
+        <div id="activityList" style="max-height:200px; overflow-y:auto;"></div>
+      </div>
+      <div style="margin-top:30px; padding-top:20px; border-top:1px solid rgba(255,215,0,0.1);">
+        <button id="deleteAccountBtn" style="width:100%; padding:12px; background:rgba(220,53,69,0.2); border:2px solid rgba(220,53,69,0.5); border-radius:8px; color:#dc3545; cursor:pointer; font-weight:600; transition:all 0.3s ease;"><i class="fas fa-trash-alt"></i> Delete Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ================ Leaderboard Modal ================ -->
+<div id="leaderboardModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
+  <div style="width:min(800px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(255,215,0,0.1);">
+      <h2 style="margin:0; color:#FFD700; font-weight:600; font-size:20px;"><i class="fas fa-medal"></i> Leaderboard</h2>
+      <button id="closeLeaderboardBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
+    </div>
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
+      <button class="leaderboardTab" data-tab="chatters" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Top Chatters</button>
+      <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Most Active</button>
+      <button class="leaderboardTab" data-tab="achievements" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Achievements</button>
+      <button class="leaderboardTab" data-tab="stats" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Daily/Weekly</button>
+    </div>
+    <div id="leaderboardContent"></div>
+  </div>
+</div>
+<!-- ================ Friends System (Full Featured UI) ================ -->
+<div id="friendsModal" class="friends-full-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.96); backdrop-filter:blur(20px); z-index:16000; overflow-y:auto;">
+  <div class="friends-container">
+    <!-- Header Section -->
+    <div class="friends-header-section">
+      <div class="friends-header-content">
+        <div class="friends-header-title">
+          <div class="friends-icon-wrapper">
+            <i class="fas fa-user-friends"></i>
+    </div>
+          <div>
+            <h1 class="friends-main-title">Friends</h1>
+            <p class="friends-subtitle">Connect, chat, and stay in touch</p>
+          </div>
+        </div>
+        <button id="closeFriendsBtn" class="friends-close-button">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <!-- Tabs Navigation -->
+    <div class="friends-tabs-container">
+      <button class="friends-tab-btn active" data-tab="friends">
+        <i class="fas fa-users"></i>
+        <span>My Friends</span>
+        <span class="friends-badge" id="friendsCountBadge">0</span>
+      </button>
+      <button class="friends-tab-btn" data-tab="requests">
+        <i class="fas fa-user-plus"></i>
+        <span>Requests</span>
+        <span class="friends-badge friends-badge-alert" id="requestsCountBadge" style="display:none;">0</span>
+      </button>
+      <button class="friends-tab-btn" data-tab="search">
+        <i class="fas fa-search"></i>
+        <span>Find Friends</span>
+      </button>
+      <button class="friends-tab-btn" data-tab="blocked">
+        <i class="fas fa-ban"></i>
+        <span>Blocked</span>
+        <span class="friends-badge" id="blockedCountBadge" style="display:none;">0</span>
+      </button>
+    </div>
+    <!-- Tab Content Areas -->
+    <div class="friends-content-wrapper">
+      <!-- Friends Tab -->
+      <div id="friendsTabContent" class="friends-tab-panel active">
+        <div class="friends-toolbar">
+          <div class="friends-search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="filterFriendsInput" placeholder="Search your friends..." class="friends-search-input">
+          </div>
+          <select id="friendsSortSelect" class="friends-sort-select">
+            <option value="online">ðŸŸ¢ Online First</option>
+            <option value="name">ðŸ‘¤ Name (A-Z)</option>
+            <option value="recent">ðŸ• Recently Active</option>
+          </select>
+        </div>
+        <div id="friendsList" class="friends-grid-container"></div>
+      </div>
+      <!-- Requests Tab -->
+      <div id="requestsTabContent" class="friends-tab-panel">
+        <div class="requests-split-view">
+          <div class="requests-column">
+            <div class="requests-column-header">
+              <i class="fas fa-paper-plane"></i>
+              <h3>Sent Requests</h3>
+            </div>
+            <div id="sentRequestsList" class="requests-list"></div>
+          </div>
+          <div class="requests-column">
+            <div class="requests-column-header">
+              <i class="fas fa-inbox"></i>
+              <h3>Received Requests</h3>
+            </div>
+            <div id="receivedRequestsList" class="requests-list"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Search Tab -->
+      <div id="searchTabContent" class="friends-tab-panel">
+        <div class="friends-search-header">
+          <div class="friends-search-box-large">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchFriendsInput" placeholder="Search by username..." class="friends-search-input-large">
+            <button class="friends-search-clear" id="clearSearchBtn" style="display:none;">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        <div id="searchResults" class="friends-grid-container"></div>
+      </div>
+      <!-- Blocked Tab -->
+      <div id="blockedTabContent" class="friends-tab-panel">
+        <div id="blockedList" class="friends-grid-container"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/backend-api-client.js"></script>`n<script src="/firebase-shim.js"></script>
+<script src="../script.js"></script>
+<script>
+// Initialize games grid when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('All-games page loaded, initializing...');
+
+    // Function to initialize games with retry logic
+    function tryInitGames(attempt = 0) {
+        const maxAttempts = 10;
+
+        if (attempt >= maxAttempts) {
+            console.error('Failed to initialize games after', maxAttempts, 'attempts');
+            return;
+        }
+
+        if (typeof initGamesGrid === 'function') {
+            console.log('Calling initGamesGrid...');
+            initGamesGrid();
+        } else if (typeof filterGamesByCategory === 'function' && typeof gameSites !== 'undefined' && gameSites.length > 0) {
+            // If initGamesGrid doesn't exist but games are loaded, filter directly
+            console.log('Games loaded, calling filterGamesByCategory...');
+            filterGamesByCategory('all');
+        } else {
+            // Retry after a short delay if functions aren't ready yet
+            console.log('Waiting for games to load, attempt', attempt + 1);
+            setTimeout(() => tryInitGames(attempt + 1), 300);
+        }
+    }
+
+    // Start initialization after a short delay to ensure script.js is loaded
+    setTimeout(() => tryInitGames(0), 100);
+});
+</script>
+</body>
+</html>
+
