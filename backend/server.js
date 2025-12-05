@@ -3,7 +3,6 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
@@ -71,22 +70,16 @@ const io = socketIo(server, {
 
 // Middleware
 app.use(cors({
-  origin: [
-    'https://shsportal.vercel.app',
-    'https://shs-portal-qa1n1tfz2-prism-xs-projects.vercel.app',
-    'http://127.0.0.1:5501',
-    'http://localhost:5501',
-    'https://127.0.0.1:5501',
-    'https://localhost:5501',
-    'http://127.0.0.1:8080',
-    'http://localhost:8080',
-    'https://127.0.0.1:8080',
-    'https://localhost:8080',
-    'http://127.0.0.1:3000',
-    'http://localhost:3000',
-    'https://127.0.0.1:3000',
-    'https://localhost:3000'
-  ],
+  origin: (origin, callback) => {
+    console.log('CORS request from origin:', origin);
+    if (isOriginAllowed(origin)) {
+      console.log('CORS allowed for origin:', origin);
+      return callback(null, true);
+    } else {
+      console.log('CORS blocked for origin:', origin);
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
