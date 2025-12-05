@@ -31,7 +31,6 @@ const server = http.createServer(app);
 // Allowed origins
 const allowedOrigins = [
   'https://shsportal.vercel.app',
-  'https://shs-portal-production.up.railway.app',
   'http://127.0.0.1:5501',
   'http://localhost:5501',
   'https://127.0.0.1:5501',
@@ -79,14 +78,18 @@ app.use(cors({
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-const uploadsDir = path.join(dataDir, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure data directory exists (skip in serverless environments like Vercel)
+const isServerless = process.env.VERCEL || process.env.LAMBDA_TASK_ROOT;
+let uploadsDir;
+if (!isServerless) {
+  const dataDir = path.join(__dirname, 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  uploadsDir = path.join(dataDir, 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
 }
 
 // Initialize database
@@ -108,7 +111,9 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/private-chats', privateChatRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/uploads', express.static(uploadsDir));
+if (uploadsDir) {
+  app.use('/uploads', express.static(uploadsDir));
+}
 
 // Pass io instance to friends routes for socket events
 friendsRoutes.setIO(io);

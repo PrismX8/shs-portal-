@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 
+const isServerless = process.env.VERCEL || process.env.LAMBDA_TASK_ROOT;
 const uploadsDir = path.join(__dirname, '..', 'data', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
+if (!isServerless && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
@@ -12,6 +13,11 @@ if (!fs.existsSync(uploadsDir)) {
 // Expects JSON: { filename: "name.ext", data: "data:<mime>;base64,<base64>" }
 router.post('/', async (req, res) => {
   try {
+    // Skip file operations in serverless environments
+    if (isServerless) {
+      return res.status(501).json({ error: 'File uploads not supported in serverless environment' });
+    }
+
     const { filename, data } = req.body || {};
     if (!filename || !data || typeof data !== 'string') {
       return res.status(400).json({ error: 'filename and data are required' });
