@@ -69,24 +69,6 @@ const io = socketIo(server, {
 });
 
 // Middleware
-app.use(cors({
-  origin: (origin, callback) => {
-    console.log('CORS request from origin:', origin);
-    if (isOriginAllowed(origin)) {
-      console.log('CORS allowed for origin:', origin);
-      return callback(null, true);
-    } else {
-      console.log('CORS blocked for origin:', origin);
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Handle preflight requests
-app.options('*', cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
