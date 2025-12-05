@@ -1643,7 +1643,7 @@ let counterPollInterval = null;
             delBtn.style.transform = 'scale(1)';
         };
           leftDiv.appendChild(delBtn);
-      } else if (msgId) {
+      } else if (msgId && msg.uid === visitorId) {
           const delBtn = document.createElement('button');
           delBtn.textContent = 'Delete';
           delBtn.style.cssText = 'border:none; background:rgba(255,0,0,0.2); color:#ff4444; cursor:pointer; padding:4px 8px; border-radius:4px; font-size:12px; margin-left:8px; transition:all 0.2s;';

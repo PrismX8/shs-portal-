@@ -267,7 +267,7 @@
       meta.className = 'meta';
       const t = msg.time ? new Date(msg.time).toLocaleTimeString() : '';
       meta.textContent = `${msg.user || 'User'} ? ${t}`;
-      if (msg.id) {
+      if (msg.id && msg.uid === api.visitorId) {
         const delBtn = document.createElement('button');
         delBtn.textContent = 'Delete';
         delBtn.style.cssText = 'margin-left:10px; padding:4px 8px; border:1px solid rgba(255,215,0,0.4); background:rgba(255,215,0,0.12); color:#FFD700; border-radius:6px; cursor:pointer; font-size:11px;';
