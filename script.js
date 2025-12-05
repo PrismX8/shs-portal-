@@ -1708,7 +1708,7 @@ let counterPollInterval = null;
       if (!backendApi || !chatMessages) return;
       try {
           // Fetch from public endpoint
-          const recent = await backendApi.getRecentChat(100, false);
+          const recent = await backendApi.getRecentChat(100, true);
           if (!Array.isArray(recent)) {
               console.warn('Chat response was not an array:', recent);
               throw new Error('Invalid chat response');
