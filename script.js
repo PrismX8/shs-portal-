@@ -92,13 +92,13 @@
     window.BACKEND_API_URL ||
     (IS_LOCAL
       ? "http://localhost:3000/api"
-      : "https://shs-portal-backend-c2eg4u309-prism-xs-projects.vercel.app/api");
+      : "https://shs-portal-backend.vercel.app/api");
 
   const BACKEND_WS_URL =
     window.BACKEND_WS_URL ||
     (IS_LOCAL
       ? "ws://localhost:3000"
-      : "wss://shs-portal-backend-c2eg4u309-prism-xs-projects.vercel.app");
+      : "wss://shs-portal-backend.vercel.app");
 
   const backendApiAvailable = typeof BackendAPI !== 'undefined';
   let backendApi = backendApiAvailable ? new BackendAPI({ apiUrl: BACKEND_API_URL, wsUrl: BACKEND_WS_URL }) : null;
