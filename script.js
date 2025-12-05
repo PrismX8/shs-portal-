@@ -2417,7 +2417,7 @@ async function ensureBackendChatConnection() {
     
     adminChatList.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Loading chat messages...</p>';
     
-    const baseUrl = (window.BACKEND_API_URL || 'https://shs-portal-production.up.railway.app/api').replace(/\/$/, '');
+    const baseUrl = (window.BACKEND_API_URL || 'https://shs-portal-backend.vercel.app/api').replace(/\/$/, '');
     const limitInput = document.getElementById('adminChatLimit');
     const offsetInput = document.getElementById('adminChatOffset');
     const limit = limitInput ? limitInput.value || 50 : 50;

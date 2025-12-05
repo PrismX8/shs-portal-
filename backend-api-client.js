@@ -19,8 +19,8 @@
 
 class BackendAPI {
   constructor(config = {}) {
-    const defaultApi = 'https://shs-portal-backend-c2eg4u309-prism-xs-projects.vercel.app/api';
-    const defaultWs = 'https://shs-portal-backend-c2eg4u309-prism-xs-projects.vercel.app';
+    const defaultApi = 'https://shs-portal-backend.vercel.app/api';
+    const defaultWs = 'https://shs-portal-backend.vercel.app';
     this.apiUrl = config.apiUrl || defaultApi;
     this.wsUrl = config.wsUrl || defaultWs;
     this.socket = null;

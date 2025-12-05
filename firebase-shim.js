@@ -3,8 +3,8 @@
   if (window.firebase) return;
 
   const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  const DEFAULT_API = IS_LOCAL ? 'http://localhost:3000/api' : 'https://shs-portal-production.up.railway.app/api';
-  const DEFAULT_WS = IS_LOCAL ? 'ws://localhost:3000' : 'wss://shs-portal-production.up.railway.app';
+  const DEFAULT_API = IS_LOCAL ? 'http://localhost:3000/api' : 'https://shs-portal-backend.vercel.app/api';
+  const DEFAULT_WS = IS_LOCAL ? 'ws://localhost:3000' : 'wss://shs-portal-backend.vercel.app';
 
   let backendApi = null;
   function ensureBackend() {

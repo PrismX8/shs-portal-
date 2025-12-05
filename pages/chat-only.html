@@ -330,17 +330,25 @@
       inputEl.value = '';
     }
 
-    function initListeners() {
-      api.on('chat:initial', (msgs) => {
+    async function loadInitialMessages() {
+      try {
+        const response = await api.getRecentChat(50, true); // Get last 50 messages with images
         messagesEl.innerHTML = '';
-        if (Array.isArray(msgs) && msgs.length) {
-          msgs.forEach(renderMessage);
-          if (loadingOverlay) loadingOverlay.style.display = 'none';
+        if (Array.isArray(response) && response.length) {
+          response.forEach(renderMessage);
         } else {
           if (loadingOverlay) loadingOverlay.textContent = 'No messages yet';
-          setTimeout(() => { if (loadingOverlay) loadingOverlay.style.display = 'none'; }, 800);
         }
-      });
+      } catch (error) {
+        console.error('Failed to load initial messages:', error);
+        if (loadingOverlay) loadingOverlay.textContent = 'Failed to load messages';
+        setTimeout(() => { if (loadingOverlay) loadingOverlay.style.display = 'none'; }, 2000);
+        return;
+      }
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
+    }
+
+    function initListeners() {
       api.on('chat:message', (msg) => renderMessage(msg));
       api.on('chat:typing', (users) => {
         typingEl.textContent = users && users.length ? `${users.join(', ')} typing...` : '';
@@ -358,13 +366,13 @@
         initListeners();
         setStatus('Connecting…');
         await api.connect(username);
+        setStatus('Loading messages…');
+        await loadInitialMessages();
         setStatus('Connected');
       } catch (err) {
         console.error(err);
         setStatus('Offline');
         alert('Backend unavailable. Please retry.');
-      } finally {
-        // wait for socket initial; handled in listeners
       }
     }
 
