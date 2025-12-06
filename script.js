@@ -1,3 +1,4 @@
+  console.time('scriptExecution');
   // Global popup guard: block unwanted new tabs/windows to unknown domains
   (function hardenPopups() {
       const nativeOpen = window.open;
@@ -284,6 +285,7 @@ let counterPollInterval = null;
   }
   
   // Initialize Firebase when SDK is ready
+  console.time('firebaseInit');
   let firebaseInitAttempts = 0;
   const MAX_FIREBASE_INIT_ATTEMPTS = 50; // 5 seconds max (50 * 100ms)
   let firebaseConnectionState = 'disconnected';
@@ -292,13 +294,18 @@ let counterPollInterval = null;
     db = backendApi.database();
     firebaseConnectionState = 'connected';
     notifyFirebaseReady();
+    console.timeEnd('firebaseInit');
   }
 
   function initializeFirebase() {
+    if (firebaseInitAttempts === 0) {
+      console.time('firebaseInit');
+    }
     if (backendApi) {
       firebaseConnectionState = 'connected';
       if (!db) db = backendApi.database();
       notifyFirebaseReady();
+      console.timeEnd('firebaseInit');
       return;
     }
     firebaseInitAttempts++;
@@ -311,10 +318,11 @@ let counterPollInterval = null;
         console.warn('Firebase SDK failed to load after multiple attempts. Running in offline mode.');
         firebaseConnectionState = 'offline';
         db = null;
+        console.timeEnd('firebaseInit');
       }
       return;
     }
-  
+
     try {
       // Check if Firebase is already initialized
       if (firebase.apps.length === 0) {
@@ -335,18 +343,22 @@ let counterPollInterval = null;
             if (snapshot.val() === true) {
               firebaseConnectionState = 'connected';
               console.log('Firebase connected');
+              console.timeEnd('firebaseInit');
             } else {
               firebaseConnectionState = 'disconnected';
               console.warn('Firebase not connected, using offline mode');
+              console.timeEnd('firebaseInit');
             }
           }).catch(err => {
             firebaseConnectionState = 'error';
             console.warn('Firebase connection test failed:', err);
             console.warn('Running in offline mode - some features may be limited');
+            console.timeEnd('firebaseInit');
           });
         } catch (err) {
           firebaseConnectionState = 'error';
           console.warn('Firebase connection test error:', err);
+          console.timeEnd('firebaseInit');
         }
       }
     } catch (error) {
@@ -354,6 +366,7 @@ let counterPollInterval = null;
       console.error('Firebase initialization error:', error);
       console.warn('Running in offline mode - some features may be limited');
       db = null;
+      console.timeEnd('firebaseInit');
     }
   }
   
@@ -1160,13 +1173,15 @@ let counterPollInterval = null;
   // Initialize game categories from static mapping
   // This ensures categories are available for all users without Firebase/localStorage
   let gameCategories = {};
-  
+
   // Load game categories from static mapping
   function initializeGameCategories() {
+    console.time('gameCategoriesInit');
     // Convert static title-based mapping to embed-based mapping for lookup
     // We'll need to match by title when categorizing
     gameCategories = STATIC_GAME_CATEGORIES;
     console.log('Game categories initialized from static mapping');
+    console.timeEnd('gameCategoriesInit');
     
     // Re-categorize if games are already loaded
     if (typeof categorizeAllGames === 'function' && typeof gameSites !== 'undefined' && gameSites && gameSites.length > 0) {
@@ -1250,13 +1265,17 @@ let counterPollInterval = null;
   }
 
   // Warm up backend connection early so chat/online data is ready before opening chat
+  console.time('backendInit');
   if (backendApi) {
       ensureBackendChatConnection(username).catch(err => {
           console.warn('Backend preconnect failed:', err?.message || err);
       }).finally(() => {
+          console.timeEnd('backendInit');
           if (typeof window.markBackendReady === 'function') window.markBackendReady();
           loadBackendProfile();
       });
+  } else {
+      console.timeEnd('backendInit');
   }
 
   // Set online presence and ensure initial visitor count once Firebase is ready
@@ -3702,9 +3721,17 @@ async function ensureBackendChatConnection() {
       animateSparkles();
   }
   if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initSparkles);
+      document.addEventListener('DOMContentLoaded', () => {
+          console.time('initSparkles');
+          initSparkles();
+          console.timeEnd('initSparkles');
+      });
   } else {
-      setTimeout(initSparkles, 100);
+      setTimeout(() => {
+          console.time('initSparkles');
+          initSparkles();
+          console.timeEnd('initSparkles');
+      }, 100);
   }
   let mouseX = 0, mouseY = 0;
   let mouseTrail = [];
@@ -3860,9 +3887,15 @@ async function ensureBackendChatConnection() {
       animateInteractiveBg();
   }
   if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initInteractiveBackground);
+      document.addEventListener('DOMContentLoaded', () => {
+          console.time('initInteractiveBackground');
+          initInteractiveBackground();
+          console.timeEnd('initInteractiveBackground');
+      });
   } else {
+      console.time('initInteractiveBackground');
       initInteractiveBackground();
+      console.timeEnd('initInteractiveBackground');
   }
   
   function initStars() {
@@ -4161,9 +4194,15 @@ async function ensureBackendChatConnection() {
   
   // Initialize after DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initStars);
+    document.addEventListener('DOMContentLoaded', () => {
+        console.time('initStars');
+        initStars();
+        console.timeEnd('initStars');
+    });
   } else {
+    console.time('initStars');
     initStars();
+    console.timeEnd('initStars');
   }
   
   // ================= Christmas Snow Animation =================
@@ -4276,9 +4315,15 @@ async function ensureBackendChatConnection() {
   }
   
   if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initSnow);
+      document.addEventListener('DOMContentLoaded', () => {
+          console.time('initSnow');
+          initSnow();
+          console.timeEnd('initSnow');
+      });
   } else {
+      console.time('initSnow');
       initSnow();
+      console.timeEnd('initSnow');
   }
   
   
@@ -5264,7 +5309,9 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
   
   applyTheme(currentTheme);
   applySeasonal(currentSeasonal);
-  
+
+  console.timeEnd('scriptExecution');
+
   const achievementsBtn = document.getElementById('achievementsBtn');
   const sidePanelAchievementsBtn = document.getElementById('sidePanelAchievementsBtn');
   const achievementsModal = document.getElementById('achievementsModal');
@@ -11145,6 +11192,7 @@ gameSites = ensureAccurateDescriptions([
   }
   
   async function loadGamesFromJSON() {
+      console.time('loadGamesFromJSON');
       try {
           // Determine the correct path based on current page location
           const isInPagesFolder = window.location.pathname.includes('/pages/') || window.location.pathname.includes('/games/');

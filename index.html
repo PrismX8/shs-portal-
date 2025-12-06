@@ -85,7 +85,7 @@
   <div class="spinner" aria-hidden="true"></div>
   <div class="loading-text">Loading Global Game Hall...</div>
 </div>
-<img src="images/squarereef.png" alt="Square Reef Border" class="page-border-frame">
+<img loading="lazy" src="images/squarereef.png" alt="Square Reef Border" class="page-border-frame">
 <canvas id="starCanvas"></canvas>
 <canvas id="interactiveBackground"></canvas>
 <div class="home-background-layer" aria-hidden="true">
@@ -101,22 +101,22 @@
 <!-- Subtle background decorations - reduced visual clutter -->
 <div class="christmas-decorations" style="opacity: 0.15;">
     <!-- Top corners - decorative elements -->
-    <img src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-left">
-    <img src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-right">
-    <img src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-center">
+    <img loading="lazy" src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-left">
+    <img loading="lazy" src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-right">
+    <img loading="lazy" src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-center">
     <!-- Side decorations - strategic placement -->
-    <img src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-left-1">
-    <img src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-left-2">
-    <img src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-left-3">
-    <img src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-left-4">
-    <img src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-right-1">
-    <img src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-right-2">
-    <img src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-right-3">
-    <img src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-right-4">
+    <img loading="lazy" src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-left-1">
+    <img loading="lazy" src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-left-2">
+    <img loading="lazy" src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-left-3">
+    <img loading="lazy" src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-left-4">
+    <img loading="lazy" src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-right-1">
+    <img loading="lazy" src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-right-2">
+    <img loading="lazy" src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-right-3">
+    <img loading="lazy" src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-right-4">
     <!-- Bottom corners -->
-    <img src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-left">
-    <img src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-right">
-    <img src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-center">
+    <img loading="lazy" src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-left">
+    <img loading="lazy" src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-right">
+    <img loading="lazy" src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-center">
     <!-- More snowflakes for increased snowfall -->
     <div class="snowflake snowflake-1">&#10052;</div>
     <div class="snowflake snowflake-2">&#10052;</div>
@@ -159,13 +159,14 @@
     </div>
 </div>
 <!-- Visitor Counter -->
-<div id="globalVisitorCounter" class="visitor-counter-bar" style="width:100%; margin:0 auto 12px; display:flex; justify-content:center; position:relative; z-index:1;">
-    <div class="visitor-counter-widget" style="width:100%; display:flex; align-items:center; justify-content:center; gap:12px;">
-        <div class="visitor-counter-title" style="margin:0;">Live Visitor Counter</div>
+<div id="globalVisitorCounter" class="visitor-counter-bar" style="width:min(1200px, 100%); margin:0 auto 12px; display:flex; justify-content:center; padding:0 12px; box-sizing:border-box;">
+    <div class="visitor-counter-widget" style="display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;">
+        <div class="visitor-counter-title" style="margin:0; font-weight:600;">Live Visitor Counter</div>
         <div style="display:inline-block; text-align:center;">
-            <a href='https://www.counters-free.net/'>https://www.counters-free.net/</a>
-            <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=2590d7ee2fe74b8c19d817d318efb33d56f95008'></script>
-            <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1454518/t/1"></script>
+            <div id="sfcwklwdq9tk9dxhybbcu4gru616mr8baw3"></div>
+            <script type="text/javascript" src="https://counter1.optistats.ovh/private/counter.js?c=wklwdq9tk9dxhybbcu4gru616mr8baw3&down=async" async></script>
+            <br><a href="https://www.freecounterstat.com">free counters for websites</a>
+            <noscript><a href="https://www.freecounterstat.com" title="free counters for websites"><img src="https://counter1.optistats.ovh/private/freecounterstat.php?c=wklwdq9tk9dxhybbcu4gru616mr8baw3" border="0" title="free counters for websites" alt="free counters for websites"></a></noscript>
         </div>
     </div>
 </div>
@@ -1936,22 +1937,28 @@ setTimeout(() => {
       loader.classList.add('fade-out');
       setTimeout(() => loader.remove(), 650);
     };
+    const domReady = () => requestAnimationFrame(hideLoader);
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      domReady();
+    } else {
+      document.addEventListener('DOMContentLoaded', domReady, { once: true });
+    }
     window.addEventListener('load', hideLoader);
-    setTimeout(hideLoader, 6000);
+    setTimeout(hideLoader, 5000);
   })();
 </script>
 <!-- Custom backend client for chat -->
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
-<script src="backend-api-client.js"></script>
+<script defer src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+<script defer src="backend-api-client.js"></script>
 <!-- Firebase SDK -->
-<script src="/firebase-shim.js"></script>
+<script defer src="/firebase-shim.js"></script>
 <script>
   // Configure backend endpoints for the custom API/socket
   window.BACKEND_API_URL = window.BACKEND_API_URL || 'https://shs-portal-backend.vercel.app/api';
   window.BACKEND_WS_URL = window.BACKEND_WS_URL || 'https://shs-portal-backend.vercel.app';
 </script>
-<script src="script.js"></script>
-<script src="adblocker.js"></script>
+<script defer src="script.js"></script>
+<script defer src="adblocker.js"></script>
      <script>
 
 (async () => {
