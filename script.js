@@ -8,7 +8,8 @@
           'www.fmovies.gd',
           'ww22.0123movie.net',
           'movies4ufree.net',
-          'sflix.ps'
+          'sflix.ps',
+          'fmoviesto.ru'
       ]);
       function isAllowed(url) {
           try {
@@ -119,10 +120,8 @@
           win.document.close();
           return true;
       }
-      // Fallback if popups are blocked: load in the current tab
-      document.open();
-      document.write(html);
-      document.close();
+      // Fallback if popups are blocked: alert user
+      alert('Popup blocked! Please allow popups for this site to open content in new tabs.');
       return false;
   }
 
@@ -217,11 +216,11 @@ let counterPollInterval = null;
     return `visitor_${timestamp}_${perf}_${random}`.replace(/[.#$\\[\\]]/g, '_');
   }
 
-  // Movies button (opens provided link in a new tab)
+  // Movies button (opens proxy page in about:blank tab)
   const movieBtn = document.getElementById('movieBtn');
   if (movieBtn) {
       movieBtn.addEventListener('click', () => {
-          window.open('/pages/movies.html', '_blank', 'noopener,noreferrer');
+          openGameInBlank('/pages/movies.html');
       });
   }
 
@@ -2126,6 +2125,16 @@ async function ensureBackendChatConnection() {
   const privacyBtn = document.getElementById('privacyBtn');
   let onExtra = false;
   let onPrivacy = false;
+
+  // Privacy/Browser button - open browser interface
+  if (privacyBtn) {
+    privacyBtn.addEventListener('click', () => {
+      const win = window.open('about:blank', '_blank');
+      if (win) {
+        win.location.href = '/pages/browser.html';
+      }
+    });
+  }
   
   const reloadBtn = document.getElementById('reloadBtn');
   if (reloadBtn && iframe) {
@@ -5621,7 +5630,7 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
     e.preventDefault();
     statsBtn?.click();
   });
-  
+
   // Close stats modal
   closeStatsBtn?.addEventListener('click', () => {
     if (statsModal) {
@@ -5629,6 +5638,7 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
       statsModal.setAttribute('aria-hidden', 'true');
     }
   });
+
   
   // ================= Drawing Modal =================
   const drawingModal = document.getElementById('drawingModal');
