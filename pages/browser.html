@@ -197,7 +197,7 @@
         </div>
 
         <div class="address-bar">
-            <input type="text" class="address-input" id="addressInput" placeholder="Enter URL or search term..." value="https://www.google.com">
+            <input type="text" class="address-input" id="addressInput" placeholder="Enter URL or search term..." value="">
             <button class="go-btn" id="goBtn">Go</button>
         </div>
 
@@ -208,7 +208,7 @@
         <div class="loading-overlay" id="loadingOverlay">
             <div class="loading-spinner"></div>
         </div>
-        <iframe class="browser-iframe" id="browserIframe" src="https://www.google.com"></iframe>
+        <iframe class="browser-iframe" id="browserIframe" src="https://proxyyy.up.railway.app/"></iframe>
     </div>
 
     <script>
@@ -246,7 +246,9 @@
                 }
 
                 showLoading();
-                browserIframe.src = url;
+                // Use proxy for all navigation
+                const proxyUrl = 'https://proxyyy.up.railway.app/?url=' + encodeURIComponent(url);
+                browserIframe.src = proxyUrl;
                 addressInput.value = url;
 
                 // Add to history
@@ -285,8 +287,9 @@
         backBtn.addEventListener('click', () => {
             if (currentIndex > 0) {
                 currentIndex--;
-                browserIframe.src = history[currentIndex];
-                addressInput.value = history[currentIndex];
+                const targetUrl = history[currentIndex];
+                browserIframe.src = 'https://proxyyy.up.railway.app/?url=' + encodeURIComponent(targetUrl);
+                addressInput.value = targetUrl;
                 updateNavigationButtons();
             }
         });
@@ -294,15 +297,17 @@
         forwardBtn.addEventListener('click', () => {
             if (currentIndex < history.length - 1) {
                 currentIndex++;
-                browserIframe.src = history[currentIndex];
-                addressInput.value = history[currentIndex];
+                const targetUrl = history[currentIndex];
+                browserIframe.src = 'https://proxyyy.up.railway.app/?url=' + encodeURIComponent(targetUrl);
+                addressInput.value = targetUrl;
                 updateNavigationButtons();
             }
         });
 
         refreshBtn.addEventListener('click', () => {
             showLoading();
-            browserIframe.src = browserIframe.src;
+            const currentUrl = history[currentIndex];
+            browserIframe.src = 'https://proxyyy.up.railway.app/?url=' + encodeURIComponent(currentUrl);
         });
 
         homeBtn.addEventListener('click', () => {
@@ -312,15 +317,7 @@
         // Handle iframe load
         browserIframe.addEventListener('load', () => {
             hideLoading();
-            try {
-                // Update address bar with current URL if possible
-                const iframeUrl = browserIframe.contentWindow.location.href;
-                if (iframeUrl && iframeUrl !== 'about:blank') {
-                    addressInput.value = iframeUrl;
-                }
-            } catch (error) {
-                // Cross-origin restriction, keep current value
-            }
+            // Don't update address bar since we're using a proxy - keep the target URL displayed
         });
 
         // Initialize

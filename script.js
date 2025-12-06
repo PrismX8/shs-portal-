@@ -2239,46 +2239,6 @@ async function ensureBackendChatConnection() {
         }
         });
     }
-    
-    if (privacyBtn) {
-        privacyBtn.addEventListener('click', ()=>{
-      const iframeContainer = document.getElementById('iframeContainer');
-        const gamesGridContainer = document.getElementById('gamesGridContainer');
-        const currentSiteTitle = document.getElementById('currentSiteTitle');
-        
-    if(!onPrivacy){
-        // Show iframe container
-      if (iframeContainer) iframeContainer.style.display = 'block';
-        setBrowserOnlyMode(true);
-        if (currentSiteTitle) currentSiteTitle.textContent = 'Browser';
-        // Pause heavy home visuals while proxy browser is open
-        if (typeof pauseHomeVisuals === 'function') pauseHomeVisuals();
-        
-        // Load the browser at your proxy
-            iframe.src = 'about:blank';
-            setTimeout(() => {
-                iframe.src = "https://proxyyy.up.railway.app/?url=" + encodeURIComponent("https://wikipedia.org");
-            }, 50);
-            
-            privacyBtn.innerHTML='<i class="fas fa-arrow-left"></i> Go Back';
-            onPrivacy=true;
-            
-            // Scroll to iframe
-            setTimeout(() => {
-              if (iframeContainer) iframeContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-        } else {
-            // Go back to games
-          if (iframeContainer) iframeContainer.style.display = 'none';
-            setBrowserOnlyMode(false);
-            iframe.src = originalSrc;
-            privacyBtn.innerHTML='<i class="fas fa-shield-alt"></i> Browser';
-            onPrivacy=false;
-            // Resume visuals when returning to games grid
-            if (typeof resumeHomeVisuals === 'function') resumeHomeVisuals();
-        }
-        });
-    }
   
   // YouTube Video Watcher (prompt-based, opens yout-ube link)
   const youtubeWatcherBtn = document.getElementById('youtubeWatcherBtn');
