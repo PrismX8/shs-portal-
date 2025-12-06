@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "uh0lyeydcq");
+    </script>
     <title>Web Browser - SHS Portal</title>
     <style>
         * {
@@ -245,10 +252,9 @@
                     }
                 }
 
-                showLoading();
                 // Use proxy for all navigation
                 const proxyUrl = 'https://proxyyy.up.railway.app/?url=' + encodeURIComponent(url);
-                browserIframe.src = proxyUrl;
+                window.open(proxyUrl, '_blank');
                 addressInput.value = url;
 
                 // Add to history
@@ -288,7 +294,7 @@
             if (currentIndex > 0) {
                 currentIndex--;
                 const targetUrl = history[currentIndex];
-                browserIframe.src = 'https://proxyyy.up.railway.app/?url=' + encodeURIComponent(targetUrl);
+                window.open('https://proxyyy.up.railway.app/?url=' + encodeURIComponent(targetUrl), '_blank');
                 addressInput.value = targetUrl;
                 updateNavigationButtons();
             }
@@ -298,16 +304,15 @@
             if (currentIndex < history.length - 1) {
                 currentIndex++;
                 const targetUrl = history[currentIndex];
-                browserIframe.src = 'https://proxyyy.up.railway.app/?url=' + encodeURIComponent(targetUrl);
+                window.open('https://proxyyy.up.railway.app/?url=' + encodeURIComponent(targetUrl), '_blank');
                 addressInput.value = targetUrl;
                 updateNavigationButtons();
             }
         });
 
         refreshBtn.addEventListener('click', () => {
-            showLoading();
             const currentUrl = history[currentIndex];
-            browserIframe.src = 'https://proxyyy.up.railway.app/?url=' + encodeURIComponent(currentUrl);
+            window.open('https://proxyyy.up.railway.app/?url=' + encodeURIComponent(currentUrl), '_blank');
         });
 
         homeBtn.addEventListener('click', () => {
