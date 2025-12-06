@@ -4496,14 +4496,6 @@ const toggleChatBtn = document.getElementById('toggleChatBtn');
   toggleChatBtn?.addEventListener('click', (e) => {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-      if (!requireProfileForOnlineFeature('Chat', () => {
-          if (chatContainer) {
-              ensureChatEmbed();
-              chatContainer.style.display = 'flex';
-          }
-      })) {
-          return;
-      }
       if (chatContainer) {
           if(chatContainer.style.display === 'none' || chatContainer.style.display === '') {
               ensureChatEmbed();
@@ -13985,12 +13977,6 @@ gameSites = ensureAccurateDescriptions([
                       // On homepage, open chat
                       const chatContainer = document.getElementById('chatContainer');
                       if (chatContainer) {
-                          ensureChatEmbed();
-                          if (typeof requireProfileForOnlineFeature === 'function' && !requireProfileForOnlineFeature('Chat', () => {
-                              chatContainer.style.display = 'flex';
-                          })) {
-                              return;
-                          }
                           ensureChatEmbed();
                           chatContainer.style.display = 'flex';
                       } else {
