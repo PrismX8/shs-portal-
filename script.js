@@ -80,6 +80,47 @@
         });
     }
   })();
+
+  // Global popup guard: block unwanted new tabs/windows to unknown domains
+  (function hardenPopups() {
+      const nativeOpen = window.open;
+      const allowedHosts = new Set([
+          window.location.hostname,
+          'st.chatango.com',
+          'www.fmovies.gd',
+          'ww22.0123movie.net',
+          'movies4ufree.net',
+          'sflix.ps'
+      ]);
+      function isAllowed(url) {
+          try {
+              const u = new URL(url, window.location.href);
+              return allowedHosts.has(u.hostname) || u.protocol === 'about:';
+          } catch (_) {
+              return false;
+          }
+      }
+      window.open = function(url, target, features) {
+          if (url && !isAllowed(url)) {
+              console.warn('Blocked popup/tab:', url);
+              return null;
+          }
+          return nativeOpen.call(window, url, target, features);
+      };
+
+      // Intercept anchor clicks with target _blank to disallow bad domains
+      document.addEventListener('click', (e) => {
+          const link = e.target?.closest && e.target.closest('a[target="_blank"][href]');
+          if (!link) return;
+          const href = link.getAttribute('href');
+          if (!href) return;
+          if (!isAllowed(href)) {
+              e.preventDefault();
+              e.stopPropagation();
+              console.warn('Blocked new-tab navigation:', href);
+          }
+      }, true);
+  })();
   const firebaseConfig = {
     apiKey: "AIzaSyBn1apVsFafY2-2a2QPeslX17XR0gWE9qs",
     authDomain: "shsproject-d60d0.firebaseapp.com",
@@ -447,9 +488,7 @@ let counterPollInterval = null;
   // Enable performance monitoring in development (can be triggered manually)
   // Uncomment the next line to enable: performanceMonitor.start();
 
-  // Set up cleanup on page unload (fallback to pagehide/visibilitychange if unload is blocked by policy)
-  try { window.addEventListener('beforeunload', cleanupOnUnload); } catch (e) { /* ignore if policy blocks */ }
-  try { window.addEventListener('unload', cleanupOnUnload); } catch (e) { /* ignore if policy blocks */ }
+  // Set up cleanup using pagehide/visibilitychange (no unload to satisfy permissions policy)
   window.addEventListener('pagehide', cleanupOnUnload);
   document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') cleanupOnUnload();
@@ -5014,7 +5053,7 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
             const avatarStyle = profile.avatarImage 
                 ? `background-image: url(${profile.avatarImage}); background-size: cover; background-position: center;`
                 : `background: linear-gradient(135deg, #FFD700, #FFA500);`;
-            const avatarContent = profile.avatarImage ? '' : (profile.avatar || '??');
+            const avatarContent = profile.avatarImage ? '' : (profile.avatar || '🙂');
             const name = profile.username || u.username || 'User';
             return `
                 <div class="online-user">
@@ -10840,14 +10879,25 @@ gameSites = ensureAccurateDescriptions([
           const isInPagesFolder = window.location.pathname.includes('/pages/');
           return isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
       }
+
+      // Helper: open game page in a new about:blank tab
+      function openGameInBlank(path) {
+          const win = window.open('about:blank', '_blank');
+          if (win) {
+              win.location.href = path;
+              return true;
+          }
+          window.location.href = path;
+          return false;
+      }
       
       // Add click handlers - navigate to individual game pages
       container.querySelectorAll('.big-game-cube').forEach(cube => {
           cube.addEventListener('click', (e) => {
               const filename = cube.getAttribute('data-filename');
               if (filename) {
-                  // Navigate to the individual game page
-                  window.location.href = getGamesPath(filename);
+                  // Navigate to the individual game page (about:blank tab)
+                  openGameInBlank(getGamesPath(filename));
               }
           });
       });
@@ -10983,7 +11033,7 @@ gameSites = ensureAccurateDescriptions([
               const filename = cube.getAttribute('data-filename');
               
               // Navigate to the individual game page
-              window.location.href = getGamesPath(filename);
+              openGameInBlank(getGamesPath(filename));
           });
       });
       
@@ -11655,7 +11705,7 @@ gameSites = ensureAccurateDescriptions([
               if (filename) {
                   const isInPagesFolder = window.location.pathname.includes('/pages/');
                   const gamesPath = isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
-                  window.location.href = gamesPath;
+                  openGameInBlank(gamesPath);
               }
           });
       });
@@ -11738,7 +11788,7 @@ gameSites = ensureAccurateDescriptions([
                               if (filename) {
                                   const isInPagesFolder = window.location.pathname.includes('/pages/');
                                   const gamesPath = isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
-                                  window.location.href = gamesPath;
+                                  openGameInBlank(gamesPath);
                               }
                           });
                       });
@@ -12384,7 +12434,7 @@ gameSites = ensureAccurateDescriptions([
               embeddedSite.src = 'about:blank';
               
               // Add sandbox attributes to iframe for better security
-              embeddedSite.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+              embeddedSite.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads allow-top-navigation-by-user-activation');
               
               // Load site directly (no proxy)
               setTimeout(() => {
@@ -13129,7 +13179,7 @@ gameSites = ensureAccurateDescriptions([
       embeddedSite.src = 'about:blank';
       
       // Add sandbox attributes to iframe for better security and ad blocking
-      embeddedSite.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+      embeddedSite.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads allow-top-navigation-by-user-activation');
       
       // Load site - use custom HTML if available, otherwise use src with ad-blocking proxy
       setTimeout(() => {
