@@ -3,7 +3,9 @@ function wrapGameUrlWithProxy(url) {
     return url;
   }
   const encodedUrl = encodeURIComponent(url);
-  return `https://proxyyy.up.railway.app/?url=${encodedUrl}`;
+  const proxied = `https://proxyyy.up.railway.app/?url=${encodedUrl}`;
+  console.log('Lite mode: Wrapping game URL with proxy for faster loading:', url, '->', proxied);
+  return proxied;
 }
 
 document.addEventListener('DOMContentLoaded', function() {

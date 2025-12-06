@@ -129,6 +129,14 @@
     // Wire the random game button
     initRandomGameButton();
 
+    // Apply proxy wrapper for lite mode to speed up game loading
+    if (document.documentElement.classList.contains('lite-mode')) {
+      const proxyScript = document.createElement('script');
+      proxyScript.src = '../game-proxy-wrapper.js';
+      proxyScript.defer = true;
+      document.head.appendChild(proxyScript);
+    }
+
     // Per-game performance tweaks
     try {
       const path = window.location.pathname || '';
