@@ -1614,15 +1614,28 @@
 <script id="cid0020000425975845363"
         data-cfasync="false"
         async
-        type="text/plain">
+        src="https://st.chatango.com/js/gz/emb.js"
+        style="width:200px;height:300px;">
 {"handle":"globalgamehall","arch":"js",
-"styles":{
-"a":"404040","b":100,"c":"FFFFFF","d":"FFFFFF","k":"404040","l":"404040",
-"m":"404040","n":"FFFFFF","p":"10","q":"404040","r":100,"pos":"br","cv":1,
-"cvfnt":"'Avant Garde', Avantgarde, 'Century Gothic', CenturyGothic, AppleGothic, sans-serif",
-"cvfntsz":"25px","cvfntw":"bolder","cvbg":"404040","cvw":197,"cvh":55}}
+ "styles":{
+   "a":"404040","b":100,"c":"FFFFFF","d":"FFFFFF",
+   "k":"404040","l":"404040","m":"404040","n":"FFFFFF",
+   "p":"10","q":"404040","r":100,"pos":"br","cv":1,
+   "cvfnt":"'Avant Garde',Avantgarde,'Century Gothic',CenturyGothic,AppleGothic,sans-serif",
+   "cvfntsz":"25px","cvfntw":"bolder","cvbg":"404040",
+   "cvw":197,"cvh":55
+}}
 </script>
-<script src="https://st.chatango.com/js/gz/emb.js" async></script>
+
+<script>
+// ensure widget loads after browser paint
+setTimeout(() => {
+    const embed = document.getElementById("floatingChatEmbed");
+    if (embed) embed.style.display = "block";
+}, 300);
+</script>
+
+
 
 <!-- Footer with Essential Pages - Thin & Small -->
 <footer class="site-footer">
