@@ -1,86 +1,3 @@
-  (function() {
-    let progress = 0;
-    const progressFill = document.querySelector('.premium-progress-fill');
-    const progressPercentage = document.querySelector('.premium-percentage');
-    let resolveBackendReady;
-    // global backend readiness promise so we can wait for sockets/api
-    window.backendReadyPromise = new Promise((res) => { resolveBackendReady = res; });
-    window.markBackendReady = () => { if (resolveBackendReady) resolveBackendReady(); };
-    
-    const pageLoadedPromise = new Promise((res) => {
-      if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        res();
-      } else {
-        window.addEventListener('load', () => res(), { once: true });
-      }
-    });
-    
-    function updateProgress(targetProgress) {
-        const startProgress = progress;
-        const duration = 600;
-        const startTime = performance.now();
-        
-        function animate(currentTime) {
-            const elapsed = currentTime - startTime;
-            const progressRatio = Math.min(elapsed / duration, 1);
-            const easeProgress = 1 - Math.pow(1 - progressRatio, 3); // Ease out cubic
-            
-            progress = startProgress + (targetProgress - startProgress) * easeProgress;
-            
-            if (progressFill) {
-                progressFill.style.width = progress + '%';
-            }
-            if (progressPercentage) {
-                progressPercentage.textContent = Math.round(progress) + '%';
-            }
-            
-            if (progressRatio < 1) {
-                requestAnimationFrame(animate);
-            }
-        }
-        
-        requestAnimationFrame(animate);
-    }
-    
-    function removeLoadingScreen() {
-        const introScreen = document.getElementById('introScreen');
-        if (introScreen) {
-            introScreen.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
-            introScreen.style.opacity = '0';
-            setTimeout(function() {
-                if (introScreen && introScreen.parentNode) {
-                    introScreen.remove();
-                }
-            }, 800);
-        }
-    }
-    
-    // Animate progress smoothly
-    setTimeout(() => updateProgress(25), 300);
-    setTimeout(() => updateProgress(50), 800);
-    setTimeout(() => updateProgress(75), 1400);
-    setTimeout(() => updateProgress(95), 2000);
-    setTimeout(() => updateProgress(100), 2400);
-    
-    // Skip loading screen only when returning from other pages (like all-games.html)
-    const isReturningFromOtherPage = document.referrer && 
-        document.referrer.includes(window.location.hostname) && 
-        (document.referrer.includes('pages/') || document.referrer.includes('games/'));
-    
-    if (isReturningFromOtherPage) {
-        removeLoadingScreen();
-    } else {
-        // Wait for both page load and backend ready (or 6s timeout fallback)
-        Promise.race([
-          Promise.all([pageLoadedPromise, window.backendReadyPromise]),
-          new Promise(res => setTimeout(res, 6000))
-        ]).then(() => {
-          updateProgress(100);
-          removeLoadingScreen();
-        });
-    }
-  })();
-
   // Global popup guard: block unwanted new tabs/windows to unknown domains
   (function hardenPopups() {
       const nativeOpen = window.open;
@@ -141,10 +58,20 @@
       ? "ws://localhost:3000"
       : "wss://shs-portal-backend.vercel.app");
 
-  const backendApiAvailable = typeof BackendAPI !== 'undefined';
+  const SOCIAL_FEATURES_ENABLED = false; // Friends/profile/leaderboard backend disabled
+  const backendApiAvailable = typeof BackendAPI !== 'undefined' && SOCIAL_FEATURES_ENABLED;
   let backendApi = backendApiAvailable ? new BackendAPI({ apiUrl: BACKEND_API_URL, wsUrl: BACKEND_WS_URL }) : null;
   if (!backendApi && typeof window.markBackendReady === 'function') {
     window.markBackendReady();
+  }
+  function disableBackend(reason = '') {
+      console.warn('Disabling backend API usage', reason);
+      backendApi = null;
+      backendFriendsDisabled = true;
+      if (friendsPollInterval) {
+          clearInterval(friendsPollInterval);
+          friendsPollInterval = null;
+      }
   }
 
   // Minimal Firebase shim mapped to backend
@@ -164,6 +91,89 @@
       }
     };
   }
+
+  // Helper: open a path in a fresh about:blank tab with an iframe wrapper (falls back to same tab)
+  function openGameInBlank(path) {
+      if (!path) return false;
+      const absolute = new URL(path, window.location.href).href;
+      const html = `<!doctype html>
+<html>
+<head>
+  <title>Loading game...</title>
+  <style>html,body{margin:0;height:100%;background:#0b0c12;}iframe{border:0;width:100%;height:100%;display:block;}</style>
+</head>
+<body>
+  <iframe src="${absolute}"
+          style="border:0;width:100%;height:100%;display:block;"
+          allowfullscreen
+          allow="fullscreen; autoplay; clipboard-write; accelerometer; gyroscope; picture-in-picture; magnetometer"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-top-navigation-by-user-activation">
+  </iframe>
+</body>
+</html>`;
+      const win = window.open('about:blank', '_blank');
+      if (win && !win.closed) {
+          win.document.open();
+          win.document.write(html);
+          win.document.close();
+          return true;
+      }
+      // Fallback if popups are blocked: load in the current tab
+      document.open();
+      document.write(html);
+      document.close();
+      return false;
+  }
+
+  // Ensure live visitor counter appears at top of every page
+  function ensureVisitorCounter() {
+      if (document.getElementById('globalVisitorCounter')) return;
+      const bar = document.createElement('div');
+      bar.id = 'globalVisitorCounter';
+      bar.className = 'visitor-counter-bar';
+      const title = document.createElement('div');
+      title.className = 'visitor-counter-title';
+      title.textContent = 'Live Visitor Counter';
+      const widget = document.createElement('div');
+      widget.className = 'visitor-counter-widget';
+      const link = document.createElement('a');
+      link.href = 'http://www.freevisitorcounters.com';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.className = 'counter-link';
+      link.textContent = 'www.Freevisitorcounters.com';
+      widget.appendChild(link);
+      const authScript = document.createElement('script');
+      authScript.src = 'https://www.freevisitorcounters.com/auth.php?id=703fb8b77a23aa0ebf8aa16a6f5a414854af9f97';
+      widget.appendChild(authScript);
+      const counterScript = document.createElement('script');
+      counterScript.src = 'https://www.freevisitorcounters.com/en/home/counter/1454457/t/1';
+      widget.appendChild(counterScript);
+      bar.appendChild(title);
+      bar.appendChild(widget);
+      document.body.insertBefore(bar, document.body.firstChild || null);
+  }
+
+  if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureVisitorCounter, { once: true });
+  } else {
+      ensureVisitorCounter();
+  }
+
+  // Global guard: warn before opening Clash Royale from any cube/link
+  document.addEventListener('click', (e) => {
+      const candidate = e.target.closest('[data-title], a[href], .game-cube, .big-game-cube');
+      if (!candidate) return;
+      const datasetTitle = (candidate.getAttribute('data-title') || '').toLowerCase();
+      const linkHref = (candidate.getAttribute('href') || '').toLowerCase();
+      const textTitle = (candidate.textContent || '').toLowerCase();
+      const isClash = datasetTitle.includes('clash royale') ||
+                      linkHref.includes('clash-royale') ||
+                      textTitle.includes('clash royale');
+      if (isClash) {
+          alert('You need to make or log into a Clash Royale account before playing.');
+      }
+  }, true);
 
   // Backend-powered leaderboard (chatters)
   function loadLeaderboardBackend(type) {
@@ -213,6 +223,12 @@ let counterPollInterval = null;
           window.open('/pages/movies.html', '_blank', 'noopener,noreferrer');
       });
   }
+
+  // Ensure game page back buttons navigate out of wrappers
+  document.querySelectorAll('.premium-back-btn').forEach(btn => {
+      btn.setAttribute('target', '_top');
+      btn.setAttribute('rel', 'noopener');
+  });
   // YouTube button -> prompt for link and open yout-ube (no-cookie style)
   const youtubeBtn = document.getElementById('youtubeWatcherBtn');
   function extractYouTubeId(raw) {
@@ -853,7 +869,9 @@ let counterPollInterval = null;
       firebaseConnectionState = 'connected';
       notifyFirebaseReady();
   } else {
-      alert('Backend not available. Please refresh the page.');
+      firebaseConnectionState = 'disconnected';
+      notifyFirebaseReady();
+      console.warn('Backend not available; running in frontend-only mode.');
   }
 
   // Initial visitor count constant
@@ -1155,7 +1173,6 @@ let counterPollInterval = null;
       categorizeAllGames();
       if (document.getElementById('featuredGamesSections')) {
         renderFeaturedSections();
-        renderGameOfSeason();
       }
     }
   }
@@ -1203,7 +1220,7 @@ let counterPollInterval = null;
 
   // Load profile from backend if available to avoid re-prompting existing users
   async function loadBackendProfile() {
-      if (!backendApi) return;
+      if (!backendApi || backendFriendsDisabled || SOCIAL_FEATURES_ENABLED === false) return;
       try {
           const existing = await backendApi.getUserProfile(visitorId);
           if (existing && (existing.username || existing.avatar || existing.avatarImage)) {
@@ -1218,6 +1235,9 @@ let counterPollInterval = null;
           }
       } catch (err) {
           console.warn('Could not load backend profile', err);
+          if (String(err).includes('404')) {
+              disableBackend('profile endpoint missing (404)');
+          }
       }
   }
 
@@ -1271,6 +1291,55 @@ let counterPollInterval = null;
   let gameStatsListener = null;
   let gameRatings = {};
   let gameRatingsListener = null;
+  let backendFriendsDisabled = false;
+  if (SOCIAL_FEATURES_ENABLED === false) {
+      backendFriendsDisabled = true;
+  }
+
+  // Helper: build game page path from title
+  function getGamePagePathFromTitle(title) {
+      if (!title) return null;
+      const slug = String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!slug) return null;
+      const filename = `game-${slug}.html`;
+      const inPages = window.location.pathname.includes('/pages/') || window.location.pathname.includes('/games/');
+      return inPages ? `../games/${filename}` : `games/${filename}`;
+  }
+
+  // Helper: pick a random playable game from gameSites
+  function getRandomPlayableGame() {
+      if (!Array.isArray(gameSites) || gameSites.length === 0) return null;
+      const playable = gameSites.filter(g => g && g.embed && !isDisabledGame(g));
+      if (playable.length === 0) return null;
+      const idx = Math.floor(Math.random() * playable.length);
+      return playable[idx];
+  }
+
+  // Wire up the main Random Game button
+  function initRandomGameButton() {
+      const randomGameBtn = document.getElementById('randomGameBtn');
+      if (!randomGameBtn || randomGameBtn.hasAttribute('data-handler-attached')) return;
+      randomGameBtn.setAttribute('data-handler-attached', 'true');
+      randomGameBtn.addEventListener('click', (e) => {
+          if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+          }
+          const game = getRandomPlayableGame();
+          if (!game) {
+              alert('No games available right now. Please try again in a moment.');
+              return;
+          }
+          const gamePath = getGamePagePathFromTitle(game.title);
+          if (gamePath) {
+              window.location.href = gamePath;
+              return;
+          }
+          if (game.embed) {
+              openGameInBlank(game.embed);
+          }
+      });
+  }
 
   // Mobile sidebar toggle functionality
   document.addEventListener('DOMContentLoaded', function() {
@@ -1903,12 +1972,15 @@ async function ensureBackendChatConnection() {
           await pollBackendChat(true);
           return;
       }
-      alert('Backend chat unavailable. Please refresh the page.');
+      console.warn('Backend chat unavailable, skipping chat initialization.');
       chatInitialized = false;
       return;
       }
 
-      alert('Backend not available. Please refresh the page.');
+      console.warn('Backend not available; chat disabled.');
+      if (chatMessages) {
+          chatMessages.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.6);">Chat is disabled.</p>';
+      }
       chatInitialized = false;
       return;
   }
@@ -4397,8 +4469,24 @@ async function ensureBackendChatConnection() {
       });
   })();
   
-  const chatContainer = document.getElementById('chatContainer');
-  const toggleChatBtn = document.getElementById('toggleChatBtn');
+const chatContainer = document.getElementById('chatContainer');
+// Ensure Chatango embed exists in the chat container
+function ensureChatEmbed() {
+    if (!chatContainer) return;
+    if (chatContainer.querySelector('[data-chatango-embed]')) return;
+    chatContainer.innerHTML = '';
+    const script = document.createElement('script');
+    script.id = 'cid0020000425975081866';
+    script.dataset.cfasync = 'false';
+    script.dataset.chatangoEmbed = 'true';
+    script.async = true;
+    script.src = '//st.chatango.com/js/gz/emb.js';
+    script.style.width = '200px';
+    script.style.height = '300px';
+    script.textContent = '{"handle":"globalgamehall","arch":"js","styles":{"a":"000099","b":100,"c":"FFFFFF","d":"FFFFFF","k":"000099","l":"000099","m":"000099","n":"FFFFFF","p":"10","q":"000099","r":100,"pos":"br","cv":1,"cvfnt":"Calibri, Candara, Segoe, \'Segoe UI\', Optima, Arial, sans-serif, sans-serif","cvfntsz":"20px","cvfntw":"bold","cvbg":"000099","cvw":202,"cvh":45}}';
+    chatContainer.appendChild(script);
+}
+const toggleChatBtn = document.getElementById('toggleChatBtn');
   if (toggleChatBtn && toggleChatBtn.tagName === 'A') {
       toggleChatBtn.setAttribute('href', 'javascript:void(0)');
   } else if (toggleChatBtn && toggleChatBtn.tagName === 'BUTTON') {
@@ -4410,26 +4498,16 @@ async function ensureBackendChatConnection() {
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
       if (!requireProfileForOnlineFeature('Chat', () => {
           if (chatContainer) {
+              ensureChatEmbed();
               chatContainer.style.display = 'flex';
-              initializeChat();
-              setTimeout(() => {
-                  const chatMessages = document.getElementById('chatMessages');
-                  if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-              }, 500);
           }
       })) {
           return;
       }
       if (chatContainer) {
           if(chatContainer.style.display === 'none' || chatContainer.style.display === '') {
+              ensureChatEmbed();
               chatContainer.style.display = 'flex';
-              // Initialize chat only when opened (lazy loading)
-              initializeChat();
-              // Auto-scroll to bottom when opening
-              setTimeout(() => {
-                  const chatMessages = document.getElementById('chatMessages');
-                  if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-              }, 500);
           } else {
               chatContainer.style.display = 'none';
           }
@@ -5505,21 +5583,39 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
   const openDrawingBtn = document.getElementById('openDrawingBtn');
   const openDrawingBtnHeader = document.getElementById('openDrawingBtnHeader');
   const closeDrawingBtn = document.getElementById('closeDrawingBtn');
+  const drawingIframeOverlay = document.getElementById('drawingIframeOverlay');
+  const drawingIframe = document.getElementById('drawingIframe');
+  const closeDrawingIframe = document.getElementById('closeDrawingIframe');
+  
+  function openDrawingIframe() {
+      if (drawingIframeOverlay && drawingIframe) {
+          drawingIframe.src = 'https://flockmod.com/r/globalgamehall';
+          drawingIframeOverlay.style.display = 'flex';
+          drawingIframeOverlay.setAttribute('aria-hidden','false');
+      }
+  }
   
   function openDrawingModal() {
-  if (drawingModal) {
-    console.log('Opening drawing modal...');
-    drawingModal.style.display = 'flex';
-    drawingModal.setAttribute('aria-hidden', 'false');
-    console.log('initializeCanvasOnOpen available:', !!window.initializeCanvasOnOpen);
-    if(window.initializeCanvasOnOpen) {
-        window.initializeCanvasOnOpen();
-      }
-    }
+  // Use iframe overlay for drawing
+  openDrawingIframe();
   }
   
   openDrawingBtn?.addEventListener('click', openDrawingModal);
   openDrawingBtnHeader?.addEventListener('click', openDrawingModal);
+  closeDrawingIframe?.addEventListener('click', () => {
+      if (drawingIframeOverlay) {
+          drawingIframeOverlay.style.display = 'none';
+          drawingIframeOverlay.setAttribute('aria-hidden','true');
+          if (drawingIframe) drawingIframe.src = '';
+      }
+  });
+  drawingIframeOverlay?.addEventListener('click', (e) => {
+      if (e.target === drawingIframeOverlay) {
+          drawingIframeOverlay.style.display = 'none';
+          drawingIframeOverlay.setAttribute('aria-hidden','true');
+          if (drawingIframe) drawingIframe.src = '';
+      }
+  });
   
   // Canvas initialization is handled in openDrawingModal function
   closeDrawingBtn?.addEventListener('click', () => {
@@ -6294,53 +6390,6 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
         }
     });
   
-  // ================= Intro Screen Particles =================
-    // Only initialize if the loading screen element exists and we're not in lite-mode
-    const loadingParticlesContainer = document.querySelector('.loading-particles');
-    if (loadingParticlesContainer && !document.documentElement.classList.contains('lite-mode')) {
-  const particleCanvas = document.createElement('canvas');
-  particleCanvas.width = window.innerWidth;
-  particleCanvas.height = window.innerHeight;
-      loadingParticlesContainer.appendChild(particleCanvas);
-  const particleCtx = particleCanvas.getContext('2d');
-  
-  let particles = [];
-  for(let i=0;i<100;i++){
-      particles.push({
-          x:Math.random()*particleCanvas.width,
-          y:Math.random()*particleCanvas.height,
-          r:Math.random()*3+1,
-          vx:(Math.random()-0.5)*0.5,
-          vy:(Math.random()-0.5)*0.5,
-          color:['#ffffff','#FFD700','#000000'][Math.floor(Math.random()*3)]
-      });
-  }
-  
-  function animateParticles(){
-      particleCtx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
-      for(let p of particles){
-          particleCtx.beginPath();
-          particleCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
-          particleCtx.fillStyle=p.color;
-          particleCtx.fill();
-          p.x += p.vx; p.y += p.vy;
-          if(p.x<0||p.x>particleCanvas.width)p.vx*=-1;
-          if(p.y<0||p.y>particleCanvas.height)p.vy*=-1;
-      }
-      requestAnimationFrame(animateParticles);
-  }
-  animateParticles();
-  
-      // Handle window resize
-      window.addEventListener('resize', () => {
-          // Check if canvas still exists (loading screen might have been removed)
-          if (particleCanvas && particleCanvas.parentNode) {
-      particleCanvas.width = window.innerWidth;
-      particleCanvas.height = window.innerHeight;
-          }
-  });
-  }
-  
   // ================= NEW FEATURES =================
   
   // ---------------- User Profiles ----------------
@@ -6857,7 +6906,7 @@ if (profileStatus) {
   function saveProfile() {
       localStorage.setItem('userProfile', JSON.stringify(userProfile));
       updateProfileDisplay();
-      if (backendApi && userProfile.profileCreated) {
+      if (backendApi && !backendFriendsDisabled && userProfile.profileCreated) {
           backendApi.setUserProfile(visitorId, {
               username: userProfile.username,
               status: userProfile.status,
@@ -7078,7 +7127,10 @@ if (profileStatus) {
   
   // Initialize friends system
   function initFriendsSystem() {
-    if (backendApi) {
+    // Skip entirely if social features are disabled or UI is missing
+    if (backendFriendsDisabled || SOCIAL_FEATURES_ENABLED === false) return;
+    if (!friendsBtn && !friendsModal) return;
+    if (backendApi && !backendFriendsDisabled) {
         loadFriendsFromBackend();
         if (friendsPollInterval) clearInterval(friendsPollInterval);
         friendsPollInterval = setInterval(loadFriendsFromBackend, 5000);
@@ -7176,6 +7228,7 @@ if (profileStatus) {
 
   // Load friends using backend REST (polling)
   async function loadFriendsFromBackend() {
+    if (!backendApi || backendFriendsDisabled || SOCIAL_FEATURES_ENABLED === false) return;
     try {
         const [friendsList, requests, onlineUsers, profiles] = await Promise.all([
             backendApi.getFriends(visitorId),
@@ -7208,6 +7261,13 @@ if (profileStatus) {
         updateAllDisplays();
     } catch (err) {
         console.error('Error loading friends from backend:', err);
+        // If backend endpoints are missing, disable backend polling and fall back
+        if (String(err).includes('404')) {
+            disableBackend('friends endpoints missing (404)');
+            if (db) {
+                loadFriendsFromFirebase();
+            }
+        }
         updateAllDisplays();
     }
   }
@@ -8231,13 +8291,13 @@ window.cancelFriendRequest = function(userId) {
   
   // Function to load and display all profiles
     function loadAllProfiles() {
-      if (!searchResults) return;
-      const loader = backendApi
+      if (!searchResults || SOCIAL_FEATURES_ENABLED === false) return;
+      const loader = (backendApi && !backendFriendsDisabled)
           ? Promise.all([backendApi.getAllProfiles(), backendApi.getOnlineUsers()])
           : (db ? Promise.all([db.ref('profiles').once('value'), db.ref('online').once('value')]) : null);
       if (!loader) return;
       loader.then(([profilesData, onlineData]) => {
-          if (backendApi) {
+          if (backendApi && !backendFriendsDisabled) {
               profilesCache = Array.isArray(profilesData)
                   ? profilesData.reduce((acc, p) => { if (p.user_id) acc[p.user_id] = p; return acc; }, {})
                   : profilesData || {};
@@ -8252,6 +8312,9 @@ window.cancelFriendRequest = function(userId) {
           displayAllProfiles();
       }).catch(err => {
           console.error('Error loading profiles:', err);
+          if (String(err).includes('404')) {
+              disableBackend('profiles/all endpoint missing (404)');
+          }
           if (Object.keys(profilesCache).length > 0) {
               displayAllProfiles();
           } else {
@@ -10880,17 +10943,6 @@ gameSites = ensureAccurateDescriptions([
           return isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
       }
 
-      // Helper: open game page in a new about:blank tab
-      function openGameInBlank(path) {
-          const win = window.open('about:blank', '_blank');
-          if (win) {
-              win.location.href = path;
-              return true;
-          }
-          window.location.href = path;
-          return false;
-      }
-      
       // Add click handlers - navigate to individual game pages
       container.querySelectorAll('.big-game-cube').forEach(cube => {
           cube.addEventListener('click', (e) => {
@@ -11031,6 +11083,9 @@ gameSites = ensureAccurateDescriptions([
               const embed = cube.getAttribute('data-embed');
               const title = cube.getAttribute('data-title');
               const filename = cube.getAttribute('data-filename');
+              if (title && title.toLowerCase().includes('clash royale')) {
+                  alert('You need to make or log into a Clash Royale account before playing.');
+              }
               
               // Navigate to the individual game page
               openGameInBlank(getGamesPath(filename));
@@ -11126,11 +11181,13 @@ gameSites = ensureAccurateDescriptions([
           // Initialize featured sections on homepage
           if (document.getElementById('featuredGamesSections')) {
               renderFeaturedSections();
-              renderGameOfSeason();
-              renderSlopeRiderCenterCard();
           } else {
               // Fallback to old system if featured sections don't exist
               filterGamesByCategory('trending');
+          }
+          // Always try to render the mini Game of the Season cube if its container exists
+          if (document.getElementById('slopeRiderCenterCard')) {
+              renderSlopeRiderCenterCard();
           }
           
           return Promise.resolve();
@@ -11148,10 +11205,11 @@ gameSites = ensureAccurateDescriptions([
               }
               categorizeAllGames();
               renderFeaturedSections();
-              renderGameOfSeason();
-              renderSlopeRiderCenterCard();
           } else {
               filterGamesByCategory('trending');
+          }
+          if (document.getElementById('slopeRiderCenterCard')) {
+              renderSlopeRiderCenterCard();
           }
           } else {
               console.warn('gameSites not initialized, cannot add tags');
@@ -11166,7 +11224,8 @@ gameSites = ensureAccurateDescriptions([
                   if (document.getElementById('featuredGamesSections')) {
                       categorizeAllGames();
                       renderFeaturedSections();
-                      renderGameOfSeason();
+                  }
+                  if (document.getElementById('slopeRiderCenterCard')) {
                       renderSlopeRiderCenterCard();
                   }
               }
@@ -11817,6 +11876,9 @@ gameSites = ensureAccurateDescriptions([
               const embed = cube.getAttribute('data-embed');
               const title = cube.querySelector('.game-cube-title').textContent;
               const filename = `game-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.html`;
+              if (title && title.toLowerCase().includes('clash royale')) {
+                  alert('You need to make or log into a Clash Royale account before playing.');
+              }
               
               // Navigate to the individual game page
               window.location.href = getGamesPath(filename);
@@ -11896,48 +11958,43 @@ gameSites = ensureAccurateDescriptions([
       }, 200);
   }
   
-  // Render Slope Rider Center Card
+  // Render Slope Rider Center Card (compact mini card)
   function renderSlopeRiderCenterCard() {
       const container = document.getElementById('slopeRiderCenterCard');
-      if (!container) {
-          console.warn('slopeRiderCenterCard container not found');
-          return;
-      }
+      if (!container) return;
       
       // Wait for gameSites to be populated
       if (!gameSites || gameSites.length === 0) {
-          console.log('gameSites not loaded yet, retrying...');
-          setTimeout(() => renderSlopeRiderCenterCard(), 500);
+          setTimeout(() => renderSlopeRiderCenterCard(), 300);
           return;
       }
       
       // Find Slope Rider game
       const slopeRider = gameSites.find(game => game.title && game.title.toLowerCase().includes('slope rider'));
       if (!slopeRider) {
-          console.warn('Slope Rider game not found in gameSites');
           container.style.display = 'none';
           return;
       }
       
-    container.style.display = 'flex';
+      container.style.display = 'flex';
       
       const gameKey = getGameKey(slopeRider.embed);
       const ratingData = gameRatings[gameKey] || { average: 0, count: 0 };
       const avgRating = ratingData.average || 0;
       const filename = `game-${slopeRider.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.html`;
-    const description = getGameDescription(slopeRider);
+      const description = getGameDescription(slopeRider);
       
-      function getGamesPath(filename) {
+      function getGamesPath(file) {
           const isInPagesFolder = window.location.pathname.includes('/pages/');
-          return isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
+          return isInPagesFolder ? `../games/${file}` : `games/${file}`;
       }
       
       container.innerHTML = `
           <div class="slope-rider-center-card festive-game-cube game-cube">
               <div class="game-cube-inner">
                   <div class="game-cube-image" style="background-image: url('${slopeRider.image}');"></div>
-                <div class="game-cube-title">${slopeRider.title}</div>
-                <div class="game-cube-description">${description.substring(0, 100)}${description.length > 100 ? '...' : ''}</div>
+                  <div class="game-cube-title">${slopeRider.title}</div>
+                  <div class="game-cube-description">${description.substring(0, 100)}${description.length > 100 ? '...' : ''}</div>
                   <div class="game-cube-rating" data-embed="${slopeRider.embed}" data-game-key="${gameKey}">
                       <div class="game-cube-stars">
                           ${[1, 2, 3, 4, 5].map(star => `
@@ -11955,126 +12012,66 @@ gameSites = ensureAccurateDescriptions([
           </div>
       `;
       
-      // Add click handler
+      // Add click handler (open in about:blank wrapper like other cubes)
       const card = container.querySelector('.slope-rider-center-card');
       if (card) {
           card.addEventListener('click', (e) => {
-              if (e.target.closest('.game-cube-rating')) return;
-              window.location.href = getGamesPath(filename);
+              const embed = slopeRider.embed;
+              const aboutBlankHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>${slopeRider.title}</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0b0c12; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
+  </style>
+</head>
+<body>
+  <iframe src="${embed}" allowfullscreen allow="fullscreen; autoplay; clipboard-write; accelerometer; gyroscope; picture-in-picture; magnetometer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-top-navigation-by-user-activation"></iframe>
+</body>
+</html>`;
+              const newWin = window.open('about:blank', '_blank');
+              if (newWin) {
+                  newWin.document.write(aboutBlankHtml);
+                  newWin.document.close();
+              } else {
+                  // Fallback: navigate current window
+                  window.location.href = embed;
+              }
           });
       }
       
-      // Add rating handlers
+      // Add rating click handlers (reuse existing functions)
       container.querySelectorAll('.game-cube-stars .fa-star').forEach(star => {
           star.addEventListener('click', (e) => {
               e.stopPropagation();
               const rating = parseInt(star.getAttribute('data-rating'));
               const ratingContainer = star.closest('.game-cube-rating');
               const embed = ratingContainer.getAttribute('data-embed');
-              const gameKey = ratingContainer.getAttribute('data-game-key');
-              submitGameRating(gameKey, embed, rating);
-          });
-      });
-      
-      console.log('Slope Rider center card rendered successfully');
-  }
-  // Random game helper
-  function getRandomPlayableGame() {
-      const pool = (gameSites || []).filter(g => g && g.title && g.embed);
-      if (pool.length === 0) return null;
-      const index = Math.floor(Math.random() * pool.length);
-      return pool[index];
-  }
-  function getGamePagePathFromTitle(title) {
-      if (!title) return null;
-      const filename = `game-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.html`;
-      const path = window.location.pathname || '';
-      if (path.includes('/pages/')) {
-          return `../games/${filename}`;
-      }
-      if (path.includes('/games/')) {
-          return filename;
-      }
-      return `games/${filename}`;
-  }
-  
-  function initRandomGameButton() {
-      const btn = document.getElementById('randomGameBtn');
-      if (!btn) return;
-      btn.addEventListener('click', () => {
-          const game = getRandomPlayableGame();
-          if (!game) {
-              alert('No games available right now. Please try again.');
-              return;
-          }
-          const gamePath = getGamePagePathFromTitle(game.title);
-          window.location.href = gamePath;
-      });
-  }
-  
-  // Render Game of the Season
-  function renderGameOfSeason() {
-      const container = document.getElementById('gameOfSeasonCard');
-      if (!container) return;
-      
-      // Find Slope Rider game
-      const slopeRider = gameSites.find(game => game.title && game.title.toLowerCase().includes('slope rider'));
-      if (!slopeRider) {
-          container.style.display = 'none';
-          return;
-      }
-      
-      const gameKey = getGameKey(slopeRider.embed);
-    const ratingData = gameRatings[gameKey] || { average: 0, count: 0 };
-    const avgRating = ratingData.average || 0;
-    const description = getGameDescription(slopeRider);
-      const filename = `game-${slopeRider.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.html`;
-      const isInPagesFolder = window.location.pathname.includes('/pages/');
-      const gamePath = isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
-      
-      container.innerHTML = `
-          <div class="festive-game-card">
-              <div class="festive-badge">
-                  <i class="fas fa-crown"></i> Game of the Season
-              </div>
-              <div class="festive-game-content">
-                  <div class="festive-game-image" style="background-image: url('${slopeRider.image}');"></div>
-                  <div class="festive-game-info">
-                      <h3 class="festive-game-title">${slopeRider.title}</h3>
-                      <p class="festive-game-description">${description}</p>
-                      <div class="festive-game-rating" data-embed="${slopeRider.embed}" data-game-key="${gameKey}">
-                          <div class="festive-game-stars">
-                              ${[1, 2, 3, 4, 5].map(star => `
-                                  <i class="fas fa-star ${star <= Math.round(avgRating) ? 'active' : ''}" 
-                                     data-rating="${star}"></i>
-                              `).join('')}
-                          </div>
-                          <div class="festive-rating-text">
-                              ${avgRating > 0 ? avgRating.toFixed(1) : 'No ratings'} 
-                              ${ratingData.count > 0 ? `(${ratingData.count} ratings)` : ''}
-                          </div>
-                      </div>
-                      <button class="festive-play-btn" onclick="window.location.href='${gamePath}'">
-                          <i class="fas fa-play"></i> Play Now
-                      </button>
-                  </div>
-              </div>
-              <div class="festive-particles"></div>
-          </div>
-      `;
-      
-      // Add click handler for rating
-      container.querySelectorAll('.festive-game-stars .fa-star').forEach(star => {
-          star.addEventListener('click', (e) => {
-              e.stopPropagation();
-              const rating = parseInt(star.getAttribute('data-rating'));
-              const ratingContainer = star.closest('.festive-game-rating');
-              const embed = ratingContainer.getAttribute('data-embed');
-              const gameKey = ratingContainer.getAttribute('data-game-key');
-              submitGameRating(gameKey, embed, rating);
+              const gKey = ratingContainer.getAttribute('data-game-key');
+              const existing = gameRatings[gKey] || { average: 0, count: 0 };
+              const newAverage = ((existing.average * existing.count) + rating) / (existing.count + 1);
+              
+              // Update UI immediately
+              ratingContainer.querySelectorAll('.fa-star').forEach(s => {
+                  const starValue = parseInt(s.getAttribute('data-rating'));
+                  s.classList.toggle('active', starValue <= rating);
+              });
+              const ratingText = ratingContainer.querySelector('.game-cube-rating-text');
+              if (ratingText) {
+                  const newCount = (existing.count || 0) + 1;
+                  ratingText.textContent = `${newAverage.toFixed(1)} (${newCount})`;
+              }
+              
+              // Submit rating
+              submitGameRating(gKey, embed, rating);
           });
       });
   }
+  
+  // Render Game of the Season card (disabled big card)
+  function renderGameOfSeason() {}
   
   // Initialize games grid
   function initGamesGrid() {
@@ -12873,6 +12870,8 @@ gameSites = ensureAccurateDescriptions([
               if (document.getElementById('featuredGamesSections')) {
                   renderFeaturedSections();
                   renderGameOfSeason();
+              }
+              if (document.getElementById('slopeRiderCenterCard')) {
                   renderSlopeRiderCenterCard();
               }
               
@@ -12909,6 +12908,8 @@ gameSites = ensureAccurateDescriptions([
           if (document.getElementById('featuredGamesSections')) {
               renderFeaturedSections();
               renderGameOfSeason();
+          }
+          if (document.getElementById('slopeRiderCenterCard')) {
               renderSlopeRiderCenterCard();
           }
           
@@ -13555,25 +13556,24 @@ gameSites = ensureAccurateDescriptions([
           });
       }
       
-      // Profile button in navigation (from More dropdown)
-      const navProfileBtn = document.getElementById('navProfileBtn');
-      if (navProfileBtn) {
-          navProfileBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              const profileBtn = document.getElementById('profileBtn');
-              if (profileBtn) profileBtn.click();
-          });
-      }
+      // Profile/leaderboard nav buttons temporarily disabled
+      // const navProfileBtn = document.getElementById('navProfileBtn');
+      // if (navProfileBtn) {
+      //     navProfileBtn.addEventListener('click', (e) => {
+      //         e.preventDefault();
+      //         const profileBtn = document.getElementById('profileBtn');
+      //         if (profileBtn) profileBtn.click();
+      //     });
+      // }
       
-      // Leaderboard button in navigation (from More dropdown)
-      const navLeaderboardBtn = document.getElementById('navLeaderboardBtn');
-      if (navLeaderboardBtn) {
-          navLeaderboardBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              const leaderboardBtn = document.getElementById('leaderboardBtn');
-              if (leaderboardBtn) leaderboardBtn.click();
-          });
-      }
+      // const navLeaderboardBtn = document.getElementById('navLeaderboardBtn');
+      // if (navLeaderboardBtn) {
+      //     navLeaderboardBtn.addEventListener('click', (e) => {
+      //         e.preventDefault();
+      //         const leaderboardBtn = document.getElementById('leaderboardBtn');
+      //         if (leaderboardBtn) leaderboardBtn.click();
+      //     });
+      // }
       
       // Community dropdown buttons
       // Community dropdown buttons - close dropdown after clicking
@@ -13604,15 +13604,14 @@ gameSites = ensureAccurateDescriptions([
           });
       }
       
-      // Friends button in navigation (from dropdown)
-      const navFriendsBtn = document.getElementById('navFriendsBtn');
-      if (navFriendsBtn) {
-          navFriendsBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              const friendsBtn = document.getElementById('friendsBtn');
-              if (friendsBtn) friendsBtn.click();
-          });
-      }
+      // const navFriendsBtn = document.getElementById('navFriendsBtn');
+      // if (navFriendsBtn) {
+      //     navFriendsBtn.addEventListener('click', (e) => {
+      //         e.preventDefault();
+      //         const friendsBtn = document.getElementById('friendsBtn');
+      //         if (friendsBtn) friendsBtn.click();
+      //     });
+      // }
       
       // Resources dropdown buttons
       const navGuidesBtn = document.getElementById('navGuidesBtn');
@@ -13952,43 +13951,13 @@ gameSites = ensureAccurateDescriptions([
                   sidePanelDrawingBtn.setAttribute('data-handler-attached', 'true');
                   sidePanelDrawingBtn.addEventListener('click', (e) => {
                       e.preventDefault();
-                      
-                      // Check if we're on the homepage
-                      const isHomepage = window.location.pathname === '/' || 
-                                       window.location.pathname.endsWith('/index.html') ||
-                                       window.location.pathname.endsWith('/');
-                      
-                      if (!isHomepage) {
-                          // Redirect to homepage with parameter to auto-open drawing
-                          const homepagePath = getHomepagePath();
-                          window.location.href = homepagePath + '?open=drawing';
-                          return;
-                      }
-                      
-                      // On homepage, open drawing modal
                       if (typeof openDrawingModal === 'function') {
                           openDrawingModal();
-                      } else {
-                          // Fallback: try to find and click the button
-                          const drawingBtn = document.getElementById('openDrawingBtn');
-                          if (drawingBtn) {
-                              drawingBtn.click();
-                          } else {
-                              // If modal exists, open it directly
-                              const drawingModal = document.getElementById('drawingModal');
-                              if (drawingModal) {
-                                  drawingModal.style.display = 'flex';
-                                  drawingModal.setAttribute('aria-hidden', 'false');
-                                  if (window.initializeCanvasOnOpen) {
-                                      window.initializeCanvasOnOpen();
-                                  }
-                              }
-                          }
                       }
                   });
               }
               
-              // Chat button handler
+              // Chat button handler (sidebar opens chat embed directly)
               if (sidePanelChatBtn && !sidePanelChatBtn.hasAttribute('data-handler-attached')) {
                   sidePanelChatBtn.setAttribute('data-handler-attached', 'true');
                   if (sidePanelChatBtn.tagName === 'A') {
@@ -14016,26 +13985,14 @@ gameSites = ensureAccurateDescriptions([
                       // On homepage, open chat
                       const chatContainer = document.getElementById('chatContainer');
                       if (chatContainer) {
+                          ensureChatEmbed();
                           if (typeof requireProfileForOnlineFeature === 'function' && !requireProfileForOnlineFeature('Chat', () => {
-                              chatContainer.style.display = chatContainer.style.display === 'flex' ? 'none' : 'flex';
-                              if (typeof initializeChat === 'function') {
-                                  initializeChat();
-                              }
-                              setTimeout(() => {
-                                  const chatMessages = document.getElementById('chatMessages');
-                                  if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-                              }, 100);
+                              chatContainer.style.display = 'flex';
                           })) {
                               return;
                           }
-                          chatContainer.style.display = chatContainer.style.display === 'flex' ? 'none' : 'flex';
-                          if (typeof initializeChat === 'function') {
-                              initializeChat();
-                          }
-                          setTimeout(() => {
-                              const chatMessages = document.getElementById('chatMessages');
-                              if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-                          }, 100);
+                          ensureChatEmbed();
+                          chatContainer.style.display = 'flex';
                       } else {
                           // Fallback: try to click toggle button
                           const toggleChatBtn = document.getElementById('toggleChatBtn');
@@ -14061,96 +14018,94 @@ gameSites = ensureAccurateDescriptions([
           // Stop checking after 10 seconds
           setTimeout(() => clearInterval(checkInterval), 10000);
           
-          // Profile button - open profile modal directly
-          if (sidePanelProfileBtn) {
-              sidePanelProfileBtn.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  const profileModal = document.getElementById('profileModal');
-                  if (profileModal) {
-                      if (typeof isProfileModalLocked !== 'undefined') {
-                          isProfileModalLocked = false;
-                      }
-                      const profileModalTitle = document.getElementById('profileModalTitle');
-                      if (profileModalTitle) {
-                          profileModalTitle.textContent = 'My Profile';
-                      }
-                      const closeProfileBtn = document.getElementById('closeProfileBtn');
-                      if (closeProfileBtn) {
-                          closeProfileBtn.style.display = 'block';
-                      }
-                      profileModal.style.display = 'flex';
-                      if (typeof updateProfileDisplay === 'function') {
-                          updateProfileDisplay();
-                      }
-                  } else {
-                      // Fallback: try to click profile button
-                      const profileBtn = document.getElementById('profileBtn') || document.getElementById('navProfileBtn');
-                      if (profileBtn) profileBtn.click();
-                  }
-              });
-          }
+          // Profile/leaderboard/friends sidebar handlers disabled
+          // if (sidePanelProfileBtn) {
+          //     sidePanelProfileBtn.addEventListener('click', (e) => {
+          //         e.preventDefault();
+          //         const profileModal = document.getElementById('profileModal');
+          //         if (profileModal) {
+          //             if (typeof isProfileModalLocked !== 'undefined') {
+          //                 isProfileModalLocked = false;
+          //             }
+          //             const profileModalTitle = document.getElementById('profileModalTitle');
+          //             if (profileModalTitle) {
+          //                 profileModalTitle.textContent = 'My Profile';
+          //             }
+          //             const closeProfileBtn = document.getElementById('closeProfileBtn');
+          //             if (closeProfileBtn) {
+          //                 closeProfileBtn.style.display = 'block';
+          //             }
+          //             profileModal.style.display = 'flex';
+          //             if (typeof updateProfileDisplay === 'function') {
+          //                 updateProfileDisplay();
+          //             }
+          //         } else {
+          //             // Fallback: try to click profile button
+          //             const profileBtn = document.getElementById('profileBtn') || document.getElementById('navProfileBtn');
+          //             if (profileBtn) profileBtn.click();
+          //         }
+          //     });
+          // }
           
-          // Leaderboard button - open leaderboard modal directly
-          if (sidePanelLeaderboardBtn) {
-              sidePanelLeaderboardBtn.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  const leaderboardModal = document.getElementById('leaderboardModal');
-                  if (leaderboardModal) {
-                      if (!requireProfileForOnlineFeature('Leaderboard', () => {
-                          leaderboardModal.style.display = 'flex';
-                            if (typeof loadLeaderboardBackend === 'function') {
-                                loadLeaderboardBackend('chatters');
-                            }
-                      })) {
-                          return;
-                      }
-                      leaderboardModal.style.display = 'flex';
-                    if (typeof loadLeaderboardBackend === 'function') {
-                        loadLeaderboardBackend('chatters');
-                    }
-                  } else {
-                      // Fallback: try to click leaderboard button
-                      const leaderboardBtn = document.getElementById('leaderboardBtn');
-                      if (leaderboardBtn) leaderboardBtn.click();
-                  }
-              });
-          }
+          // if (sidePanelLeaderboardBtn) {
+          //     sidePanelLeaderboardBtn.addEventListener('click', (e) => {
+          //         e.preventDefault();
+          //         const leaderboardModal = document.getElementById('leaderboardModal');
+          //         if (leaderboardModal) {
+          //             if (!requireProfileForOnlineFeature('Leaderboard', () => {
+          //                 leaderboardModal.style.display = 'flex';
+          //                   if (typeof loadLeaderboardBackend === 'function') {
+          //                       loadLeaderboardBackend('chatters');
+          //                   }
+          //             })) {
+          //                 return;
+          //             }
+          //             leaderboardModal.style.display = 'flex';
+          //           if (typeof loadLeaderboardBackend === 'function') {
+          //               loadLeaderboardBackend('chatters');
+          //           }
+          //         } else {
+          //             // Fallback: try to click leaderboard button
+          //             const leaderboardBtn = document.getElementById('leaderboardBtn');
+          //             if (leaderboardBtn) leaderboardBtn.click();
+          //         }
+          //     });
+          // }
           
-          // Friends button - open friends modal directly
-          if (sidePanelFriendsBtn) {
-              sidePanelFriendsBtn.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  const friendsModal = document.getElementById('friendsModal');
-                  if (friendsModal) {
-                      if (!requireProfileForOnlineFeature('Friends', () => {
-                          friendsModal.style.display = 'block';
-                          friendsModal.style.visibility = 'visible';
-                          friendsModal.style.opacity = '1';
-                          if (typeof loadFriendsFromFirebase === 'function') {
-                              loadFriendsFromFirebase();
-                          }
-                          if (typeof renderFriendsTab === 'function') {
-                              renderFriendsTab();
-                          }
-                      })) {
-                          return;
-                      }
-                      friendsModal.style.display = 'block';
-                      friendsModal.style.visibility = 'visible';
-                      friendsModal.style.opacity = '1';
-                      if (typeof loadFriendsFromFirebase === 'function') {
-                          loadFriendsFromFirebase();
-                      }
-                      if (typeof renderFriendsTab === 'function') {
-                          renderFriendsTab();
-                      }
-                  } else {
-                      // Fallback: try to click friends button
-                      const friendsBtn = document.getElementById('friendsBtn');
-                      if (friendsBtn) friendsBtn.click();
-                  }
-              });
-          }
+          // if (sidePanelFriendsBtn) {
+          //     sidePanelFriendsBtn.addEventListener('click', (e) => {
+          //         e.preventDefault();
+          //         const friendsModal = document.getElementById('friendsModal');
+          //         if (friendsModal) {
+          //             if (!requireProfileForOnlineFeature('Friends', () => {
+          //                 friendsModal.style.display = 'block';
+          //                 friendsModal.style.visibility = 'visible';
+          //                 friendsModal.style.opacity = '1';
+          //                 if (typeof loadFriendsFromFirebase === 'function') {
+          //                     loadFriendsFromFirebase();
+          //                 }
+          //                 if (typeof renderFriendsTab === 'function') {
+          //                     renderFriendsTab();
+          //                 }
+          //             })) {
+          //                 return;
+          //             }
+          //             friendsModal.style.display = 'block';
+          //             friendsModal.style.visibility = 'visible';
+          //             friendsModal.style.opacity = '1';
+          //             if (typeof loadFriendsFromFirebase === 'function') {
+          //                 loadFriendsFromFirebase();
+          //             }
+          //             if (typeof renderFriendsTab === 'function') {
+          //                 renderFriendsTab();
+          //             }
+          //         } else {
+          //             // Fallback: try to click friends button
+          //             const friendsBtn = document.getElementById('friendsBtn');
+          //             if (friendsBtn) friendsBtn.click();
+          //         }
+          //     });
+          // }
       }
       
       // Inject modals if they don't exist (for pages like recently-played, all-games, etc.)

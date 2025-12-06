@@ -1,7 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="/about-blank-wrapper.js" data-ab-wrapper="true"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Play Adam and Eve 6 - Premium gaming experience with fullscreen gameplay, ratings, and user reviews.">
@@ -683,7 +682,6 @@
             <p>&copy; 2024 Global Game Hall. All rights reserved.</p>
         </div>
     </footer>
-      <script src="/backend-api-client.js"></script>`n<script src="/firebase-shim.js"></script>
       <script src="../game-page.js"></script>
       <script src="../adblocker.js"></script>
     <script>
@@ -730,21 +728,11 @@
             }
         }
         const gameKey = getGameKey(gameEmbed);
-        // Use global db from script.js (Firebase is already initialized there)
-        // Wait for script.js to load and initialize db
+        // Use global db from script.js
         function getDb() {
             if (typeof db !== 'undefined' && db !== null) {
                 return db;
-            }
-            // Fallback: try to get db from firebase if script.js hasn't loaded yet
-            if (typeof firebase !== 'undefined') {
-                try {
-                    return firebase.database();
-                } catch (e) {
-                    console.error('Firebase error:', e);
-                }
-            }
-            return null;
+            }\n            return null;
         }
         // Fullscreen functionality - target the container div, not the iframe
         function initFullscreen() {
