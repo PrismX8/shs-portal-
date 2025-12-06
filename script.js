@@ -4480,7 +4480,7 @@ function ensureChatEmbed() {
     script.dataset.cfasync = 'false';
     script.dataset.chatangoEmbed = 'true';
     script.async = true;
-    script.src = '//st.chatango.com/js/gz/emb.js';
+    script.src = 'https://st.chatango.com/js/gz/emb.js';
     script.style.width = '200px';
     script.style.height = '300px';
     script.textContent = '{"handle":"globalgamehall","arch":"js","styles":{"a":"000099","b":100,"c":"FFFFFF","d":"FFFFFF","k":"000099","l":"000099","m":"000099","n":"FFFFFF","p":"10","q":"000099","r":100,"pos":"br","cv":1,"cvfnt":"Calibri, Candara, Segoe, \'Segoe UI\', Optima, Arial, sans-serif, sans-serif","cvfntsz":"20px","cvfntw":"bold","cvbg":"000099","cvw":202,"cvh":45}}';
@@ -4497,12 +4497,25 @@ const toggleChatBtn = document.getElementById('toggleChatBtn');
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
       if (chatContainer) {
-          if(chatContainer.style.display === 'none' || chatContainer.style.display === '') {
-              ensureChatEmbed();
-              chatContainer.style.display = 'flex';
-          } else {
+          const isHidden = (chatContainer.style.display === 'none' || chatContainer.style.display === '');
+          ensureChatEmbed();
+          chatContainer.style.display = 'flex';
+          chatContainer.style.visibility = 'visible';
+          chatContainer.style.opacity = '1';
+          chatContainer.style.zIndex = '20000';
+          chatContainer.style.pointerEvents = 'auto';
+          if (!isHidden) {
+              // allow explicit close by second click if needed
               chatContainer.style.display = 'none';
           }
+      } else {
+          // Fallback: create a minimal container if missing
+          const fallback = document.createElement('div');
+          fallback.id = 'chatContainer';
+          fallback.className = 'chat-container';
+          fallback.style.cssText = 'display:flex; position:fixed; bottom:20px; right:20px; width:380px; max-height:600px; background:rgba(15,15,25,0.95); backdrop-filter:blur(20px); border-radius:16px; border:1px solid rgba(255,215,0,0.2); z-index:20000; box-shadow:0 10px 40px rgba(0,0,0,0.5); flex-direction:column; visibility:visible; opacity:1;';
+          document.body.appendChild(fallback);
+          ensureChatEmbed();
       }
   });
   
