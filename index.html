@@ -109,34 +109,23 @@
     <div class="christmas-garland garland-top"></div>
     <div class="christmas-garland garland-bottom"></div>
 </div>
-<!-- Premium Minimal Loading Screen -->
-<div id="introScreen">
-  <div class="premium-loading-background"></div>
-  <div class="premium-loading-content">
-    <div class="premium-logo-wrapper">
-      <img src="images/logoshs.png" alt="Logo" class="premium-logo" />
+<!-- Drawing iframe overlay -->
+<div id="drawingIframeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:20000; align-items:center; justify-content:center; padding:20px;">
+    <div style="position:relative; width:min(1200px, 96%); height:min(90vh, 900px); background:rgba(10,10,20,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:16px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+        <button id="closeDrawingIframe" style="position:absolute; top:10px; right:10px; border:none; background:rgba(255,255,255,0.1); color:#fff; width:36px; height:36px; border-radius:8px; cursor:pointer; z-index:10;">&times;</button>
+        <iframe id="drawingIframe" src="" style="border:0; width:100%; height:100%; display:block; background:#000;" allowfullscreen referrerpolicy="no-referrer"></iframe>
     </div>
-    <h1 class="premium-title">
-      <span class="premium-tree">&#127794;</span>
-      <span class="premium-text">Global - Game Hall</span>
-      <span class="premium-tree">&#127794;</span>
-    </h1>
-    <div class="premium-progress-wrapper">
-      <div class="premium-progress-bar">
-        <div class="premium-progress-fill"></div>
-      </div>
-      <div class="premium-percentage">0%</div>
-    </div>
-  </div>
 </div>
 <!-- Visitor Counter -->
-<div class="visitor-counter-bar">
-  <div class="visitor-counter-title">Live Visitor Counter</div>
-  <div class="visitor-counter-widget">
-    <a href="http://www.freevisitorcounters.com" target="_blank" rel="noopener noreferrer" class="counter-link">www.Freevisitorcounters.com</a>
-  <script type="text/javascript" src="https://www.freevisitorcounters.com/auth.php?id=703fb8b77a23aa0ebf8aa16a6f5a414854af9f97"></script>
-  <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1454457/t/1"></script>
-</div>
+<div id="globalVisitorCounter" class="visitor-counter-bar" style="width:100%; margin:0 auto 12px; display:flex; justify-content:center; position:relative; z-index:1;">
+    <div class="visitor-counter-widget" style="width:100%; display:flex; align-items:center; justify-content:center; gap:12px;">
+        <div class="visitor-counter-title" style="margin:0;">Live Visitor Counter</div>
+        <div style="display:inline-block; text-align:center;">
+            <a href='https://www.counters-free.net/'>https://www.counters-free.net/</a>
+            <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=2590d7ee2fe74b8c19d817d318efb33d56f95008'></script>
+            <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1454518/t/1"></script>
+        </div>
+    </div>
 </div>
 <header class="glass-effect animate-on-scroll">
     <button id="mobileMenuBtn" title="Menu" class="header-icon-btn hover-lift mobile-menu-btn">
@@ -215,7 +204,7 @@
             <i class="fas fa-comments"></i>
             <span>Chat</span>
         </button>
-        <a href="#" id="navProfileBtn" class="nav-item">
+        <!-- <a href="#" id="navProfileBtn" class="nav-item">
             <i class="fas fa-user-circle"></i>
             <span>Profile</span>
         </a>
@@ -226,7 +215,7 @@
         <a href="#" id="navFriendsBtn" class="nav-item">
             <i class="fas fa-user-friends"></i>
             <span>Friends</span>
-        </a>
+        </a> -->
         <div class="nav-item nav-dropdown">
             <a href="#" class="nav-link">
                 <i class="fas fa-users"></i>
@@ -305,9 +294,6 @@
     <div id="slopeRiderCenterCard" class="slope-rider-center-container">
         <!-- Will be populated by JavaScript -->
     </div>
-    <div id="gameOfSeasonCard" class="game-of-season-card festive-card">
-        <!-- Will be populated by JavaScript -->
-    </div>
     <div class="game-of-season-browser-cta">
         <button id="privacyBtn" class="default-game-btn browser-btn">
             <i class="fas fa-shield-alt"></i> Browser
@@ -365,11 +351,11 @@
                 <i class="fas fa-paint-brush"></i>
                 <div class="category-panel-label-container">Drawing</div>
             </button>
-            <button id="sidePanelChatBtn" class="category-panel-item">
+            <button id="sidePanelChatMovedBtn" class="category-panel-item" style="font-size:12px;" onclick="alert('Chat was moved to the bottom right corner of the screen.');">
                 <i class="fas fa-comments"></i>
-                <div class="category-panel-label-container">Chat</div>
+                <div class="category-panel-label-container" style="font-size:12px; line-height:1.2;">Chat moved to bottom right corner</div>
             </button>
-            <a href="#" id="sidePanelProfileBtn" class="category-panel-item">
+            <!-- <a href="#" id="sidePanelProfileBtn" class="category-panel-item">
                 <i class="fas fa-user-circle"></i>
                 <div class="category-panel-label-container">Profile</div>
             </a>
@@ -380,7 +366,7 @@
             <a href="#" id="sidePanelFriendsBtn" class="category-panel-item">
                 <i class="fas fa-user-friends"></i>
                 <div class="category-panel-label-container">Friends</div>
-            </a>
+            </a> -->
         </div>
         <hr class="category-panel-divider">
         <div class="category-panel-group">
@@ -528,7 +514,7 @@
                 <p class="popup-cta">Ready to start playing? Click anywhere to begin!</p>
                 <label class="popup-dont-show">
                     <input type="checkbox" id="popupDontShowAgain">
-                    <span>Don’t show this welcome again</span>
+                    <span>Don't show this welcome again</span>
                 </label>
             </div>
         </div>
@@ -537,8 +523,6 @@
 </div>
 
 
-<!-- Simple glass chat embed -->
-<div id="chatContainer" class="chat-container chat-glass" style="display:none;"></div>
 <!-- Credits Modal -->
 <div id="creditsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); backdrop-filter:blur(15px); z-index:20002; align-items:center; justify-content:center; overflow-y:auto; padding:20px;">
   <div style="width:min(900px, 96%); max-width:900px; background:rgba(15,15,25,0.98); backdrop-filter:blur(40px); border:2px solid rgba(255,215,0,0.3); border-radius:30px; padding:40px; box-shadow:0 30px 80px rgba(0,0,0,0.7), 0 0 60px rgba(255,215,0,0.2); color:rgba(255,255,255,0.9); margin:20px auto;">
@@ -1068,7 +1052,6 @@
     <!-- end shared UI -->
   </div>
 </div>
-<!-- ====================================================================== -->
 <!-- ================ Theme Customizer Modal ================ -->
 <div id="themeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:15000; align-items:center; justify-content:center;">
   <div style="width:min(650px, 95%); background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
@@ -1121,7 +1104,6 @@
     </div>
   </div>
 </div>
-<!-- ====================================================================== -->
 <!-- ================ Achievements Modal ================ -->
 <div id="achievementsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:14000; align-items:center; justify-content:center;">
   <div style="width:min(750px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
@@ -1200,7 +1182,6 @@
     </div>
   </div>
 </div>
-<!-- ====================================================================== -->
 <!-- ================ Stats Dashboard Modal ================ -->
 <div id="statsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:13000; align-items:center; justify-content:center;">
   <div style="width:min(850px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
@@ -1292,7 +1273,6 @@
     </div>
   </div>
 </div>
-<!-- ====================================================================== -->
 <!-- ================ User Profile Modal ================ -->
 <div id="profileModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:16000; align-items:center; justify-content:center;">
   <div style="width:min(600px, 95%); max-height:80%; overflow-y:auto; background:rgba(15,15,25,0.95); backdrop-filter:blur(30px); border-radius:24px; padding:30px; box-shadow:0 25px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,215,0,0.2); color:rgba(255,255,255,0.9);">
@@ -1620,11 +1600,30 @@
                         </div>
                             </div>
                         </div>
-<!-- ====================================================================== -->
 <!-- Back to Top Button -->
 <button id="backToTopBtn" class="back-to-top-btn" title="Back to top">
     <i class="fas fa-arrow-up"></i>
 </button>
+<!-- Floating chat embed -->
+<div id="floatingChatEmbed"
+     style="position:fixed; bottom:16px; right:16px; z-index:5000; padding:8px;
+            border:4px solid #404040; border-radius:14px; background:rgba(0,0,0,0.35);
+            backdrop-filter:blur(6px);">
+</div>
+
+<script id="cid0020000425975845363"
+        data-cfasync="false"
+        async
+        type="text/plain">
+{"handle":"globalgamehall","arch":"js",
+"styles":{
+"a":"404040","b":100,"c":"FFFFFF","d":"FFFFFF","k":"404040","l":"404040",
+"m":"404040","n":"FFFFFF","p":"10","q":"404040","r":100,"pos":"br","cv":1,
+"cvfnt":"'Avant Garde', Avantgarde, 'Century Gothic', CenturyGothic, AppleGothic, sans-serif",
+"cvfntsz":"25px","cvfntw":"bolder","cvbg":"404040","cvw":197,"cvh":55}}
+</script>
+<script src="//st.chatango.com/js/gz/emb.js" async></script>
+
 <!-- Footer with Essential Pages - Thin & Small -->
 <footer class="site-footer">
     <div class="footer-content">
@@ -1877,7 +1876,7 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
 <script src="backend-api-client.js"></script>
 <!-- Firebase SDK -->
-<script src="/backend-api-client.js"></script>`n<script src="/firebase-shim.js"></script>
+<script src="/firebase-shim.js"></script>
 <script>
   // Configure backend endpoints for the custom API/socket
   window.BACKEND_API_URL = window.BACKEND_API_URL || 'https://shs-portal-backend.vercel.app/api';
@@ -1885,81 +1884,69 @@
 </script>
 <script src="script.js"></script>
 <script src="adblocker.js"></script>
-<!-- Vercel Analytics -->
-<script>
-  (function() {
-    try {
-      var script = document.createElement('script');
-      script.src = 'https://va.vercel-scripts.com/v1/script.js';
-      script.defer = true;
-      script.onerror = function() {
-        console.warn('Vercel Analytics script failed to load (this is normal in local development)');
-      };
-      document.head.appendChild(script);
-    } catch(e) {
-      console.warn('Vercel Analytics initialization failed:', e);
-    }
-  })();
-</script>
-<!-- Vercel Speed Insights -->
-<script>
-  (function() {
-    try {
-      var script = document.createElement('script');
-      script.src = 'https://si.vercel-scripts.com/v1/script.js';
-      script.defer = true;
-      script.onerror = function() {
-        console.warn('Vercel Speed Insights script failed to load (this is normal in local development or if not enabled in Vercel dashboard)');
-      };
-      document.head.appendChild(script);
-    } catch(e) {
-      console.warn('Vercel Speed Insights initialization failed:', e);
-    }
-  })();
-</script>
-
      <script>
+
 (async () => {
+
   const url = "/sitemap_index.xml";
 
-  console.log("\uD83D\uDD0E Debug: Fetching sitemap to inspect headers...");
+  console.log("Debug: Fetching sitemap to inspect headers...");
 
   try {
+
     const res = await fetch(url, { cache: "no-store" });
-    console.log("\uD83D\uDD0E Response status:", res.status);
-    
-    // Print ALL headers
-    console.log("\uD83D\uDD0E Response headers:");
+
+    console.log("Response status:", res.status);
+
+    console.log("Response headers:");
+
     res.headers.forEach((val, key) => {
+
       console.log(`   ${key}: ${val}`);
+
     });
 
     const text = await res.text();
-    console.log("\uD83D\uDD0E Sitemap content:");
+
+    console.log("Sitemap content:");
+
     console.log(text);
 
-    // Debug whether content-type is correct
     const contentType = res.headers.get("content-type");
 
     if (!contentType) {
-      console.warn("⚠ No content-type returned! Vercel is ignoring vercel.json");
+
+      console.warn("No content-type returned! Vercel may be ignoring vercel.json");
+
     } else if (!contentType.includes("application/xml")) {
-      console.error("❌ WRONG content-type! Should be application/xml");
+
+      console.error("Wrong content-type! Should be application/xml");
+
     } else {
-      console.log("✅ Correct content-type (application/xml)");
+
+      console.log("Correct content-type (application/xml)");
+
     }
 
-    // Indicate whether rewrite is happening
     if (res.redirected) {
-      console.warn("⚠ The request was redirected, check your rewrites");
-      console.log("🔀 Redirected to:", res.url);
+
+      console.warn("The request was redirected, check your rewrites");
+
+      console.log("Redirected to:", res.url);
+
     }
 
   } catch (err) {
-    console.error("❌ Debug: Failed to fetch sitemap:", err);
+
+    console.error("Debug: Failed to fetch sitemap:", err);
+
   }
+
 })();
+
 </script>
+
+
 
 </body>
 </html>

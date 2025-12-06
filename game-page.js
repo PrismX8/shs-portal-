@@ -7,6 +7,7 @@
 
 (function () {
   // Sidebar removed from game pages - using back button instead
+  // ---- Visitor counter injection (shared across game pages) ----
   // ---- Lite-mode / low-performance detection ----
   try {
     const ua = navigator.userAgent || '';
