@@ -1,8 +1,5 @@
 (function() {
   try {
-    // Disable automatic about:blank wrapping to avoid opening extra tabs
-    return;
-
     const path = (window.location.pathname || '').replace(/\/+$/, '/') || '/';
     const lowerPath = path.toLowerCase();
     const isMainPage = lowerPath === '/' || lowerPath === '/index.html' || lowerPath === '/index.htm';

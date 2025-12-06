@@ -129,18 +129,29 @@
       <iframe
         id="moviesFrame"
         title="Movies"
-        src="https://www.fmovies.gd/home"
+        src="https://watchmoviefull.org/home-fmovies/"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowfullscreen
         referrerpolicy="no-referrer"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-top-navigation-by-user-activation"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-top-navigation-by-user-activation allow-popups"
         loading="lazy">
       </iframe>
     </div>
   </main>
 
   <footer>
-    Embedded via fmovies.gd. If it doesn’t load, refresh or open directly.
+    Embedded via watchmoviefull.org. If it doesn’t load, refresh or open directly.
   </footer>
+
+  <script>
+    const iframe = document.getElementById('moviesFrame');
+    iframe.addEventListener('load', () => {
+      console.log('Movies iframe loaded successfully');
+    });
+    iframe.addEventListener('error', (e) => {
+      console.error('Movies iframe failed to load:', e);
+    });
+    console.log('Movies page loaded, iframe src:', iframe.src);
+  </script>
 </body>
 </html>
