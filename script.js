@@ -2381,11 +2381,42 @@ async function ensureBackendChatConnection() {
   }
   
   function showPopup(){
-    if (popup) {
-        try {
-      popup.classList.add('show');
-        } catch (err) {
-            console.warn('Error showing popup:', err);
+    // Mobile detection logic
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+        // Show mobile popup instead of regular popup
+        const mobilePopup = document.getElementById('mobilePopup');
+        if (mobilePopup) {
+            try {
+                mobilePopup.style.display = 'flex';
+                // Add event listeners for mobile popup buttons
+                const closeMobilePopup = document.getElementById('closeMobilePopup');
+                const continueOnMobileBtn = document.getElementById('continueOnMobileBtn');
+
+                if (closeMobilePopup) {
+                    closeMobilePopup.addEventListener('click', () => {
+                        mobilePopup.style.display = 'none';
+                    });
+                }
+
+                if (continueOnMobileBtn) {
+                    continueOnMobileBtn.addEventListener('click', () => {
+                        mobilePopup.style.display = 'none';
+                    });
+                }
+            } catch (err) {
+                console.warn('Error showing mobile popup:', err);
+            }
+        }
+    } else {
+        // Show regular popup for desktop
+        if (popup) {
+            try {
+                popup.classList.add('show');
+            } catch (err) {
+                console.warn('Error showing popup:', err);
+            }
         }
     }
   }
