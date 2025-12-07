@@ -9,7 +9,8 @@
           'ww22.0123movie.net',
           'movies4ufree.net',
           'sflix.ps',
-          'fmoviesto.ru'
+          'fmoviesto.ru',
+          'discord.gg'
       ]);
       function isAllowed(url) {
           try {
@@ -261,7 +262,96 @@ let counterPollInterval = null;
       window.open(unblocked, '_blank', 'noopener,noreferrer');
   }
   youtubeBtn?.addEventListener('click', openYoutubePrompt, true);
-  
+
+  // Discord button -> open Discord invite
+  const discordBtn = document.getElementById('discordBtn');
+  if (discordBtn) {
+      discordBtn.addEventListener('click', () => {
+          window.open('https://discord.gg/ezgfEWd7d2', '_blank', 'noopener,noreferrer');
+      });
+  }
+
+  // Request Games button -> open custom form in about:blank
+  const requestGamesBtn = document.getElementById('requestGamesBtn');
+  if (requestGamesBtn) {
+      requestGamesBtn.addEventListener('click', () => {
+          const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Request Games - Global Game Hall</title>
+   <style>
+       body {
+           margin: 0;
+           padding: 20px;
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           background: linear-gradient(135deg, #0f0f1a, #1a1a2a);
+           color: #ffffff;
+           min-height: 100vh;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+       }
+       .container {
+           max-width: 800px;
+           width: 100%;
+           text-align: center;
+       }
+       h1 {
+           color: #FFD700;
+           margin-bottom: 20px;
+           font-size: 2.5rem;
+           text-shadow: 0 2px 10px rgba(255,215,0,0.5);
+       }
+       .form-container {
+           background: rgba(255,255,255,0.05);
+           border-radius: 16px;
+           padding: 30px;
+           box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+           border: 1px solid rgba(255,215,0,0.2);
+       }
+       .back-btn {
+           position: absolute;
+           top: 20px;
+           left: 20px;
+           background: rgba(255,215,0,0.1);
+           border: 1px solid rgba(255,215,0,0.3);
+           color: #FFD700;
+           padding: 10px 20px;
+           border-radius: 8px;
+           cursor: pointer;
+           font-weight: 600;
+           text-decoration: none;
+           transition: all 0.3s ease;
+       }
+       .back-btn:hover {
+           background: rgba(255,215,0,0.2);
+           transform: translateY(-2px);
+       }
+   </style>
+</head>
+<body>
+   <a href="javascript:window.close()" class="back-btn">← Back to Games</a>
+   <div class="container">
+       <h1>Request a Game</h1>
+       <div class="form-container">
+           <div class="powr-form-builder" id="3d4ba95a_1764814208"></div>
+           <script src="https://www.powr.io/powr.js?platform=html"></script>
+       </div>
+   </div>
+</body>
+</html>`;
+          const win = window.open('about:blank', '_blank');
+          if (win) {
+              win.document.open();
+              win.document.write(html);
+              win.document.close();
+          }
+      });
+  }
+
   let db = null;
   const firebaseReadyCallbacks = [];
   function onFirebaseReady(callback) {
@@ -6399,6 +6489,14 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
     // Initialize announcement popup when page loads
     window.addEventListener('load', function() {
         console.log('Page fully loaded');
+        // Debug: Check Discord button position and listeners
+        const discordBtn = document.getElementById('discordBtn');
+        if (discordBtn) {
+            console.log('Discord button found, position:', getComputedStyle(discordBtn).position, 'display:', getComputedStyle(discordBtn).display);
+            console.log('Discord button event listeners:', discordBtn.onclick ? 'has onclick' : 'no onclick');
+        } else {
+            console.log('Discord button not found');
+        }
       let hasHiddenPreference = false;
         try {
             hasHiddenPreference = localStorage.getItem(POPUP_STORAGE_KEY) === 'true';
