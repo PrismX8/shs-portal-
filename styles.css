@@ -6207,18 +6207,26 @@ body {
    }
    @media (max-width: 768px) {
        .primeCarouselLi > .big-game-cube {
-           width: 197px;
-           height: 197px;
-           min-width: 197px;
-           max-width: 197px;
+           width: 180px;
+           height: 180px;
+           min-width: 180px;
+           max-width: 180px;
        }
        .small-games-container {
-           width: 197px;
-           height: 197px;
+           width: 180px;
+           height: 180px;
            gap: 8px;
        }
        .featured-games-grid.primeCarouselContainer {
-           gap: 15px;
+           gap: 12px;
+       }
+       /* Improve main games grid responsiveness */
+       .games-grid {
+           grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+           gap: 12px !important;
+       }
+       .games-grid .game-cube {
+           min-height: 140px !important;
        }
    }
    @media (max-width: 560px) {

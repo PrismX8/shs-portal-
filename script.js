@@ -6437,6 +6437,78 @@ closeFullscreenChatBtn?.addEventListener('click', () => {
                 ctxCursor.beginPath();
                 ctxCursor.arc(x, y, avatarSize/2, 0, Math.PI * 2);
                 ctxCursor.fill();
+// Mobile responsiveness debugging
+function debugMobileResponsiveness() {
+    console.log('=== Mobile Responsiveness Debug ===');
+    console.log('Screen size:', window.innerWidth + 'x' + window.innerHeight);
+    console.log('Device pixel ratio:', window.devicePixelRatio);
+    console.log('User agent:', navigator.userAgent);
+
+    // Check header
+    const header = document.querySelector('header');
+    if (header) {
+        const headerRect = header.getBoundingClientRect();
+        console.log('Header dimensions:', headerRect.width + 'x' + headerRect.height);
+        console.log('Header margin-left:', getComputedStyle(header).marginLeft);
+    }
+
+    // Check game grid
+    const gameGrid = document.querySelector('.games-grid-container');
+    if (gameGrid) {
+        const gridRect = gameGrid.getBoundingClientRect();
+        console.log('Game grid dimensions:', gridRect.width + 'x' + gridRect.height);
+        console.log('Game grid padding:', getComputedStyle(gameGrid).padding);
+        console.log('Game grid columns:', getComputedStyle(gameGrid).gridTemplateColumns);
+    }
+
+    // Check game cubes
+    const gameCubes = document.querySelectorAll('.game-cube');
+    if (gameCubes.length > 0) {
+        const firstCube = gameCubes[0];
+        const cubeRect = firstCube.getBoundingClientRect();
+        console.log('First game cube dimensions:', cubeRect.width + 'x' + cubeRect.height);
+        console.log('Game cube min-height:', getComputedStyle(firstCube).minHeight);
+    }
+
+    // Check navigation
+    const nav = document.querySelector('.main-navigation');
+    if (nav) {
+        console.log('Navigation display:', getComputedStyle(nav).display);
+        console.log('Navigation position:', getComputedStyle(nav).position);
+    }
+
+    // Check touch targets
+    const buttons = document.querySelectorAll('button, .game-cube, .nav-item');
+    let smallTargets = 0;
+    buttons.forEach(btn => {
+        const rect = btn.getBoundingClientRect();
+        const minDim = Math.min(rect.width, rect.height);
+        if (minDim < 44) { // 44px is recommended minimum touch target
+            smallTargets++;
+        }
+    });
+    console.log('Small touch targets (<44px):', smallTargets);
+
+    // Check for horizontal overflow
+    const bodyScrollWidth = document.body.scrollWidth;
+    const windowWidth = window.innerWidth;
+    console.log('Horizontal overflow:', bodyScrollWidth > windowWidth ? 'YES' : 'NO');
+    if (bodyScrollWidth > windowWidth) {
+        console.log('Overflow amount:', bodyScrollWidth - windowWidth + 'px');
+    }
+
+    console.log('=== End Debug ===');
+}
+
+// Run debug on load and resize
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', debugMobileResponsiveness);
+} else {
+    debugMobileResponsiveness();
+}
+window.addEventListener('resize', () => {
+    setTimeout(debugMobileResponsiveness, 500); // Debounce resize
+});
                 ctxCursor.font = '14px Arial';
                 ctxCursor.textAlign = 'center';
                 ctxCursor.textBaseline = 'middle';
