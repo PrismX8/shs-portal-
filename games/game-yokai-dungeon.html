@@ -631,6 +631,9 @@
             <button class="premium-fullscreen-btn" id="fullscreenBtn">
                 <i class="fas fa-expand"></i> Play Fullscreen
             </button>
+            <button class="premium-fullscreen-btn" id="refreshBtn" style="background: rgba(0, 123, 255, 0.2); border-color: rgba(0, 123, 255, 0.4); color: #00d4ff;">
+                <i class="fas fa-refresh"></i> Refresh Game
+            </button>
             <div class="premium-game-description">
                 <h2 class="premium-game-description-title">About Yokai Dungeon</h2>
                 <div class="premium-game-description-body">
@@ -966,6 +969,12 @@
                 }
             });
         });
+        // Refresh game embed
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            const iframe = document.getElementById('gameEmbed');
+            iframe.src = iframe.src; // Reload the iframe
+        });
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('gameTitle').textContent = gameTitle;

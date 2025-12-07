@@ -3,11 +3,13 @@
 <head>
   <script src="/about-blank-wrapper.js" data-ab-wrapper="true"></script>
   <script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "uh0lyeydcq");
+    if (window.location.hostname !== '127.0.0.1' && window.location.hostname !== 'localhost') {
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "uh0lyeydcq");
+    }
   </script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -1981,6 +1983,22 @@ setTimeout(() => {
 </script>
 <script defer src="script.js"></script>
 <script defer src="adblocker.js"></script>
+<script>
+// Add hover class to body for sidebar hover effects
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('categorySidePanel');
+    const body = document.body;
+
+    if (sidebar) {
+        sidebar.addEventListener('mouseenter', function() {
+            body.classList.add('sidebar-hovered');
+        });
+        sidebar.addEventListener('mouseleave', function() {
+            body.classList.remove('sidebar-hovered');
+        });
+    }
+});
+</script>
      <script>
 
 (async () => {
