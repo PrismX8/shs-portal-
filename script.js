@@ -11,6 +11,7 @@
           'sflix.ps',
           'fmoviesto.ru',
           'fullmovies4k.info',
+          'https://fmoviesto.ru/home',
           'discord.gg'
       ]);
       function isAllowed(url) {
