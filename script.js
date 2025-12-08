@@ -10,6 +10,7 @@
           'movies4ufree.net',
           'sflix.ps',
           'fmoviesto.ru',
+          'fullmovies4k.info',
           'discord.gg'
       ]);
       function isAllowed(url) {
