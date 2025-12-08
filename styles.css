@@ -158,6 +158,9 @@
     box-shadow: none !important;
     backdrop-filter: none !important;
 }
+.lite-mode .category-side-panel {
+    background: grey !important;
+}
 /* Fix header and visitor counter on game pages - no sidebar */
 body:has(.premium-game-page) #visitorCounter,
 .premium-game-page ~ * #visitorCounter {
