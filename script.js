@@ -13759,8 +13759,41 @@ gameSites = ensureAccurateDescriptions([
       const navChatBtn = document.getElementById('navChatBtn');
       if (navChatBtn) {
           navChatBtn.addEventListener('click', () => {
-              const toggleChatBtn = document.getElementById('toggleChatBtn');
-              if (toggleChatBtn) toggleChatBtn.click();
+              const chatEmbedModal = document.getElementById('chatEmbedModal');
+              if (chatEmbedModal) {
+                  chatEmbedModal.style.display = 'flex';
+                  chatEmbedModal.setAttribute('aria-hidden', 'false');
+              }
+          });
+      }
+
+
+      // Side panel chat button
+      const sidePanelChatMovedBtn = document.getElementById('sidePanelChatMovedBtn');
+      if (sidePanelChatMovedBtn) {
+          sidePanelChatMovedBtn.addEventListener('click', () => {
+              const chatEmbedModal = document.getElementById('chatEmbedModal');
+              if (chatEmbedModal) {
+                  chatEmbedModal.style.display = 'flex';
+                  chatEmbedModal.setAttribute('aria-hidden', 'false');
+              }
+          });
+      }
+
+      // Close chat embed modal
+      const closeChatEmbedBtn = document.getElementById('closeChatEmbedBtn');
+      const chatEmbedModal = document.getElementById('chatEmbedModal');
+      if (closeChatEmbedBtn && chatEmbedModal) {
+          closeChatEmbedBtn.addEventListener('click', () => {
+              chatEmbedModal.style.display = 'none';
+              chatEmbedModal.setAttribute('aria-hidden', 'true');
+          });
+          // Close on background click
+          chatEmbedModal.addEventListener('click', (e) => {
+              if (e.target === chatEmbedModal) {
+                  chatEmbedModal.style.display = 'none';
+                  chatEmbedModal.setAttribute('aria-hidden', 'true');
+              }
           });
       }
       
