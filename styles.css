@@ -186,14 +186,6 @@ body {
     margin: 0;
     padding-top: 30px;
     font-family: var(--font-primary);
-    background-color: #05060f;
-    background-image:
-        radial-gradient(circle at 18% 22%, rgba(255, 215, 120, 0.12), transparent 38%),
-        radial-gradient(circle at 78% 18%, rgba(0, 214, 255, 0.12), transparent 40%),
-        radial-gradient(circle at 65% 72%, rgba(125, 92, 255, 0.12), transparent 42%),
-        linear-gradient(145deg, #05060f 0%, #0b1225 48%, #060a13 100%);
-    background-size: 220% 220%;
-    animation: gradientShift 35s ease-in-out infinite;
     color: var(--text-primary);
     position: relative;
     overflow-x: hidden;
@@ -5670,6 +5662,52 @@ body {
            width: calc((100% - var(--spacing-xl)) / 2);
        }
    }
+   
+   /* Snow Animation */
+   html {
+     height: 100%;
+     background: linear-gradient(#123 30%, #667);
+   }
+   .snow, .snow:before, .snow:after {
+     position: absolute;
+     top: -600px;
+     left: 0;
+     bottom: 0;
+     right: 0;
+     background-image:
+       radial-gradient(4px 4px at 120px 180px, rgba(255,255,255,0.8) 50%, rgba(0,0,0,0)),
+       radial-gradient(3px 3px at 480px 120px, rgba(255,255,255,0.6) 50%, rgba(0,0,0,0)),
+       radial-gradient(5px 5px at 360px 540px, rgba(255,255,255,0.9) 50%, rgba(0,0,0,0)),
+       radial-gradient(4px 4px at 240px 300px, rgba(255,255,255,0.7) 50%, rgba(0,0,0,0)),
+       radial-gradient(3px 3px at 600px 420px, rgba(255,255,255,0.5) 50%, rgba(0,0,0,0)),
+       radial-gradient(5px 5px at 60px 480px, rgba(255,255,255,0.8) 50%, rgba(0,0,0,0)),
+       radial-gradient(4px 4px at 420px 60px, rgba(255,255,255,0.6) 50%, rgba(0,0,0,0)),
+       radial-gradient(3px 3px at 180px 360px, rgba(255,255,255,0.9) 50%, rgba(0,0,0,0)),
+       radial-gradient(5px 5px at 540px 240px, rgba(255,255,255,0.7) 50%, rgba(0,0,0,0)),
+       radial-gradient(4px 4px at 300px 120px, rgba(255,255,255,0.5) 50%, rgba(0,0,0,0));
+     background-size: 600px 600px;
+     animation: snow 3s linear infinite;
+     content: "";
+   }
+   .snow:after {
+     margin-left: -200px;
+     opacity: .4;
+     animation-duration: 6s;
+     animation-direction: reverse;
+     filter: blur(3px);
+   }
+   .snow:before {
+     animation-duration: 9s;
+     animation-direction: reverse;
+     margin-left: -300px;
+     opacity: .65;
+     filter: blur(1.5px);
+   }
+   @keyframes snow {
+     to {
+       transform: translateY(600px);
+     }
+   }
    .featured-games-grid .game-cube-rating {
        display: flex !important;
        visibility: visible !important;
@@ -8471,58 +8509,6 @@ body {
      background: rgba(255,170,0,0.3);
      box-shadow: 0 0 15px rgba(255,170,0,0.5);
    }
-      .seasonal-christmas body {
-     background: linear-gradient(135deg, #1a0a0a, #2a1a1a);
-   }
-   .seasonal-christmas body::before {
-     content: '🎄❄️🎅';
-     position: fixed;
-     top: 10px;
-     right: 10px;
-     font-size: 24px;
-     opacity: 0.7;
-     pointer-events: none;
-     z-index: 1000;
-   }
-   .seasonal-halloween body {
-     background: linear-gradient(135deg, #1a0a0a, #2a1a0a);
-   }
-   .seasonal-halloween body::before {
-     content: '🎃👻🕷️';
-     position: fixed;
-     top: 10px;
-     right: 10px;
-     font-size: 24px;
-     opacity: 0.7;
-     pointer-events: none;
-     z-index: 1000;
-   }
-   .seasonal-spring body {
-     background: linear-gradient(135deg, #0a1a0a, #1a2a1a);
-   }
-   .seasonal-spring body::before {
-     content: '🌸🌼🌻';
-     position: fixed;
-     top: 10px;
-     right: 10px;
-     font-size: 24px;
-     opacity: 0.7;
-     pointer-events: none;
-     z-index: 1000;
-   }
-   .seasonal-summer body {
-     background: linear-gradient(135deg, #1a2a0a, #2a3a1a);
-   }
-   .seasonal-summer body::before {
-     content: '☀️🏖️🌴';
-     position: fixed;
-     top: 10px;
-     right: 10px;
-     font-size: 24px;
-     opacity: 0.7;
-     pointer-events: none;
-     z-index: 1000;
-   }
       @media (max-width: 768px) {
           .controls {
               margin: 20px 10px;
@@ -10223,22 +10209,66 @@ body {
        animation-delay: 0s;
    }
       .site-footer {
-       background: var(--bg-glass);
-       backdrop-filter: blur(10px);
-       border-top: 1px solid var(--border-color);
-       padding: var(--spacing-sm) var(--spacing-md);
-       margin-top: var(--spacing-xl);
-       position: fixed;
-       bottom: 0;
-       left: 0;
-       right: 0;
-       z-index: var(--z-sticky);
-       transform: translateY(100%);
-       transition: transform var(--transition-base);
-       box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+       display: none;
    }
-   .site-footer.visible {
-       transform: translateY(0);
+   @media (min-width: 769px) {
+       .site-footer.visible {
+           display: flex;
+       }
+   }
+
+   @media (max-width: 768px) {
+       .site-footer.visible {
+           display: flex;
+           position: fixed;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           width: 90vw;
+           max-width: 400px;
+           height: auto;
+           border-radius: var(--radius-xl);
+           border: 2px solid var(--border-color);
+           box-shadow: var(--shadow-xl), var(--shadow-glow);
+           background: var(--bg-glass);
+           backdrop-filter: blur(20px);
+           z-index: var(--z-modal);
+           opacity: 0;
+           animation: popupFadeIn 0.3s ease-out forwards;
+       }
+   }
+   @media (max-width: 768px) {
+       .site-footer {
+           display: none;
+       }
+       .site-footer.visible {
+           display: flex;
+           position: fixed;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+           width: 90vw;
+           max-width: 400px;
+           height: auto;
+           border-radius: var(--radius-xl);
+           border: 2px solid var(--border-color);
+           box-shadow: var(--shadow-xl), var(--shadow-glow);
+           background: var(--bg-glass);
+           backdrop-filter: blur(20px);
+           z-index: var(--z-modal);
+           opacity: 0;
+           animation: popupFadeIn 0.3s ease-out forwards;
+       }
+   }
+   @keyframes popupFadeIn {
+       from {
+           opacity: 0;
+           transform: translate(-50%, -50%) scale(0.9);
+       }
+       to {
+           opacity: 1;
+           transform: translate(-50%, -50%) scale(1);
+       }
    }
    .footer-content {
        max-width: 1400px;

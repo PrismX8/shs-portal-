@@ -98,8 +98,9 @@
 
   function initRandomGameButton() {
     const btn = document.getElementById('randomGameBtn');
-    if (!btn) return;
+    if (!btn || btn.hasAttribute('data-handler-attached')) return;
 
+    btn.setAttribute('data-handler-attached', 'true');
     btn.addEventListener('click', function () {
       loadGameSlugs().then((list) => {
         if (!list.length) {

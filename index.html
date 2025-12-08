@@ -90,69 +90,7 @@
 <img loading="lazy" src="images/squarereef.png" alt="Square Reef Border" class="page-border-frame">
 <canvas id="starCanvas"></canvas>
 <canvas id="interactiveBackground"></canvas>
-<div class="home-background-layer" aria-hidden="true">
-    <div class="home-background-gradient"></div>
-    <div class="home-background-glow home-background-glow-one"></div>
-    <div class="home-background-glow home-background-glow-two"></div>
-    <div class="home-background-grid"></div>
-    <div class="home-background-shimmer"></div>
-    <div class="home-background-ornate home-background-ornate-left"></div>
-    <div class="home-background-ornate home-background-ornate-right"></div>
-    <div class="home-background-starfield"></div>
-</div>
-<!-- Subtle background decorations - reduced visual clutter -->
-<div class="christmas-decorations" style="opacity: 0.15;">
-    <!-- Top corners - decorative elements -->
-    <img loading="lazy" src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-left">
-    <img loading="lazy" src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-right">
-    <img loading="lazy" src="images/christmastree.png" alt="Christmas Tree" class="decoration-img corner-tree-top-center">
-    <!-- Side decorations - strategic placement -->
-    <img loading="lazy" src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-left-1">
-    <img loading="lazy" src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-left-2">
-    <img loading="lazy" src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-left-3">
-    <img loading="lazy" src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-left-4">
-    <img loading="lazy" src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-right-1">
-    <img loading="lazy" src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-right-2">
-    <img loading="lazy" src="images/Ornament.png" alt="Ornament" class="decoration-img side-ornament-right-3">
-    <img loading="lazy" src="images/ornament2.png" alt="Ornament" class="decoration-img side-ornament-right-4">
-    <!-- Bottom corners -->
-    <img loading="lazy" src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-left">
-    <img loading="lazy" src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-right">
-    <img loading="lazy" src="images/santahat.png" alt="Santa Hat" class="decoration-img corner-hat-bottom-center">
-    <!-- More snowflakes for increased snowfall -->
-    <div class="snowflake snowflake-1">&#10052;</div>
-    <div class="snowflake snowflake-2">&#10052;</div>
-    <div class="snowflake snowflake-3">&#10052;</div>
-    <div class="snowflake snowflake-4">&#10052;</div>
-    <div class="snowflake snowflake-5">&#10052;</div>
-    <div class="snowflake snowflake-6">&#10052;</div>
-    <div class="snowflake snowflake-7">&#10052;</div>
-    <div class="snowflake snowflake-8">&#10052;</div>
-    <div class="snowflake snowflake-9">&#10052;</div>
-    <div class="snowflake snowflake-10">&#10052;</div>
-    <div class="snowflake snowflake-11">&#10052;</div>
-    <div class="snowflake snowflake-12">&#10052;</div>
-    <div class="snowflake snowflake-13">&#10052;</div>
-    <div class="snowflake snowflake-14">&#10052;</div>
-    <div class="snowflake snowflake-15">&#10052;</div>
-    <div class="snowflake snowflake-16">&#10052;</div>
-    <!-- More Christmas emoji accents -->
-    <div class="emoji-accent accent-1">&#10024;</div>
-    <div class="emoji-accent accent-2">&#10024;</div>
-    <div class="emoji-accent accent-3">&#10024;</div>
-    <div class="emoji-accent accent-4">&#10024;</div>
-    <div class="emoji-accent accent-5">&#10024;</div>
-    <div class="emoji-accent accent-6">&#10024;</div>
-    <div class="emoji-accent accent-7">&#10024;</div>
-    <div class="emoji-accent accent-8">&#10024;</div>
-    <div class="emoji-accent accent-9">&#10024;</div>
-    <div class="emoji-accent accent-10">&#10024;</div>
-    <div class="emoji-accent accent-11">&#10024;</div>
-    <div class="emoji-accent accent-12">&#10024;</div>
-    <div class="christmas-lights"></div>
-    <div class="christmas-garland garland-top"></div>
-    <div class="christmas-garland garland-bottom"></div>
-</div>
+<div class="snow"></div>
 <!-- Drawing iframe overlay -->
 <div id="drawingIframeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:20000; align-items:center; justify-content:center; padding:20px;">
     <div style="position:relative; width:min(1200px, 96%); height:min(90vh, 900px); background:rgba(10,10,20,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:16px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.6);">
@@ -1705,7 +1643,7 @@ setTimeout(() => {
 
 
 <!-- Footer with Essential Pages - Thin & Small -->
-<footer class="site-footer">
+<footer class="site-footer visible">
     <div class="footer-content">
         <div class="footer-section">
             <ul>

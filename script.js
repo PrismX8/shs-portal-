@@ -1433,6 +1433,11 @@ let counterPollInterval = null;
               e.preventDefault();
               e.stopPropagation();
           }
+          // Prevent multiple rapid clicks
+          if (randomGameBtn.disabled) return;
+          randomGameBtn.disabled = true;
+          setTimeout(() => { if (randomGameBtn) randomGameBtn.disabled = false; }, 2000);
+
           const game = getRandomPlayableGame();
           if (!game) {
               alert('No games available right now. Please try again in a moment.');
