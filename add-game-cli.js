@@ -133,7 +133,7 @@ async function main() {
 
   const safeDescription = description
     ? escapeHtml(description)
-    : escapeHtml(`Play ${title} in fullscreen and enjoy a smooth experience right here on Global Game Hall.`);
+    : escapeHtml(`Play ${title} in fullscreen and enjoy a smooth experience right here on Nebulo.`);
 
   const html = template
     .replace(/{{GAME_TITLE}}/g, title)

@@ -328,7 +328,7 @@ if (Array.isArray(gamesMeta)) {
     const meta = getMetaForGame(game);
     const descriptionSource = meta && meta.description
         ? meta.description
-        : `Play ${game.title} in fullscreen and enjoy a smooth experience right here on Global Game Hall.`;
+        : `Play ${game.title} in fullscreen and enjoy a smooth experience right here on Nebulo.`;
     const safeDescription = escapeHtml(descriptionSource);
 
     // Replace placeholders

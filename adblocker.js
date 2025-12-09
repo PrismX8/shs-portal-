@@ -2,7 +2,7 @@
 // This file is kept only so existing <script src="adblocker.js"> tags
 // on pages do not break. It now only manages a simple dark theme toggle.
 
-console.log("Global Game Hall [AdBlocker] Ad blocking is disabled; only theme preferences are handled.");
+console.log("Nebulo [AdBlocker] Ad blocking is disabled; only theme preferences are handled.");
 
 function loadSettings() {
   try {
@@ -10,7 +10,7 @@ function loadSettings() {
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch (e) {
-    console.warn("Global Game Hall [AdBlocker] Failed to parse settings from localStorage, resetting.", e);
+    console.warn("Nebulo [AdBlocker] Failed to parse settings from localStorage, resetting.", e);
     return {};
   }
 }
@@ -19,7 +19,7 @@ function saveSettings(settings) {
   try {
     localStorage.setItem("settings", JSON.stringify(settings || {}));
   } catch (e) {
-    console.warn("Global Game Hall [AdBlocker] Failed to save settings.", e);
+    console.warn("Nebulo [AdBlocker] Failed to save settings.", e);
   }
 }
 
@@ -29,7 +29,7 @@ function applyTheme(isDark) {
   } else {
     document.body.classList.remove("dark");
   }
-  console.log("Global Game Hall [AdBlocker] Theme applied:", isDark ? "dark" : "light");
+  console.log("Nebulo [AdBlocker] Theme applied:", isDark ? "dark" : "light");
 }
 
 function initThemeControls() {
@@ -44,7 +44,7 @@ function initThemeControls() {
 
   if (!toggleTheme && !clearDataBtn) {
     // No controls on this page (e.g., game pages) – nothing more to wire.
-    console.log("Global Game Hall [AdBlocker] No theme controls found on this page.");
+    console.log("Nebulo [AdBlocker] No theme controls found on this page.");
     return;
   }
 

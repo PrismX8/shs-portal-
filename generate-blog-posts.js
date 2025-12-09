@@ -300,7 +300,7 @@ const posts = [
     slug: 'respectful-gaming-at-school',
     title: 'Respectful Gaming at School',
     category: 'Community',
-    summary: 'How to enjoy Global Game Hall without disrupting class or classmates.'
+    summary: 'How to enjoy Nebulo without disrupting class or classmates.'
   }
 ];
 
@@ -314,7 +314,7 @@ function renderPostHtml(post) {
     <meta name="description" content="${post.summary}">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
      crossorigin="anonymous"></script>
-    <title>${post.title} - Global Game Hall Blog</title>
+    <title>${post.title} - Nebulo Blog</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="../styles.css">
     <link rel="icon" type="image/png" href="../images/logoshs.png">
@@ -335,11 +335,11 @@ function renderPostHtml(post) {
         <div class="headerContent">
             <div class="header-logo-container">
                 <a href="../index.html" style="text-decoration: none;">
-                    <img src="../images/logoshs.png" alt="Global Game Hall Logo" class="header-logo">
+                    <img src="../images/logoshs.png" alt="Nebulo Logo" class="header-logo">
                 </a>
             </div>
             <div class="headerText gradient-text">
-                Global Game Hall
+                Nebulo
             </div>
             <div class="header-actions">
                 <a href="../index.html" class="header-action-btn hover-lift" title="Back to Homepage">
@@ -400,7 +400,7 @@ function renderPostHtml(post) {
                     <p>${post.summary}</p>
 
                     <h2>Why this topic matters</h2>
-                    <p>On Global Game Hall we see players in all kinds of situations: school devices, shared computers, short breaks between classes, and late-night chill sessions. This topic dives into how <strong>${post.title}</strong> fits into that reality and how you can use it to make your gaming time feel smoother, more fun, and less stressful.</p>
+                    <p>On Nebulo we see players in all kinds of situations: school devices, shared computers, short breaks between classes, and late-night chill sessions. This topic dives into how <strong>${post.title}</strong> fits into that reality and how you can use it to make your gaming time feel smoother, more fun, and less stressful.</p>
 
                     <h2>Practical tips you can try today</h2>
                     <ul>
@@ -410,8 +410,8 @@ function renderPostHtml(post) {
                         <li>Use these games as a warm-up or cool-down around homework, tests, or busier days.</li>
                     </ul>
 
-                    <h2>How this fits into Global Game Hall</h2>
-                    <p>We built Global Game Hall to feel like a hub, not just a list of links. Articles like this are here to help you navigate that hub: pick games that match your mood, your device, and your schedule. If you find a game that fits this topic perfectly, favorite it, share it, and keep it in your personal rotation.</p>
+                    <h2>How this fits into Nebulo</h2>
+                    <p>We built Nebulo to feel like a hub, not just a list of links. Articles like this are here to help you navigate that hub: pick games that match your mood, your device, and your schedule. If you find a game that fits this topic perfectly, favorite it, share it, and keep it in your personal rotation.</p>
 
                     <p>Want more content like this? Check the main blog page for deep dives, high score guides, control tips, and community spotlights that pair nicely with <strong>${post.title}</strong>.</p>
                 </div>
@@ -430,7 +430,7 @@ function renderPostHtml(post) {
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 Global Game Hall. All rights reserved.</p>
+            <p>&copy; 2024 Nebulo. All rights reserved.</p>
         </div>
     </footer>
 

@@ -282,7 +282,7 @@ let counterPollInterval = null;
 <head>
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Request Games - Global Game Hall</title>
+   <title>Request Games - Nebulo</title>
    <style>
        body {
            margin: 0;
@@ -10109,7 +10109,7 @@ window.cancelFriendRequest = function(userId) {
     const originalLog = console.log;
     console.log = function(...args) {
         originalLog.apply(console, [
-            '%cGlobal Game Hall',
+            '%cNebulo',
             'background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold;',
             ...args
         ]);
