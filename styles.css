@@ -77,90 +77,6 @@
        -webkit-touch-callout: none;
        -webkit-tap-highlight-color: transparent;
    }
-.lite-mode {
-    --shadow-sm: none;
-    --shadow-md: none;
-    --shadow-lg: none;
-    --shadow-xl: none;
-    --shadow-glow: none;
-    --shadow-glow-strong: none;
-}
-.lite-mode * {
-    animation: none !important;
-    transition: none !important;
-}
-.lite-mode canvas#starCanvas,
-.lite-mode canvas#interactiveBackground,
-.lite-mode .home-background-layer,
-.lite-mode .christmas-decorations {
-    display: none !important;
-}
-.lite-mode header,
-.lite-mode .glass-effect {
-    backdrop-filter: none !important;
-    box-shadow: none !important;
-    background: rgba(12, 12, 16, 0.95) !important;
-}
-.lite-mode .game-cube,
-.lite-mode .featured-games-grid .game-cube,
-.lite-mode .game-cube .game-cube-inner {
-    box-shadow: none !important;
-    filter: none !important;
-}
-.lite-mode .game-cube-glow,
-.lite-mode .home-background-shimmer,
-.lite-mode .home-background-glow,
-.lite-mode .home-background-ornate,
-.lite-mode .home-background-starfield {
-    display: none !important;
-}
-/* Lite mode - disable animations for chat and drawing buttons */
-.lite-mode #navChatBtn.nav-featured,
-.lite-mode button[id*="Chat"].nav-featured,
-.lite-mode #openDrawingBtn.nav-featured,
-.lite-mode button[id*="Drawing"].nav-featured,
-.lite-mode #openDrawingBtnHeader.header-action-btn,
-.lite-mode .controls button[id*="Chat"],
-.lite-mode .controls button[id*="chat"],
-.lite-mode .controls button[id*="Drawing"],
-.lite-mode .controls button[id*="drawing"],
-.lite-mode #sidePanelChatBtn.category-panel-item,
-.lite-mode #sidePanelDrawingBtn.category-panel-item,
-.lite-mode .category-panel-item[id*="Chat"],
-.lite-mode .category-panel-item[id*="Drawing"] {
-    animation: none !important;
-}
-.lite-mode #navChatBtn.nav-featured::before,
-.lite-mode button[id*="Chat"].nav-featured::before,
-.lite-mode #openDrawingBtn.nav-featured::before,
-.lite-mode button[id*="Drawing"].nav-featured::before,
-.lite-mode #openDrawingBtnHeader.header-action-btn::before {
-    display: none !important;
-}
-.lite-mode #navChatBtn.nav-featured i,
-.lite-mode button[id*="Chat"].nav-featured i,
-.lite-mode #openDrawingBtn.nav-featured i,
-.lite-mode button[id*="Drawing"].nav-featured i,
-.lite-mode .controls button[id*="Chat"] i,
-.lite-mode .controls button[id*="chat"] i,
-.lite-mode .controls button[id*="Drawing"] i,
-.lite-mode .controls button[id*="drawing"] i,
-.lite-mode #sidePanelChatBtn.category-panel-item i,
-.lite-mode #sidePanelDrawingBtn.category-panel-item i,
-.lite-mode .category-panel-item[id*="Chat"] i,
-.lite-mode .category-panel-item[id*="Drawing"] i {
-    animation: none !important;
-    transform: none !important;
-}
-.lite-mode .premium-game-embed,
-.lite-mode .premium-game-container,
-.lite-mode .premium-review-item {
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-}
-.lite-mode .category-side-panel {
-    background: grey !important;
-}
 /* Fix header and visitor counter on game pages - no sidebar */
 body:has(.premium-game-page) #visitorCounter,
 .premium-game-page ~ * #visitorCounter {
@@ -175,15 +91,6 @@ body:has(.premium-game-page) header,
 /* Ensure back button is on top of everything */
 .premium-back-btn {
     z-index: 99999 !important;
-}
-/* In lite-mode, keep Game of the Season static (no glow/gradient animations) */
-.lite-mode .festive-game-card {
-    animation: none !important;
-    background-size: 400% 400%;
-}
-.lite-mode .festive-game-card::before,
-.lite-mode .festive-game-card::after {
-    animation: none !important;
 }
 body {
     margin: 0;
@@ -4582,6 +4489,16 @@ body {
        from { transform: rotate(0deg); }
        to { transform: rotate(360deg); }
    }
+   @keyframes slideInItem {
+       from {
+           opacity: 0;
+           transform: translateY(20px) scale(0.95);
+       }
+       to {
+           opacity: 1;
+           transform: translateY(0) scale(1);
+       }
+   }
    .game-cube:hover .game-cube-glow {
        opacity: 1;
    }
@@ -6305,21 +6222,27 @@ body {
        top: 50%;
        width: 60px;
        height: auto;
-       background: rgba(0, 123, 255, 0.3) !important;
-       backdrop-filter: blur(10px) !important;
-       -webkit-backdrop-filter: blur(10px) !important;
-       border-right: 1px solid rgba(255, 255, 255, 0.1);
-       border-radius: 0 30px 30px 0;
+       background: linear-gradient(180deg,
+           rgba(15, 23, 42, 0.95) 0%,
+           rgba(30, 41, 59, 0.92) 50%,
+           rgba(15, 23, 42, 0.95) 100%) !important;
+       backdrop-filter: blur(20px) saturate(180%) !important;
+       -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+       border-right: 2px solid rgba(255, 215, 0, 0.25);
+       border-radius: 0 32px 32px 0;
        z-index: 10001 !important;
        transform: translateX(0) translateY(-50%);
        overflow-y: auto;
        overflow-x: hidden;
-       padding: 20px 0;
+       padding: 24px 0;
        display: flex;
        flex-direction: column;
-       opacity: 0.7 !important;
-       box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5) !important;
-       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+       opacity: 0.9 !important;
+       box-shadow:
+           4px 0 20px rgba(0, 0, 0, 0.4),
+           0 0 40px rgba(255, 215, 0, 0.08),
+           inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+       transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
        max-height: calc(90vh);
    }
    .category-side-panel:hover {
@@ -6331,17 +6254,24 @@ body {
        opacity: 0 !important;
    }
    .category-side-panel::-webkit-scrollbar {
-       width: 6px;
+       width: 8px;
    }
    .category-side-panel::-webkit-scrollbar-track {
-       background: transparent;
+       background: rgba(255, 255, 255, 0.05);
+       border-radius: 4px;
    }
    .category-side-panel::-webkit-scrollbar-thumb {
-       background: rgba(255, 255, 255, 0.2);
-       border-radius: 3px;
+       background: linear-gradient(180deg, rgba(255, 215, 0, 0.4), rgba(255, 165, 0, 0.3));
+       border-radius: 4px;
+       border: 1px solid rgba(255, 255, 255, 0.1);
+       transition: all 0.3s ease;
    }
    .category-side-panel::-webkit-scrollbar-thumb:hover {
-       background: rgba(255, 255, 255, 0.3);
+       background: linear-gradient(180deg, rgba(255, 215, 0, 0.6), rgba(255, 165, 0, 0.5));
+       transform: scaleX(1.2);
+   }
+   .category-side-panel::-webkit-scrollbar-corner {
+       background: transparent;
    }
    .category-panel-header {
        display: none;
@@ -6385,42 +6315,95 @@ body {
    .category-panel-item {
        display: flex;
        align-items: center;
-       gap: 12px;
-       padding: 8px 12px;
-       color: rgba(255, 255, 255, 0.8);
+       gap: 14px;
+       padding: 12px 16px;
+       color: rgba(255, 255, 255, 0.85);
        text-decoration: none;
        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
        font-weight: 600;
-       font-size: 13px;
-       border-radius: 0;
+       font-size: 14px;
+       border-radius: 12px;
        position: relative;
        width: 100%;
        box-sizing: border-box;
        transform: translateY(10px);
+       margin: 2px 8px;
+       backdrop-filter: blur(10px);
+       border: 1px solid transparent;
+       overflow: hidden;
    }
    .category-side-panel:not(:hover) .category-panel-item {
-       padding: 8px 0;
-       margin: 2px 0;
+       padding: 12px 0;
+       margin: 4px 6px;
        transform: translateY(0);
        justify-content: center;
-       gap: 10px;
-       background: rgba(255, 255, 255, 0.1);
-       border-radius: 8px;
-       border: 1px solid rgba(255, 255, 255, 0.2);
-       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+       gap: 12px;
+       background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+       border-radius: 12px;
+       border: 1px solid rgba(255, 255, 255, 0.15);
+       box-shadow:
+           0 2px 8px rgba(0, 0, 0, 0.2),
+           inset 0 1px 0 rgba(255, 255, 255, 0.1);
+       backdrop-filter: blur(8px);
    }
    .category-panel-item:hover {
-       background: rgba(255, 255, 255, 0.08);
-       color: rgba(255, 255, 255, 1);
+       background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.1));
+       color: #FFD700;
+       border-color: rgba(255, 215, 0, 0.3);
+       transform: translateY(0) translateX(4px) scale(1.02);
+       box-shadow:
+           0 4px 12px rgba(255, 215, 0, 0.2),
+           inset 0 1px 0 rgba(255, 255, 255, 0.1);
    }
    .category-side-panel:hover .category-panel-item {
-       transform: translateY(0);
+       transform: translateY(0) scale(1);
        opacity: 1;
+       animation: slideInItem 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
    }
+   .category-side-panel:hover .category-panel-item:nth-child(1) { animation-delay: 0.05s; }
+   .category-side-panel:hover .category-panel-item:nth-child(2) { animation-delay: 0.1s; }
+   .category-side-panel:hover .category-panel-item:nth-child(3) { animation-delay: 0.15s; }
+   .category-side-panel:hover .category-panel-item:nth-child(4) { animation-delay: 0.2s; }
+   .category-side-panel:hover .category-panel-item:nth-child(5) { animation-delay: 0.25s; }
+   .category-side-panel:hover .category-panel-item:nth-child(6) { animation-delay: 0.3s; }
+   .category-side-panel:hover .category-panel-item:nth-child(7) { animation-delay: 0.35s; }
+   .category-side-panel:hover .category-panel-item:nth-child(8) { animation-delay: 0.4s; }
    .category-panel-item.active {
-       background: rgba(255, 215, 0, 0.15);
+       background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 165, 0, 0.15));
        color: #FFD700;
-       font-weight: 600;
+       font-weight: 700;
+       border-color: rgba(255, 215, 0, 0.5);
+       box-shadow:
+           0 4px 16px rgba(255, 215, 0, 0.3),
+           inset 0 1px 0 rgba(255, 255, 255, 0.2);
+       transform: translateY(0) scale(1.02);
+       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+   }
+
+   /* Responsive sidebar adjustments for smaller screens */
+   @media (max-width: 768px) {
+       .category-side-panel {
+           width: 70px; /* Slightly wider on tablets */
+       }
+       .category-side-panel:hover {
+           width: 280px; /* Slightly narrower hover state on tablets */
+       }
+   }
+
+   @media (max-width: 480px) {
+       .category-side-panel {
+           width: 80px; /* Wider on mobile for better touch targets */
+       }
+       .category-side-panel:hover {
+           width: 260px; /* Adjusted hover width for mobile */
+       }
+       .category-panel-item {
+           padding: 14px 18px; /* More padding for touch */
+           font-size: 15px; /* Slightly larger text */
+       }
+       .category-panel-item i {
+           font-size: 20px; /* Larger icons for touch */
+       }
    }
    
    /* Sidebar Chat Button */
@@ -6620,20 +6603,27 @@ body {
        margin: 0;
    }
    .category-panel-action-btn {
-       background: rgba(255, 215, 0, 0.1) !important;
-       border: 1px solid rgba(255, 215, 0, 0.3) !important;
-       border-radius: 8px !important;
-       margin: 0 6px !important;
-       font-weight: 600 !important;
-       width: calc(100% - 16px) !important;
+       background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.1)) !important;
+       border: 2px solid rgba(255, 215, 0, 0.4) !important;
+       border-radius: 12px !important;
+       margin: 0 8px !important;
+       font-weight: 700 !important;
+       width: calc(100% - 20px) !important;
        box-sizing: border-box !important;
-       padding: 10px 12px !important;
-       font-size: 13px !important;
+       padding: 12px 16px !important;
+       font-size: 14px !important;
        white-space: nowrap !important;
        overflow: hidden !important;
        text-overflow: ellipsis !important;
        justify-content: center !important;
        align-items: center !important;
+       box-shadow:
+           0 4px 12px rgba(255, 215, 0, 0.2),
+           inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+       backdrop-filter: blur(10px) !important;
+       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+       position: relative !important;
+       overflow: hidden !important;
    }
    .category-panel-action-btn .category-panel-label-container {
        white-space: nowrap !important;
@@ -6641,9 +6631,13 @@ body {
        text-overflow: ellipsis !important;
    }
    .category-panel-action-btn:hover {
-       background: rgba(255, 215, 0, 0.2) !important;
-       border-color: rgba(255, 215, 0, 0.5) !important;
+       background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 165, 0, 0.2)) !important;
+       border-color: rgba(255, 215, 0, 0.6) !important;
        color: #FFD700 !important;
+       transform: translateY(-2px) scale(1.02) !important;
+       box-shadow:
+           0 6px 16px rgba(255, 215, 0, 0.3),
+           inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
    }
    .category-panel-action-btn i.fab.fa-youtube {
        color: #FF0000 !important;
@@ -6666,6 +6660,21 @@ body {
    .category-side-panel {
        display: flex;
        flex-direction: column;
+       animation: sidebarGlow 4s ease-in-out infinite;
+   }
+   @keyframes sidebarGlow {
+       0%, 100% {
+           box-shadow:
+               4px 0 20px rgba(0, 0, 0, 0.4),
+               0 0 40px rgba(255, 215, 0, 0.08),
+               inset 0 1px 0 rgba(255, 255, 255, 0.1);
+       }
+       50% {
+           box-shadow:
+               4px 0 25px rgba(0, 0, 0, 0.5),
+               0 0 50px rgba(255, 215, 0, 0.12),
+               inset 0 1px 0 rgba(255, 255, 255, 0.15);
+       }
    }
    @media (max-width: 1024px) {
        #visitorCounter {
