@@ -146,25 +146,47 @@
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowfullscreen
         referrerpolicy="no-referrer"
-        sandbox="allow-scripts allow-forms allow-top-navigation-by-user-activation"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation"
         loading="lazy">
       </iframe>
     </div>
   </main>
 
   <footer>
-    Embedded via fmoviesto.ru. If it doesn’t load, refresh or open directly.
+    FMovies Direct - Loading the real site with enhanced compatibility
   </footer>
 
   <script>
     const iframe = document.getElementById('moviesFrame');
     iframe.addEventListener('load', () => {
-      console.log('Movies iframe loaded successfully');
+      console.log('FMovies loaded successfully');
     });
     iframe.addEventListener('error', (e) => {
-      console.error('Movies iframe failed to load:', e);
+      console.error('FMovies failed to load:', e);
+      // Show helpful error message
+      const fallback = document.createElement('div');
+      fallback.style.position = 'absolute';
+      fallback.style.top = '0';
+      fallback.style.left = '0';
+      fallback.style.width = '100%';
+      fallback.style.height = '100%';
+      fallback.style.background = 'rgba(0,0,0,0.8)';
+      fallback.style.color = 'white';
+      fallback.style.display = 'flex';
+      fallback.style.justifyContent = 'center';
+      fallback.style.alignItems = 'center';
+      fallback.style.flexDirection = 'column';
+      fallback.style.padding = '20px';
+      fallback.style.textAlign = 'center';
+      fallback.innerHTML = `
+        <h2>Connection Issue</h2>
+        <p>The site may be blocked by your network.</p>
+        <p>Try: VPN, different DNS, or mobile data</p>
+        <button style="padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px;" onclick="location.reload()">Retry</button>
+      `;
+      iframe.parentNode.appendChild(fallback);
     });
-    console.log('Movies page loaded, iframe src:', iframe.src);
+    console.log('Movies page loaded, attempting to load FMovies:', iframe.src);
 
     // Refresh button functionality
     document.getElementById('refreshBtn').addEventListener('click', () => {

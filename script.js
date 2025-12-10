@@ -1,6 +1,11 @@
   console.time('scriptExecution');
   // Global popup guard: block unwanted new tabs/windows to unknown domains
   (function hardenPopups() {
+      const isMoviesPage = window.location.pathname.endsWith('movies.html') ||
+                           window.location.pathname.includes('/pages/movies.html');
+      // Only enforce popup blocking on the movies page; elsewhere leave popups alone
+      if (!isMoviesPage) return;
+
       const nativeOpen = window.open;
       const allowedHosts = new Set([
           window.location.hostname,
@@ -12,7 +17,12 @@
           'fmoviesto.ru',
           'fullmovies4k.info',
           'https://fmoviesto.ru/home',
-          'discord.gg'
+          'discord.gg',
+          'www.youtube.com',
+          'youtube.com',
+          'youtu.be',
+          'www.yout-ube.com',
+          'yout-ube.com'
       ]);
       function isAllowed(url) {
           try {
@@ -123,10 +133,33 @@
           win.document.close();
           return true;
       }
-      // Fallback if popups are blocked: alert user
-      alert('Popup blocked! Please allow popups for this site to open content in new tabs.');
+      // Fallback if popups are blocked: navigate current tab
+      window.location.href = absolute;
       return false;
   }
+
+  // Global link interceptor: open navigations in about:blank with wrapper when possible
+  document.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (!link) return;
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+      // Allow same-page anchors
+      try {
+          const url = new URL(href, window.location.href);
+          if (url.origin === window.location.origin && url.hash && url.pathname === window.location.pathname) return;
+          e.preventDefault();
+          // Use game wrapper for internal pages; direct for external
+          const isInternal = url.origin === window.location.origin;
+          if (isInternal) {
+              openGameInBlank(url.href);
+          } else {
+              openGameInBlank(url.href) || window.open(url.href, '_blank');
+          }
+      } catch (_) {
+          // If URL parsing fails, let default happen
+      }
+  }, true);
 
   // Ensure live visitor counter appears at top of every page
   function ensureVisitorCounter() {
@@ -232,38 +265,889 @@ let counterPollInterval = null;
       btn.setAttribute('target', '_top');
       btn.setAttribute('rel', 'noopener');
   });
-  // YouTube button -> prompt for link and open yout-ube (no-cookie style)
+  // Enhanced YouTube Video Watcher with modern UI and features
   const youtubeBtn = document.getElementById('youtubeWatcherBtn');
+
+  // YouTube API configuration
+  const YOUTUBE_API_KEY = 'AIzaSyBn1apVsFafY2-2a2QPeslX17XR0gWE9qs'; // Use existing Firebase API key
+  const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3';
+  const YOUTUBE_API_FALLBACK_KEY = ''; // Fallback API key (leave empty if not available)
+  const YOUTUBE_API_FALLBACK_ENABLED = false; // Disable fallback if key is invalid
+
+  // YouTube history storage
+  const YOUTUBE_HISTORY_KEY = 'youtubeWatchHistory';
+  let youtubeHistory = JSON.parse(localStorage.getItem(YOUTUBE_HISTORY_KEY)) || [];
+
+  // Enhanced YouTube ID extraction with better pattern matching
   function extractYouTubeId(raw) {
       if (!raw) return '';
-      const url = raw.trim();
-      const patterns = [
-          /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-          /youtube\.com\/.*[?&]v=([^&\n?#]+)/,
-          /^([a-zA-Z0-9_-]{11})$/ // raw id
-      ];
-      for (const p of patterns) {
-          const m = url.match(p);
-          if (m && m[1]) return m[1];
+      const value = raw.trim();
+      console.log('[YouTube Debug] Raw input:', value);
+      
+      // Direct ID paste
+      const directMatch = value.match(/^[a-zA-Z0-9_-]{11}$/);
+      if (directMatch) {
+          console.log('[YouTube Debug] Detected direct ID:', directMatch[0]);
+          return directMatch[0];
       }
-      return '';
+
+      // Parse as URL and handle common host/path patterns
+      try {
+          const url = new URL(value.startsWith('http') ? value : `https://${value}`);
+          const host = url.hostname.replace(/^www\./, '').toLowerCase();
+          console.log('[YouTube Debug] Parsed URL host/path:', host, url.pathname, url.search);
+          
+          // youtu.be/<id>
+          if (host === 'youtu.be') {
+              const pathId = url.pathname.split('/').filter(Boolean)[0];
+              if (pathId) {
+                  console.log('[YouTube Debug] Matched youtu.be id:', pathId);
+                  return pathId;
+              }
+          }
+          
+          // youtube.com variants (desktop, mobile, music, nocookie)
+          const youtubeHosts = new Set([
+              'youtube.com',
+              'm.youtube.com',
+              'music.youtube.com',
+              'youtube-nocookie.com'
+          ]);
+          if (youtubeHosts.has(host)) {
+              const vParam = url.searchParams.get('v');
+              if (vParam && /^[a-zA-Z0-9_-]{11}$/.test(vParam)) {
+                  console.log('[YouTube Debug] Found v param id:', vParam);
+                  return vParam;
+              }
+              
+              const segments = url.pathname.split('/').filter(Boolean);
+              if (segments.length >= 2) {
+                  const [prefix, id] = segments;
+                  if (['embed', 'shorts', 'live'].includes(prefix) && /^[a-zA-Z0-9_-]{11}$/.test(id)) {
+                      console.log('[YouTube Debug] Matched path segment id:', id, 'via', prefix);
+                      return id;
+                  }
+              }
+          }
+      } catch (_) {
+          // Fall through to regex fallback
+      }
+
+      // Loose fallback search for any 11-char video id inside the string
+      const fallback = value.match(/([a-zA-Z0-9_-]{11})/);
+      if (!fallback) {
+          console.warn('[YouTube Debug] No video ID detected in input.');
+      } else {
+          console.log('[YouTube Debug] Fallback matched ID:', fallback[1]);
+      }
+      return fallback ? fallback[1] : '';
   }
+
+  // Fetch video info from YouTube API with fallback
+  async function fetchYouTubeVideoInfo(videoId) {
+      try {
+          // Try primary API key first
+          let response = await fetch(`${YOUTUBE_API_URL}/videos?part=snippet,contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`);
+          let data = await response.json();
+
+          // If primary key fails and fallback is enabled, try fallback key
+          if (YOUTUBE_API_FALLBACK_ENABLED && YOUTUBE_API_FALLBACK_KEY &&
+              (!data.items || data.items.length === 0) && response.status === 403) {
+              console.warn('Primary YouTube API key failed, trying fallback key');
+              response = await fetch(`${YOUTUBE_API_URL}/videos?part=snippet,contentDetails&id=${videoId}&key=${YOUTUBE_API_FALLBACK_KEY}`);
+              data = await response.json();
+          }
+
+          if (data.items && data.items.length > 0) {
+              const video = data.items[0];
+              return {
+                  id: videoId,
+                  title: video.snippet.title,
+                  thumbnail: video.snippet.thumbnails.high?.url || video.snippet.thumbnails.default.url,
+                  channel: video.snippet.channelTitle,
+                  duration: formatDuration(video.contentDetails.duration),
+                  publishedAt: video.snippet.publishedAt
+              };
+          }
+          return null;
+      } catch (error) {
+          console.error('Error fetching YouTube video info:', error);
+          return null;
+      }
+  }
+
+  // Search YouTube videos with fallback API key - DISABLED as per user request
+  async function searchYouTubeVideos(query, maxResults = 10) {
+      // Search functionality disabled as per user request
+      console.warn('YouTube search is disabled. Use direct URL entry instead.');
+      return [];
+  }
+
+  // Format duration from ISO 8601 to readable format
+  function formatDuration(isoDuration) {
+      try {
+          const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+          if (!match) return '0:00';
+
+          const hours = parseInt(match[1]) || 0;
+          const minutes = parseInt(match[2]) || 0;
+          const seconds = parseInt(match[3]) || 0;
+
+          if (hours > 0) {
+              return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          }
+          return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      } catch {
+          return '0:00';
+      }
+  }
+
+  // Add video to history
+  function addToYouTubeHistory(video) {
+      // Remove duplicate if exists
+      youtubeHistory = youtubeHistory.filter(v => v.id !== video.id);
+
+      // Add new video to beginning
+      youtubeHistory.unshift({
+          ...video,
+          timestamp: Date.now()
+      });
+
+      // Keep only last 20 videos
+      if (youtubeHistory.length > 20) {
+          youtubeHistory = youtubeHistory.slice(0, 20);
+      }
+
+      localStorage.setItem(YOUTUBE_HISTORY_KEY, JSON.stringify(youtubeHistory));
+  }
+
+  // Create YouTube modal
+  function createYouTubeModal() {
+      // Check if modal already exists
+      if (document.getElementById('youtubeModal')) return;
+
+      const modal = document.createElement('div');
+      modal.id = 'youtubeModal';
+      modal.className = 'youtube-modal';
+      modal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.8);
+          z-index: 10000;
+          display: none;
+          justify-content: center;
+          align-items: center;
+          backdrop-filter: blur(5px);
+      `;
+
+      modal.innerHTML = `
+          <div class="youtube-modal-content" style="
+              width: 90%;
+              max-width: 800px;
+              max-height: 90vh;
+              background: linear-gradient(135deg, #1a1a2a, #0f0f1a);
+              border-radius: 16px;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+              overflow: hidden;
+              display: flex;
+              flex-direction: column;
+              animation: slideUp 0.3s ease-out;
+          ">
+              <div class="youtube-modal-header" style="
+                  padding: 20px 24px;
+                  background: linear-gradient(135deg, #FFD700, #FFA500);
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+              ">
+                  <h2 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">
+                      <i class="fab fa-youtube" style="margin-right: 10px;"></i>
+                      Watch YouTube Videos
+                  </h2>
+                  <button id="closeYouTubeModal" style="
+                      background: none;
+                      border: none;
+                      font-size: 24px;
+                      cursor: pointer;
+                      color: #000;
+                      padding: 5px;
+                      border-radius: 50%;
+                      transition: all 0.2s;
+                  " title="Close">
+                      <i class="fas fa-times"></i>
+                  </button>
+              </div>
+
+              <div class="youtube-modal-tabs" style="
+                  display: flex;
+                  padding: 0 20px;
+                  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                  background: rgba(255, 255, 255, 0.02);
+              ">
+                  <button class="youtube-tab-btn active" data-tab="url" style="
+                      flex: 1;
+                      padding: 12px 0;
+                      background: none;
+                      border: none;
+                      color: rgba(255, 255, 255, 0.7);
+                      font-size: 14px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      transition: all 0.3s;
+                      border-bottom: 2px solid transparent;
+                  ">
+                      <i class="fas fa-link" style="margin-right: 8px;"></i>
+                      Direct URL
+                  </button>
+                  <button class="youtube-tab-btn" data-tab="history" style="
+                      flex: 1;
+                      padding: 12px 0;
+                      background: none;
+                      border: none;
+                      color: rgba(255, 255, 255, 0.7);
+                      font-size: 14px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      transition: all 0.3s;
+                      border-bottom: 2px solid transparent;
+                  ">
+                      <i class="fas fa-history" style="margin-right: 8px;"></i>
+                      History
+                  </button>
+              </div>
+
+              <div class="youtube-modal-body" style="
+                  flex: 1;
+                  overflow-y: auto;
+                  padding: 20px;
+                  position: relative;
+              ">
+                  <!-- URL Tab -->
+                  <div id="youtubeUrlTab" class="youtube-tab-content active" style="display: block;">
+                      <div style="margin-bottom: 20px;">
+                          <label for="youtubeUrlInput" style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-weight: 600;">
+                              YouTube Video URL
+                          </label>
+                          <input type="text" id="youtubeUrlInput" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                              style="width: 100%; padding: 14px 18px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: rgba(255, 255, 255, 0.9); font-size: 15px; transition: all 0.3s;"
+                              spellcheck="false">
+                          <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.5);">
+                              <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                              Paste any YouTube URL or video ID
+                          </p>
+                      </div>
+
+                      <div id="youtubePreview" style="display: none; margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.2);">
+                          <div style="display: flex; gap: 15px;">
+                              <div style="flex: 0 0 120px; height: 90px; background-size: cover; background-position: center; border-radius: 8px; background: rgba(255, 255, 255, 0.05);" id="youtubePreviewThumbnail"></div>
+                              <div style="flex: 1; min-width: 0;">
+                                  <div style="font-weight: 600; color: #FFD700; margin-bottom: 5px; font-size: 15px;" id="youtubePreviewTitle">Loading...</div>
+                                  <div style="font-size: 13px; color: rgba(255, 255, 255, 0.7); margin-bottom: 5px;" id="youtubePreviewChannel"></div>
+                                  <div style="font-size: 12px; color: rgba(255, 255, 255, 0.5);" id="youtubePreviewDuration"></div>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div style="display: flex; margin-top: 20px;">
+                          <button id="youtubeWatchBtn" style="
+                              width: 100%;
+                              padding: 14px;
+                              background: linear-gradient(135deg, #28a745, #20c997);
+                              border: none;
+                              border-radius: 12px;
+                              color: #fff;
+                              font-size: 15px;
+                              font-weight: 600;
+                              cursor: pointer;
+                              transition: all 0.3s;
+                              opacity: 1;
+                          ">
+                              <i class="fas fa-play" style="margin-right: 8px;"></i>
+                              Watch Now
+                          </button>
+                      </div>
+                  </div>
+
+                  <!-- Search Tab - REMOVED as per user request -->
+
+                  <!-- History Tab -->
+                  <div id="youtubeHistoryTab" class="youtube-tab-content" style="display: none;">
+                      <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                          <h3 style="margin: 0; color: rgba(255, 255, 255, 0.9); font-size: 18px; font-weight: 600;">Recently Watched</h3>
+                          <button id="clearYouTubeHistory" style="
+                              background: rgba(255, 255, 255, 0.05);
+                              border: 1px solid rgba(255, 255, 255, 0.2);
+                              border-radius: 8px;
+                              padding: 6px 12px;
+                              color: rgba(255, 255, 255, 0.7);
+                              font-size: 12px;
+                              cursor: pointer;
+                              transition: all 0.3s;
+                          " title="Clear History">
+                              <i class="fas fa-trash" style="margin-right: 6px;"></i>
+                              Clear
+                          </button>
+                      </div>
+
+                      <div id="youtubeHistoryList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;"></div>
+
+                      <div id="youtubeHistoryEmpty" style="${youtubeHistory.length === 0 ? 'display: block;' : 'display: none;'} text-align: center; padding: 40px 0; color: rgba(255, 255, 255, 0.5);">
+                          <i class="fas fa-history" style="font-size: 32px; margin-bottom: 15px; display: block;"></i>
+                          <p>No videos watched yet.</p>
+                          <p style="font-size: 13px; margin-top: 10px;">Videos you watch will appear here.</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <style>
+              @keyframes slideUp {
+                  from {
+                      transform: translateY(20px);
+                      opacity: 0;
+                  }
+                  to {
+                      transform: translateY(0);
+                      opacity: 1;
+                  }
+              }
+
+              @keyframes spin {
+                  to { transform: rotate(360deg); }
+              }
+
+              .youtube-modal-content::-webkit-scrollbar {
+                  width: 8px;
+              }
+
+              .youtube-modal-content::-webkit-scrollbar-track {
+                  background: rgba(255, 255, 255, 0.05);
+                  border-radius: 10px;
+              }
+
+              .youtube-modal-content::-webkit-scrollbar-thumb {
+                  background: rgba(255, 255, 255, 0.2);
+                  border-radius: 10px;
+              }
+
+              .youtube-modal-content::-webkit-scrollbar-thumb:hover {
+                  background: rgba(255, 255, 255, 0.3);
+              }
+
+              .youtube-video-card {
+                  background: rgba(255, 255, 255, 0.03);
+                  border-radius: 12px;
+                  overflow: hidden;
+                  cursor: pointer;
+                  transition: all 0.3s;
+                  border: 1px solid transparent;
+              }
+
+              .youtube-video-card:hover {
+                  background: rgba(255, 255, 255, 0.05);
+                  border-color: rgba(255, 215, 0, 0.2);
+                  transform: translateY(-2px);
+              }
+
+              .youtube-video-thumbnail {
+                  width: 100%;
+                  height: 112px;
+                  background-size: cover;
+                  background-position: center;
+                  position: relative;
+              }
+
+              .youtube-video-duration {
+                  position: absolute;
+                  bottom: 5px;
+                  right: 5px;
+                  background: rgba(0, 0, 0, 0.7);
+                  color: #fff;
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  font-size: 11px;
+                  font-weight: 600;
+              }
+
+              .youtube-video-info {
+                  padding: 12px;
+              }
+
+              .youtube-video-title {
+                  font-size: 13px;
+                  font-weight: 600;
+                  color: rgba(255, 255, 255, 0.9);
+                  margin-bottom: 4px;
+                  display: -webkit-box;
+                  -webkit-line-clamp: 2;
+                  -webkit-box-orient: vertical;
+                  overflow: hidden;
+              }
+
+              .youtube-video-channel {
+                  font-size: 11px;
+                  color: rgba(255, 255, 255, 0.6);
+                  display: -webkit-box;
+                  -webkit-line-clamp: 1;
+                  -webkit-box-orient: vertical;
+                  overflow: hidden;
+              }
+          </style>
+      `;
+
+      document.body.appendChild(modal);
+
+      // Add CSS animations to head if not already present
+      const style = document.createElement('style');
+      style.textContent = `
+          @keyframes slideUp {
+              from {
+                  transform: translateY(20px);
+                  opacity: 0;
+              }
+              to {
+                  transform: translateY(0);
+                  opacity: 1;
+              }
+          }
+
+          @keyframes spin {
+              to { transform: rotate(360deg); }
+          }
+      `;
+      document.head.appendChild(style);
+
+      // Initialize modal functionality
+      initializeYouTubeModal();
+  }
+
+  // Initialize YouTube modal functionality
+  function initializeYouTubeModal() {
+      const modal = document.getElementById('youtubeModal');
+      const closeBtn = document.getElementById('closeYouTubeModal');
+      const urlInput = document.getElementById('youtubeUrlInput');
+      const previewBtn = document.getElementById('youtubePreviewBtn');
+      const watchBtn = document.getElementById('youtubeWatchBtn');
+      const searchInput = document.getElementById('youtubeSearchInput');
+      const searchBtn = document.getElementById('youtubeSearchBtn');
+      const searchResults = document.getElementById('youtubeSearchResults');
+      const searchLoading = document.getElementById('youtubeSearchLoading');
+      const searchEmpty = document.getElementById('youtubeSearchEmpty');
+      const historyList = document.getElementById('youtubeHistoryList');
+      const historyEmpty = document.getElementById('youtubeHistoryEmpty');
+      const clearHistoryBtn = document.getElementById('clearYouTubeHistory');
+      const previewContainer = document.getElementById('youtubePreview');
+      const previewThumbnail = document.getElementById('youtubePreviewThumbnail');
+      const previewTitle = document.getElementById('youtubePreviewTitle');
+      const previewChannel = document.getElementById('youtubePreviewChannel');
+      const previewDuration = document.getElementById('youtubePreviewDuration');
+
+      // Keep the Watch button in sync with the latest usable input/dataset
+      const updateWatchButtonState = () => {
+          if (!watchBtn) return;
+          const typed = (urlInput?.value || '').trim();
+          const liveDomValue = document.getElementById('youtubeUrlInput')?.value?.trim() || '';
+          const hasDataset = Boolean(watchBtn.dataset.videoId);
+          const hasValidTyped = (!!typed && extractYouTubeId(typed)) || (!!liveDomValue && extractYouTubeId(liveDomValue));
+          const isEnabled = hasDataset || hasValidTyped;
+          watchBtn.disabled = !isEnabled;
+          watchBtn.style.opacity = isEnabled ? '1' : '0.5';
+      };
+
+      // Start with the button disabled until we have a valid URL/id
+      updateWatchButtonState();
+      console.log('[YouTube Debug] Modal initialized, history size:', youtubeHistory.length);
+
+      // Tab switching
+      document.querySelectorAll('.youtube-tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+              const tab = btn.dataset.tab;
+
+              // Update active tab
+              document.querySelectorAll('.youtube-tab-btn').forEach(b => {
+                  b.classList.remove('active');
+                  b.style.color = 'rgba(255, 255, 255, 0.7)';
+                  b.style.borderBottomColor = 'transparent';
+              });
+              btn.classList.add('active');
+              btn.style.color = '#FFD700';
+              btn.style.borderBottomColor = '#FFD700';
+
+              // Show correct tab content
+              document.querySelectorAll('.youtube-tab-content').forEach(content => {
+                  content.style.display = 'none';
+              });
+              document.getElementById(`youtube${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`).style.display = 'block';
+          });
+      });
+
+      // Close modal
+      function closeYouTubeModal() {
+          modal.style.display = 'none';
+          // Reset form
+          urlInput.value = '';
+          previewContainer.style.display = 'none';
+          if (previewBtn) {
+              previewBtn.disabled = true;
+              previewBtn.style.opacity = '0.5';
+          }
+          if (watchBtn) {
+              watchBtn.dataset.videoId = '';
+              watchBtn.dataset.videoInfo = '';
+              updateWatchButtonState();
+          }
+      }
+
+      closeBtn.addEventListener('click', closeYouTubeModal);
+
+      // Close when clicking outside
+      modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+              closeYouTubeModal();
+          }
+      });
+
+      // URL input validation
+      urlInput.addEventListener('input', () => {
+          const url = urlInput.value.trim();
+          const isValid = extractYouTubeId(url) !== '';
+          console.log('[YouTube Debug] Input change:', { url, isValid });
+          if (previewBtn) {
+              previewBtn.disabled = !isValid;
+              previewBtn.style.opacity = isValid ? '1' : '0.5';
+          }
+          // Enable watch button directly if URL is valid
+          updateWatchButtonState();
+      });
+
+      // If preview button exists (legacy), keep it functional; otherwise rely on Watch Now
+      if (previewBtn) previewBtn.addEventListener('click', async () => {
+          const url = urlInput.value.trim();
+          const videoId = extractYouTubeId(url);
+
+          if (!videoId) {
+              notifications.show('Invalid YouTube URL', 'error', 2000);
+              return;
+          }
+
+          // Show loading state
+          previewContainer.style.display = 'block';
+          previewTitle.textContent = 'Loading video info...';
+          previewChannel.textContent = '';
+          previewDuration.textContent = '';
+          previewThumbnail.style.backgroundImage = 'none';
+          previewThumbnail.style.background = 'rgba(255, 255, 255, 0.05)';
+
+          try {
+              // Use YouTube's standard thumbnail URL format instead of API
+              const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+              // Create basic video info without API calls
+              const videoInfo = {
+                  id: videoId,
+                  title: 'YouTube Video',
+                  thumbnail: thumbnailUrl,
+                  channel: 'YouTube',
+                  duration: '0:00',
+                  publishedAt: new Date().toISOString()
+              };
+
+              // Set thumbnail
+              previewThumbnail.style.backgroundImage = `url(${thumbnailUrl})`;
+
+              // Show success message
+              previewTitle.textContent = 'Video ready!';
+              previewChannel.textContent = 'YouTube Video';
+              previewDuration.textContent = 'Duration: Unknown';
+
+              // Enable watch button
+              watchBtn.disabled = false;
+              watchBtn.style.opacity = '1';
+              watchBtn.dataset.videoId = videoId;
+              watchBtn.dataset.videoInfo = JSON.stringify(videoInfo);
+
+              // Show success notification
+              notifications.show('Video ready! Click \"Watch Now\" to open.', 'success', 3000);
+
+          } catch (error) {
+              console.error('Error previewing video:', error);
+              notifications.show('Error loading video. Please try again.', 'error', 2000);
+              previewTitle.textContent = 'Error loading video';
+              previewChannel.textContent = 'Please try again';
+              previewDuration.textContent = '';
+          }
+      });
+
+      // Watch button
+      watchBtn.addEventListener('click', () => {
+          updateWatchButtonState();
+          console.log('[YouTube Debug] Watch button clicked', {
+              urlInput: urlInput.value,
+              datasetId: watchBtn.dataset.videoId,
+              datasetInfo: watchBtn.dataset.videoInfo,
+              liveDomValue: document.getElementById('youtubeUrlInput')?.value
+          });
+
+          // Get video ID either from button data (if preview was clicked) or directly from URL input
+          let videoId = watchBtn.dataset.videoId;
+          let videoInfo = JSON.parse(watchBtn.dataset.videoInfo || '{}');
+
+          // If no video ID in button data, extract directly from URL input
+          if (!videoId) {
+              const url = (urlInput?.value || '').trim();
+              const effectiveUrl = url || (document.getElementById('youtubeUrlInput')?.value || '').trim();
+              videoId = extractYouTubeId(effectiveUrl);
+              console.log('[YouTube Debug] Extracted from input:', videoId, 'raw:', effectiveUrl);
+
+              if (!videoId) {
+                  notifications.show('Paste a YouTube URL first', 'error', 2000);
+                  console.warn('[YouTube Debug] Invalid URL on watch, aborting.');
+                  urlInput?.focus();
+                  updateWatchButtonState();
+                  return;
+              }
+
+              // Create basic video info without API call
+              videoInfo = {
+                  id: videoId,
+                  title: 'YouTube Video',
+                  thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                  channel: 'YouTube',
+                  duration: '0:00',
+                  publishedAt: new Date().toISOString()
+              };
+
+              // Persist on the button for subsequent clicks during this session
+              watchBtn.dataset.videoId = videoId;
+              watchBtn.dataset.videoInfo = JSON.stringify(videoInfo);
+              updateWatchButtonState();
+          }
+
+          // Add to history
+          addToYouTubeHistory(videoInfo);
+
+          // Open video in about:blank using YouTube no-cookie embed
+          const watchUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
+          const html = `
+              <!doctype html>
+              <html>
+              <head><meta charset="UTF-8"><title>YouTube</title></head>
+              <body style="margin:0; background:#000;">
+                  <iframe src="${watchUrl}" allowfullscreen allow="autoplay; encrypted-media" style="border:0; width:100vw; height:100vh;"></iframe>
+              </body>
+              </html>
+          `;
+          // Try to open about:blank and write the embed (no feature flags to avoid popup blockers)
+          let win = window.open('about:blank', '_blank');
+          if (win && typeof win.document !== 'undefined') {
+              try {
+                  win.document.write(html);
+                  win.document.close();
+              } catch (err) {
+                  win = null;
+              }
+          }
+          if (!win) {
+              // Fallback to direct open if about:blank is blocked
+              const a = document.createElement('a');
+              a.href = watchUrl;
+              a.target = '_blank';
+              a.rel = 'noopener';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+          }
+
+          // Close modal
+          closeYouTubeModal();
+
+          // Show success notification
+          notifications.show(`Now watching: ${videoInfo.title || 'YouTube Video'}`, 'success', 3000);
+      });
+
+      // Search functionality - REMOVED as per user request
+      // Add null checks to prevent errors when search elements don't exist
+      if (searchBtn && searchInput && searchResults && searchLoading && searchEmpty) {
+        searchBtn.addEventListener('click', async () => {
+          const query = searchInput.value.trim();
+
+          if (!query) {
+              notifications.show('Please enter a search term', 'error', 2000);
+              return;
+          }
+
+          // Show loading state
+          searchResults.innerHTML = '';
+          searchLoading.style.display = 'block';
+          searchEmpty.style.display = 'none';
+
+          try {
+              const results = await searchYouTubeVideos(query);
+
+              if (results.length > 0) {
+                  searchResults.innerHTML = results.map(video => `
+                      <div class="youtube-video-card" data-video-id="${video.id}">
+                          <div class="youtube-video-thumbnail" style="background-image: url(${video.thumbnail});">
+                              <span class="youtube-video-duration">Loading...</span>
+                          </div>
+                          <div class="youtube-video-info">
+                              <div class="youtube-video-title">${video.title}</div>
+                              <div class="youtube-video-channel">${video.channel}</div>
+                          </div>
+                      </div>
+                  `).join('');
+
+                  // Load durations for each video
+                  results.forEach(async (video) => {
+                      try {
+                          const info = await fetchYouTubeVideoInfo(video.id);
+                          if (info) {
+                              const card = document.querySelector(`.youtube-video-card[data-video-id="${video.id}"] .youtube-video-duration`);
+                              if (card) card.textContent = info.duration;
+                          }
+                      } catch (e) {
+                          console.error('Error loading duration for video:', video.id, e);
+                      }
+                  });
+
+                  searchEmpty.style.display = 'none';
+              } else {
+                  searchEmpty.style.display = 'block';
+              }
+          } catch (error) {
+              console.error('Error searching YouTube:', error);
+              if (error.message.includes('403') || error.message.includes('quota')) {
+                  notifications.show('YouTube API quota exceeded. Please try again later or use direct URL entry.', 'error', 4000);
+              } else {
+                  notifications.show('Error searching YouTube. Please check your connection.', 'error', 2000);
+              }
+              searchEmpty.style.display = 'block';
+          } finally {
+              searchLoading.style.display = 'none';
+          }
+        });
+      }
+
+      // Search on Enter key - REMOVED as per user request
+      if (searchInput && searchBtn) {
+          searchInput.addEventListener('keypress', (e) => {
+              if (e.key === 'Enter') {
+                  searchBtn.click();
+              }
+          });
+      }
+
+      // Video card click handler - REMOVED as per user request
+      if (searchResults) {
+          searchResults.addEventListener('click', (e) => {
+              const card = e.target.closest('.youtube-video-card');
+              if (card) {
+                  const videoId = card.dataset.videoId;
+                  urlInput.value = `https://www.youtube.com/watch?v=${videoId}`;
+                  previewBtn.click();
+                  // Switch to URL tab
+                  document.querySelector('.youtube-tab-btn[data-tab="url"]').click();
+              }
+          });
+      }
+
+      // History card click handler
+      historyList.addEventListener('click', (e) => {
+          const card = e.target.closest('.youtube-video-card');
+          if (card) {
+              const videoId = card.dataset.videoId;
+              urlInput.value = `https://www.youtube.com/watch?v=${videoId}`;
+              if (previewBtn) {
+                  previewBtn.click();
+              }
+              // Switch to URL tab
+              document.querySelector('.youtube-tab-btn[data-tab="url"]').click();
+              updateWatchButtonState();
+          }
+      });
+
+      // Clear history
+      clearHistoryBtn.addEventListener('click', () => {
+          if (youtubeHistory.length === 0) return;
+
+          if (confirm('Clear all YouTube watch history?')) {
+              youtubeHistory = [];
+              localStorage.setItem(YOUTUBE_HISTORY_KEY, JSON.stringify(youtubeHistory));
+              renderYouTubeHistory();
+              notifications.show('History cleared', 'success', 2000);
+          }
+      });
+
+      // Render history
+      function renderYouTubeHistory() {
+          if (youtubeHistory.length === 0) {
+              historyEmpty.style.display = 'block';
+              historyList.innerHTML = '';
+              return;
+          }
+
+          historyEmpty.style.display = 'none';
+          historyList.innerHTML = youtubeHistory.map(video => `
+              <div class="youtube-video-card" data-video-id="${video.id}">
+                  <div class="youtube-video-thumbnail" style="background-image: url(${video.thumbnail});">
+                      <span class="youtube-video-duration">${video.duration}</span>
+                  </div>
+                  <div class="youtube-video-info">
+                      <div class="youtube-video-title">${video.title}</div>
+                      <div class="youtube-video-channel">${video.channel}</div>
+                  </div>
+              </div>
+          `).join('');
+      }
+
+      // Initialize history
+      renderYouTubeHistory();
+  }
+
+  // Open YouTube modal
+  function openYouTubeModal() {
+      createYouTubeModal();
+      const modal = document.getElementById('youtubeModal');
+      if (modal) {
+          modal.style.display = 'flex';
+      }
+  }
+
+  // Enhanced YouTube button click handler
   function openYoutubePrompt(evt) {
       if (evt) {
           evt.preventDefault();
           evt.stopImmediatePropagation();
       }
-      const input = prompt('Paste a YouTube link:');
-      if (!input) return;
-      const id = extractYouTubeId(input);
-      if (!id) {
-          alert('Invalid YouTube link');
-          return;
-      }
-      const unblocked = `https://www.yout-ube.com/watch?v=${id}`;
-      window.open(unblocked, '_blank', 'noopener,noreferrer');
+      openYouTubeModal();
   }
+
+  // Initialize YouTube button
   youtubeBtn?.addEventListener('click', openYoutubePrompt, true);
+
+  // Ensure buttons are bound even if earlier init paths are skipped
+  document.addEventListener('DOMContentLoaded', () => {
+      if (youtubeBtn && !youtubeBtn.hasAttribute('data-handler-attached-dom')) {
+          youtubeBtn.setAttribute('data-handler-attached-dom', 'true');
+          youtubeBtn.addEventListener('click', openYoutubePrompt, true);
+          console.log('[YouTube Debug] Bound youtube watcher button on DOMContentLoaded');
+      }
+      if (typeof initRandomGameButton === 'function') {
+          initRandomGameButton();
+          console.log('[RandomGame Debug] initRandomGameButton forced on DOMContentLoaded');
+      }
+  });
+
+  // Also handle navigation YouTube button if it exists
+  const navYouTubeBtn = document.getElementById('navYouTubeBtn');
+  navYouTubeBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      openYoutubePrompt(e);
+  }, true);
 
   // Discord button -> open Discord invite
   const discordBtn = document.getElementById('discordBtn');
@@ -1418,9 +2302,26 @@ let counterPollInterval = null;
 
   // Helper: pick a random playable game from gameSites
   function getRandomPlayableGame() {
-      if (!Array.isArray(gameSites) || gameSites.length === 0) return null;
-      const playable = gameSites.filter(g => g && g.embed && !isDisabledGame(g));
-      if (playable.length === 0) return null;
+      console.log('[RandomGame Debug] getRandomPlayableGame invoked');
+      let source = Array.isArray(gameSites) && gameSites.length > 0 ? gameSites : [];
+      if (source.length === 0 && Array.isArray(allGamesFromJSON) && allGamesFromJSON.length > 0) {
+          source = allGamesFromJSON;
+      }
+      if (source.length === 0) {
+          console.warn('[RandomGame Debug] No game sources available yet.');
+          return null;
+      }
+
+      const playable = source.filter(g => {
+          if (!g || isDisabledGame(g)) return false;
+          // Accept if we have an embed or we can build a local page path from title
+          return Boolean(g.embed) || Boolean(getGamePagePathFromTitle(g.title));
+      });
+      console.log('[RandomGame Debug] Playable count:', playable.length, 'from', source.length);
+      if (playable.length === 0) {
+          console.warn('[RandomGame Debug] No playable games found after filtering.');
+          return null;
+      }
       const idx = Math.floor(Math.random() * playable.length);
       return playable[idx];
   }
@@ -1430,7 +2331,11 @@ let counterPollInterval = null;
       const randomGameBtn = document.getElementById('randomGameBtn');
       if (!randomGameBtn || randomGameBtn.hasAttribute('data-handler-attached')) return;
       randomGameBtn.setAttribute('data-handler-attached', 'true');
-      randomGameBtn.addEventListener('click', (e) => {
+      randomGameBtn.addEventListener('click', async (e) => {
+          console.log('[RandomGame Debug] Button clicked', {
+              gameSitesLen: Array.isArray(gameSites) ? gameSites.length : 'n/a',
+              allGamesFromJSONLen: Array.isArray(allGamesFromJSON) ? allGamesFromJSON.length : 'n/a'
+          });
           if (e) {
               e.preventDefault();
               e.stopPropagation();
@@ -1440,18 +2345,72 @@ let counterPollInterval = null;
           randomGameBtn.disabled = true;
           setTimeout(() => { if (randomGameBtn) randomGameBtn.disabled = false; }, 2000);
 
-          const game = getRandomPlayableGame();
+          let game = null;
+          // Pre-open a tab if we might need to wait for data so popup blockers don't kill the navigation
+          let preopenedTab = null;
+          const ensurePreopenedTab = () => {
+              if (!preopenedTab || preopenedTab.closed) {
+                  preopenedTab = window.open('about:blank', '_blank');
+              }
+              return preopenedTab;
+          };
+          try {
+              game = getRandomPlayableGame();
+          } catch (err) {
+              console.error('[RandomGame Debug] Error during getRandomPlayableGame:', err);
+          }
+          console.log('[RandomGame Debug] Initial pick:', game);
+
+          // If games aren't loaded yet, try to load them on-demand
+          if (!game && typeof loadGamesFromJSON === 'function') {
+              try {
+                  console.log('[RandomGame Debug] Loading games JSON on-demand');
+                  ensurePreopenedTab(); // keep popup alive during async work
+                  await loadGamesFromJSON();
+                  game = getRandomPlayableGame();
+                  console.log('[RandomGame Debug] Pick after loading JSON:', game);
+              } catch (err) {
+                  console.error('Failed to load games for random pick:', err);
+              }
+          }
+
           if (!game) {
+              if (preopenedTab && !preopenedTab.closed) {
+                  preopenedTab.close();
+              }
               alert('No games available right now. Please try again in a moment.');
+              console.warn('[RandomGame Debug] No game selected even after JSON load attempt.');
               return;
           }
           const gamePath = getGamePagePathFromTitle(game.title);
+          console.log('[RandomGame Debug] Target title:', game.title, 'Path:', gamePath, 'Embed:', game.embed);
+          const targetUrl = gamePath || game.embed;
+          const resolvedTarget = targetUrl ? new URL(targetUrl, window.location.href).href : null;
+          const navigate = (url) => {
+              if (!url) return false;
+              if (preopenedTab && !preopenedTab.closed) {
+                  preopenedTab.location.href = url;
+                  return true;
+              }
+              const opened = openGameInBlank(url);
+              if (!opened) {
+                  window.location.href = url;
+              }
+              return true;
+          };
+
           if (gamePath) {
-              window.location.href = gamePath;
+              navigate(resolvedTarget);
               return;
           }
           if (game.embed) {
-              openGameInBlank(game.embed);
+              console.log('[RandomGame Debug] Falling back to embed open for', game.embed);
+              navigate(resolvedTarget || game.embed);
+          } else {
+              console.warn('[RandomGame Debug] No path or embed found for selected game.');
+              if (preopenedTab && !preopenedTab.closed) {
+                  preopenedTab.close();
+              }
           }
       });
   }
@@ -2337,16 +3296,11 @@ async function ensureBackendChatConnection() {
         });
     }
   
-  // YouTube Video Watcher (prompt-based, opens yout-ube link)
+  // YouTube Video Watcher (enhanced modal with YouTube API integration)
   const youtubeWatcherBtn = document.getElementById('youtubeWatcherBtn');
   youtubeWatcherBtn?.addEventListener('click', openYoutubePrompt, true);
-  const navYouTubeBtn = document.getElementById('navYouTubeBtn');
-  navYouTubeBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      openYoutubePrompt(e);
-  }, true);
-  
-  // Legacy modal disabled; using prompt instead
+
+  // Using enhanced YouTube modal with full API integration and features
   
   // ---------------- Popup ----------------
   const popup = document.getElementById('fullscreenPopup');
@@ -4614,6 +5568,7 @@ async function ensureBackendChatConnection() {
 const chatContainer = document.getElementById('chatContainer');
 // Ensure Chatango embed exists in the chat container
 function ensureChatEmbed() {
+    const chatContainer = document.getElementById('chatContainer');
     if (!chatContainer) return;
     if (chatContainer.querySelector('[data-chatango-embed]')) return;
     chatContainer.innerHTML = '';
@@ -4638,6 +5593,7 @@ const toggleChatBtn = document.getElementById('toggleChatBtn');
   toggleChatBtn?.addEventListener('click', (e) => {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      const chatContainer = document.getElementById('chatContainer');
       if (chatContainer) {
           const isHidden = (chatContainer.style.display === 'none' || chatContainer.style.display === '');
           ensureChatEmbed();
@@ -4817,6 +5773,7 @@ expandChatBtn?.addEventListener('click', (e) => {
             fullScreenChatModal.style.display = 'none';
         }
         // Hide the chat container
+        const chatContainer = document.getElementById('chatContainer');
         if (chatContainer) {
             chatContainer.style.display = 'none';
         }
@@ -8131,6 +9088,7 @@ friendProfileModal?.addEventListener('click', (event) => {
 try {
     const params = new URLSearchParams(window.location.search);
     if (params.get('fullscreenChat') === '1') {
+        const chatContainer = document.getElementById('chatContainer');
         if (chatContainer) chatContainer.style.display = 'none';
         if (fullScreenChatModal) {
             fullScreenChatModal.style.display = 'block';
@@ -14154,6 +15112,9 @@ gameSites = ensureAccurateDescriptions([
           const sidePanelFriendsBtn = document.getElementById('sidePanelFriendsBtn');
           const sidePanelYouTubeBtn = document.getElementById('sidePanelYouTubeBtn');
           const sidePanelRandomGameBtn = document.getElementById('sidePanelRandomGameBtn');
+          const sidePanelThemeBtn = document.getElementById('sidePanelThemeBtn');
+          const sidePanelStatsBtn = document.getElementById('sidePanelStatsBtn');
+          const sidePanelAchievementsBtn = document.getElementById('sidePanelAchievementsBtn');
           
           // YouTube button handler
           if (sidePanelYouTubeBtn && !sidePanelYouTubeBtn.hasAttribute('data-handler-attached')) {
@@ -14209,6 +15170,12 @@ gameSites = ensureAccurateDescriptions([
           function attachSidebarButtonHandlers() {
               const sidePanelDrawingBtn = document.getElementById('sidePanelDrawingBtn');
               const sidePanelChatBtn = document.getElementById('sidePanelChatBtn');
+              const sidePanelThemeBtn = document.getElementById('sidePanelThemeBtn');
+              const sidePanelStatsBtn = document.getElementById('sidePanelStatsBtn');
+              const sidePanelAchievementsBtn = document.getElementById('sidePanelAchievementsBtn');
+              const themeBtn = document.getElementById('themeBtn');
+              const statsBtn = document.getElementById('statsBtn');
+              const achievementsBtn = document.getElementById('achievementsBtn');
               
               // Drawing button handler
               if (sidePanelDrawingBtn && !sidePanelDrawingBtn.hasAttribute('data-handler-attached')) {
@@ -14225,36 +15192,64 @@ gameSites = ensureAccurateDescriptions([
               if (sidePanelChatBtn && !sidePanelChatBtn.hasAttribute('data-handler-attached')) {
                   sidePanelChatBtn.setAttribute('data-handler-attached', 'true');
                   if (sidePanelChatBtn.tagName === 'A') {
-                      sidePanelChatBtn.setAttribute('href', 'javascript:void(0)');
-                  } else if (sidePanelChatBtn.tagName === 'BUTTON') {
-                      sidePanelChatBtn.setAttribute('type', 'button');
+                  sidePanelChatBtn.setAttribute('href', 'javascript:void(0)');
+              } else if (sidePanelChatBtn.tagName === 'BUTTON') {
+                  sidePanelChatBtn.setAttribute('type', 'button');
+              }
+              sidePanelChatBtn.addEventListener('click', (e) => {
+                  if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                  e.preventDefault();
+                  alert('Chat has moved to the bottom right corner of the screen.');
+
+                  // Open chat in-place on any page
+                  let chatContainer = document.getElementById('chatContainer');
+                  if (!chatContainer) {
+                      // Minimal fallback container if not injected yet
+                      chatContainer = document.createElement('div');
+                      chatContainer.id = 'chatContainer';
+                      chatContainer.className = 'chat-container';
+                      chatContainer.style.cssText = 'display:none; position:fixed; bottom:20px; right:20px; width:380px; max-height:600px; background:rgba(15,15,25,0.95); backdrop-filter:blur(20px); border-radius:16px; border:1px solid rgba(255,215,0,0.2); z-index:15000; box-shadow:0 10px 40px rgba(0,0,0,0.5); flex-direction:column;';
+                      chatContainer.innerHTML = '<div style=\"padding:12px; color:#ffd700; font-weight:600;\">Chat</div><div id=\"chatMessages\" style=\"flex:1; min-height:200px;\"></div><div style=\"padding:12px;\"><input id=\"chatInput\" type=\"text\" style=\"width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,215,0,0.3); background:rgba(255,255,255,0.05); color:#fff;\" placeholder=\"Type a message...\"></div>';
+                      document.body.appendChild(chatContainer);
                   }
-                  sidePanelChatBtn.addEventListener('click', (e) => {
+                  ensureChatEmbed();
+                  chatContainer.style.display = 'flex';
+                  chatContainer.style.visibility = 'visible';
+                  chatContainer.style.opacity = '1';
+                  chatContainer.style.pointerEvents = 'auto';
+              });
+          }
+
+              // Theme toggle
+              if (sidePanelThemeBtn && !sidePanelThemeBtn.hasAttribute('data-handler-attached')) {
+                  sidePanelThemeBtn.setAttribute('data-handler-attached', 'true');
+                  sidePanelThemeBtn.addEventListener('click', (e) => {
                       if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-                      e.preventDefault();
-                      
-                      // Check if we're on the homepage
-                      const isHomepage = window.location.pathname === '/' || 
-                                       window.location.pathname.endsWith('/index.html') ||
-                                       window.location.pathname.endsWith('/');
-                      
-                      if (!isHomepage) {
-                          // Redirect to homepage with parameter to auto-open chat
-                          const homepagePath = getHomepagePath();
-                          window.location.href = homepagePath + '?open=chat';
-                          return;
+                      if (themeBtn) {
+                          themeBtn.click();
                       }
-                      
-                      // On homepage, open chat
-                      const chatContainer = document.getElementById('chatContainer');
-                      if (chatContainer) {
-                          ensureChatEmbed();
-                          chatContainer.style.display = 'flex';
-                      } else {
-                          // Fallback: try to click toggle button
-                          const toggleChatBtn = document.getElementById('toggleChatBtn');
-                          if (toggleChatBtn) toggleChatBtn.click();
+                  });
+              }
+
+              // Stats modal
+              if (sidePanelStatsBtn && !sidePanelStatsBtn.hasAttribute('data-handler-attached')) {
+                  sidePanelStatsBtn.setAttribute('data-handler-attached', 'true');
+                  sidePanelStatsBtn.addEventListener('click', (e) => {
+                      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                      if (statsBtn) {
+                          statsBtn.click();
+                      }
+                  });
+              }
+
+              // Achievements modal
+              if (sidePanelAchievementsBtn && !sidePanelAchievementsBtn.hasAttribute('data-handler-attached')) {
+                  sidePanelAchievementsBtn.setAttribute('data-handler-attached', 'true');
+                  sidePanelAchievementsBtn.addEventListener('click', (e) => {
+                      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                      if (achievementsBtn) {
+                          achievementsBtn.click();
                       }
                   });
               }
@@ -14436,6 +15431,9 @@ gameSites = ensureAccurateDescriptions([
               `;
               document.body.insertAdjacentHTML('beforeend', chatContainerHTML);
           }
+
+          // Ensure chat embed is loaded on subpages (e.g., all-games)
+          ensureChatEmbed();
           
           // Inject profile modal if missing - use FULL structure that matches index.html
           if (!document.getElementById('profileModal')) {

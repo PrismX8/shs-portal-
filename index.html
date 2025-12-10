@@ -82,7 +82,7 @@
 })();
 </script>
 </head>
-<body>
+<body class="with-sidebar">
 <div id="pageLoader" role="status" aria-live="polite" aria-busy="true">
   <div class="spinner" aria-hidden="true"></div>
   <div class="loading-text">Loading Nebulo...</div>
@@ -91,6 +91,105 @@
 <canvas id="starCanvas"></canvas>
 <canvas id="interactiveBackground"></canvas>
 <div class="snow"></div>
+<!-- Category Side Panel -->
+<div id="categorySidePanel" class="category-side-panel">
+    <div class="category-panel-header">
+        <h3><i class="fas fa-th"></i> Categories</h3>
+        <button id="closeCategoryPanel" class="close-panel-btn">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="category-panel-content">
+        <a href="index.html" class="category-panel-item">
+            <i class="fas fa-home"></i>
+            <div class="category-panel-label-container">Home</div>
+        </a>
+        <a href="pages/recently-played.html" class="category-panel-item">
+            <i class="fas fa-history"></i>
+            <div class="category-panel-label-container">Recently played</div>
+        </a>
+        <a href="pages/games-new.html" class="category-panel-item">
+            <i class="fas fa-star"></i>
+            <div class="category-panel-label-container">New</div>
+        </a>
+        <a href="pages/all-games.html?category=popular" class="category-panel-item">
+            <i class="fas fa-fire"></i>
+            <div class="category-panel-label-container">Popular Games</div>
+        </a>
+        <a href="pages/all-games.html?category=trending" class="category-panel-item">
+            <i class="fas fa-chart-line"></i>
+            <div class="category-panel-label-container">Updated</div>
+        </a>
+        <hr class="category-panel-divider">
+        <a href="pages/all-games.html?category=racing" class="category-panel-item">
+            <i class="fas fa-car"></i>
+            <div class="category-panel-label-container">Racing</div>
+        </a>
+        <a href="pages/all-games.html?category=action" class="category-panel-item">
+            <i class="fas fa-crosshairs"></i>
+            <div class="category-panel-label-container">Action</div>
+        </a>
+        <a href="pages/all-games.html?category=puzzle" class="category-panel-item">
+            <i class="fas fa-puzzle-piece"></i>
+            <div class="category-panel-label-container">Puzzle</div>
+        </a>
+        <a href="pages/all-games.html?category=shooting" class="category-panel-item">
+            <i class="fas fa-bullseye"></i>
+            <div class="category-panel-label-container">Shooting</div>
+        </a>
+        <a href="pages/all-games.html" class="category-panel-item">
+            <i class="fas fa-th-large"></i>
+            <div class="category-panel-label-container">All Games</div>
+        </a>
+    </div>
+    <hr class="category-panel-divider">
+    <div class="category-panel-actions">
+        <button id="sidePanelYouTubeBtn" class="category-panel-item category-panel-action-btn">
+            <i class="fab fa-youtube"></i>
+            <div class="category-panel-label-container">Watch YouTube</div>
+        </button>
+        <button id="sidePanelRandomGameBtn" class="category-panel-item category-panel-action-btn">
+            <i class="fas fa-dice"></i>
+            <div class="category-panel-label-container">Random Game</div>
+        </button>
+    </div>
+    <hr class="category-panel-divider">
+    <div class="category-panel-nav">
+        <button id="sidePanelDrawingBtn" class="category-panel-item">
+            <i class="fas fa-paint-brush"></i>
+            <div class="category-panel-label-container">Drawing</div>
+        </button>
+        <button id="sidePanelChatBtn" class="category-panel-item">
+            <i class="fas fa-comments"></i>
+            <div class="category-panel-label-container">Chat</div>
+        </button>
+        <button id="sidePanelThemeBtn" class="category-panel-item">
+            <i class="fas fa-palette"></i>
+            <div class="category-panel-label-container">Themes</div>
+        </button>
+        <button id="sidePanelStatsBtn" class="category-panel-item">
+            <i class="fas fa-chart-bar"></i>
+            <div class="category-panel-label-container">Stats</div>
+        </button>
+        <button id="sidePanelAchievementsBtn" class="category-panel-item">
+            <i class="fas fa-trophy"></i>
+            <div class="category-panel-label-container">Achievements</div>
+        </button>
+        <hr class="category-panel-divider">
+        <a href="pages/about-us.html" class="category-panel-item">
+            <i class="fas fa-info-circle"></i>
+            <div class="category-panel-label-container">About</div>
+        </a>
+        <a href="pages/contact-us.html" class="category-panel-item">
+            <i class="fas fa-envelope"></i>
+            <div class="category-panel-label-container">Contact</div>
+        </a>
+        <a href="pages/privacy-policy.html" class="category-panel-item">
+            <i class="fas fa-shield-alt"></i>
+            <div class="category-panel-label-container">Privacy</div>
+        </a>
+    </div>
+</div>
 <!-- Drawing iframe overlay -->
 <div id="drawingIframeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:20000; align-items:center; justify-content:center; padding:20px;">
     <div style="position:relative; width:min(1200px, 96%); height:min(90vh, 900px); background:rgba(10,10,20,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:16px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.6);">
@@ -285,133 +384,6 @@
             <i class="fas fa-shield-alt"></i> Browser
         </a>
     </div>
-</div>
-<!-- Category Side Panel -->
-<div id="categorySidePanel" class="category-side-panel">
-    <div class="category-panel-header">
-        <h3><i class="fas fa-th"></i> Categories</h3>
-        <button id="closeCategoryPanel" class="close-panel-btn">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-    <div class="category-panel-content">
-        <div class="category-panel-group">
-            <div class="category-panel-title">Start</div>
-            <a href="index.html" class="category-panel-item active">
-                <i class="fas fa-home"></i>
-                <div class="category-panel-label-container">Home</div>
-            </a>
-            <a href="#" id="sidePanelThemesBtn" class="category-panel-item">
-                <i class="fas fa-palette"></i>
-                <div class="category-panel-label-container">Themes</div>
-            </a>
-            <a href="#" id="sidePanelAchievementsBtn" class="category-panel-item">
-                <i class="fas fa-trophy"></i>
-                <div class="category-panel-label-container">Achievements</div>
-            </a>
-            <a href="#" id="sidePanelStatsBtn" class="category-panel-item">
-                <i class="fas fa-chart-bar"></i>
-                <div class="category-panel-label-container">Stats</div>
-            </a>
-            <a href="#" id="sidePanelPollsBtn" class="category-panel-item">
-                <i class="fas fa-poll"></i>
-                <div class="category-panel-label-container">Polls</div>
-            </a>
-        </div>
-        <hr class="category-panel-divider">
-        <div class="category-panel-actions">
-            <div class="category-panel-title">Quick actions</div>
-            <button id="sidePanelYouTubeBtn" class="category-panel-item category-panel-action-btn">
-                <i class="fab fa-youtube"></i>
-                <div class="category-panel-label-container">Watch YouTube</div>
-            </button>
-            <button id="sidePanelRandomGameBtn" class="category-panel-item category-panel-action-btn">
-                <i class="fas fa-dice"></i>
-                <div class="category-panel-label-container">Random Game</div>
-            </button>
-        </div>
-        <hr class="category-panel-divider">
-        <div class="category-panel-nav">
-            <div class="category-panel-title">Social</div>
-            <button id="sidePanelDrawingBtn" class="category-panel-item">
-                <i class="fas fa-paint-brush"></i>
-                <div class="category-panel-label-container">Drawing</div>
-            </button>
-            <button id="sidePanelChatMovedBtn" class="category-panel-item" style="font-size:12px;">
-                <i class="fas fa-comments"></i>
-                <div class="category-panel-label-container" style="font-size:12px; line-height:1.2;">Chat</div>
-            </button>
-            <!-- <a href="#" id="sidePanelProfileBtn" class="category-panel-item">
-                <i class="fas fa-user-circle"></i>
-                <div class="category-panel-label-container">Profile</div>
-            </a>
-            <a href="#" id="sidePanelLeaderboardBtn" class="category-panel-item">
-                <i class="fas fa-medal"></i>
-                <div class="category-panel-label-container">Leaderboard</div>
-            </a>
-            <a href="#" id="sidePanelFriendsBtn" class="category-panel-item">
-                <i class="fas fa-user-friends"></i>
-                <div class="category-panel-label-container">Friends</div>
-            </a> -->
-        </div>
-        <hr class="category-panel-divider">
-        <div class="category-panel-group">
-            <div class="category-panel-title">Discover</div>
-            <a href="pages/recently-played.html" class="category-panel-item">
-                <i class="fas fa-clock"></i>
-                <div class="category-panel-label-container">Recently played</div>
-            </a>
-            <a href="pages/games-new.html" class="category-panel-item">
-                <i class="fas fa-star"></i>
-                <div class="category-panel-label-container">New</div>
-            </a>
-            <a href="pages/all-games.html?category=popular" class="category-panel-item">
-                <i class="fas fa-fire"></i>
-                <div class="category-panel-label-container">Popular Games</div>
-            </a>
-            <a href="pages/all-games.html?category=trending" class="category-panel-item">
-                <i class="fas fa-chart-line"></i>
-                <div class="category-panel-label-container">Updated</div>
-            </a>
-        </div>
-        <div class="category-panel-group">
-            <div class="category-panel-title">Genres</div>
-            <a href="pages/all-games.html?category=racing" class="category-panel-item">
-                <i class="fas fa-car"></i>
-                <div class="category-panel-label-container">Racing</div>
-            </a>
-            <a href="pages/all-games.html?category=action" class="category-panel-item">
-                <i class="fas fa-fist-raised"></i>
-                <div class="category-panel-label-container">Action</div>
-            </a>
-            <a href="pages/all-games.html?category=puzzle" class="category-panel-item">
-                <i class="fas fa-puzzle-piece"></i>
-                <div class="category-panel-label-container">Puzzle</div>
-            </a>
-            <a href="pages/all-games.html?category=shooting" class="category-panel-item">
-                <i class="fas fa-crosshairs"></i>
-                <div class="category-panel-label-container">Shooting</div>
-            </a>
-            <a href="pages/all-games.html" class="category-panel-item">
-                <i class="fas fa-th"></i>
-                <div class="category-panel-label-container">All Games</div>
-            </a>
-        </div>
-    </div>
-    <hr class="category-panel-divider">
-    <div class="category-panel-title">About</div>
-    <a href="pages/about-us.html" class="category-panel-item">
-        <i class="fas fa-info-circle"></i>
-        <div class="category-panel-label-container">About</div>
-    </a>
-    <a href="pages/contact-us.html" class="category-panel-item">
-        <i class="fas fa-envelope"></i>
-        <div class="category-panel-label-container">Contact</div>
-    </a>
-    <a href="pages/privacy-policy.html" class="category-panel-item">
-        <i class="fas fa-shield-alt"></i>
-        <div class="category-panel-label-container">Privacy</div>
-    </a>
 </div>
 <!-- Games Grid -->
 <div id="gamesGridContainer" class="games-grid-container">
