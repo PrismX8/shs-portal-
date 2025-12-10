@@ -728,34 +728,48 @@ let counterPollInterval = null;
   // Initialize YouTube modal functionality
   function initializeYouTubeModal() {
       const modal = document.getElementById('youtubeModal');
-      const closeBtn = document.getElementById('closeYouTubeModal');
-      const urlInput = document.getElementById('youtubeUrlInput');
-      const previewBtn = document.getElementById('youtubePreviewBtn');
-      const watchBtn = document.getElementById('youtubeWatchBtn');
-      const searchInput = document.getElementById('youtubeSearchInput');
-      const searchBtn = document.getElementById('youtubeSearchBtn');
-      const searchResults = document.getElementById('youtubeSearchResults');
-      const searchLoading = document.getElementById('youtubeSearchLoading');
-      const searchEmpty = document.getElementById('youtubeSearchEmpty');
-      const historyList = document.getElementById('youtubeHistoryList');
-      const historyEmpty = document.getElementById('youtubeHistoryEmpty');
-      const clearHistoryBtn = document.getElementById('clearYouTubeHistory');
-      const previewContainer = document.getElementById('youtubePreview');
-      const previewThumbnail = document.getElementById('youtubePreviewThumbnail');
-      const previewTitle = document.getElementById('youtubePreviewTitle');
-      const previewChannel = document.getElementById('youtubePreviewChannel');
-      const previewDuration = document.getElementById('youtubePreviewDuration');
+      const closeBtn = modal?.querySelector('#closeYouTubeModal') || document.getElementById('closeYouTubeModal');
+      const urlInput = modal?.querySelector('#youtubeUrlInput') || document.getElementById('youtubeUrlInput');
+      const previewBtn = modal?.querySelector('#youtubePreviewBtn') || document.getElementById('youtubePreviewBtn');
+      const watchBtn = modal?.querySelector('#youtubeWatchBtn') || document.getElementById('youtubeWatchBtn');
+      const searchInput = modal?.querySelector('#youtubeSearchInput') || document.getElementById('youtubeSearchInput');
+      const searchBtn = modal?.querySelector('#youtubeSearchBtn') || document.getElementById('youtubeSearchBtn');
+      const searchResults = modal?.querySelector('#youtubeSearchResults') || document.getElementById('youtubeSearchResults');
+      const searchLoading = modal?.querySelector('#youtubeSearchLoading') || document.getElementById('youtubeSearchLoading');
+      const searchEmpty = modal?.querySelector('#youtubeSearchEmpty') || document.getElementById('youtubeSearchEmpty');
+      const historyList = modal?.querySelector('#youtubeHistoryList') || document.getElementById('youtubeHistoryList');
+      const historyEmpty = modal?.querySelector('#youtubeHistoryEmpty') || document.getElementById('youtubeHistoryEmpty');
+      const clearHistoryBtn = modal?.querySelector('#clearYouTubeHistory') || document.getElementById('clearYouTubeHistory');
+      const previewContainer = modal?.querySelector('#youtubePreview') || document.getElementById('youtubePreview');
+      const previewThumbnail = modal?.querySelector('#youtubePreviewThumbnail') || document.getElementById('youtubePreviewThumbnail');
+      const previewTitle = modal?.querySelector('#youtubePreviewTitle') || document.getElementById('youtubePreviewTitle');
+      const previewChannel = modal?.querySelector('#youtubePreviewChannel') || document.getElementById('youtubePreviewChannel');
+      const previewDuration = modal?.querySelector('#youtubePreviewDuration') || document.getElementById('youtubePreviewDuration');
+
+      // Ensure YouTube URLs are rewritten to yout-ube variants
+      const toDashYouTube = (raw) => {
+          if (!raw) return '';
+          try {
+              const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+              const replacedHost = u.hostname
+                  .replace('youtube-nocookie.com', 'yout-ube-nocookie.com')
+                  .replace('youtube.com', 'yout-ube.com')
+                  .replace('youtu.be', 'yout-ube.be');
+              u.hostname = replacedHost;
+              return u.toString();
+          } catch (_) {
+              // fallback simple replacement
+              return raw.replace(/youtube/g, 'yout-ube').replace(/youtu\\.be/g, 'yout-ube.be');
+          }
+      };
 
       // Keep the Watch button in sync with the latest usable input/dataset
       const updateWatchButtonState = () => {
           if (!watchBtn) return;
-          const typed = (urlInput?.value || '').trim();
-          const liveDomValue = document.getElementById('youtubeUrlInput')?.value?.trim() || '';
-          const hasDataset = Boolean(watchBtn.dataset.videoId);
-          const hasValidTyped = (!!typed && extractYouTubeId(typed)) || (!!liveDomValue && extractYouTubeId(liveDomValue));
-          const isEnabled = hasDataset || hasValidTyped;
-          watchBtn.disabled = !isEnabled;
-          watchBtn.style.opacity = isEnabled ? '1' : '0.5';
+          // Always allow clicking; validation is handled inside the click handler
+          watchBtn.disabled = false;
+          watchBtn.style.opacity = '1';
+          watchBtn.style.pointerEvents = 'auto';
       };
 
       // Start with the button disabled until we have a valid URL/id
@@ -895,34 +909,46 @@ let counterPollInterval = null;
           // Get video ID either from button data (if preview was clicked) or directly from URL input
           let videoId = watchBtn.dataset.videoId;
           let videoInfo = JSON.parse(watchBtn.dataset.videoInfo || '{}');
+          let directUrlFallback = '';
+
+          const rawInputUrl = (modal?.querySelector('#youtubeUrlInput')?.value || '').trim() || (urlInput?.value || '').trim();
 
           // If no video ID in button data, extract directly from URL input
           if (!videoId) {
-              const url = (urlInput?.value || '').trim();
-              const effectiveUrl = url || (document.getElementById('youtubeUrlInput')?.value || '').trim();
+              const effectiveUrl = rawInputUrl;
               videoId = extractYouTubeId(effectiveUrl);
               console.log('[YouTube Debug] Extracted from input:', videoId, 'raw:', effectiveUrl);
 
+              // If still no videoId, fall back to opening whatever was typed
               if (!videoId) {
-                  notifications.show('Paste a YouTube URL first', 'error', 2000);
-                  console.warn('[YouTube Debug] Invalid URL on watch, aborting.');
-                  urlInput?.focus();
-                  updateWatchButtonState();
-                  return;
+                  directUrlFallback = effectiveUrl;
+                  if (!directUrlFallback) {
+                      notifications.show('Paste a YouTube URL first', 'error', 2000);
+                      urlInput?.focus();
+                      updateWatchButtonState();
+                      return;
+                  }
+                  // Normalize without validation; add protocol if missing
+                  if (!/^https?:\/\//i.test(directUrlFallback)) {
+                      directUrlFallback = `https://${directUrlFallback}`;
+                  }
+                  console.log('[YouTube Debug] Fallback to direct URL open:', directUrlFallback);
               }
 
               // Create basic video info without API call
               videoInfo = {
-                  id: videoId,
+                  id: videoId || directUrlFallback,
                   title: 'YouTube Video',
-                  thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                  thumbnail: videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '',
                   channel: 'YouTube',
                   duration: '0:00',
                   publishedAt: new Date().toISOString()
               };
 
               // Persist on the button for subsequent clicks during this session
-              watchBtn.dataset.videoId = videoId;
+              if (videoId) {
+                  watchBtn.dataset.videoId = videoId;
+              }
               watchBtn.dataset.videoInfo = JSON.stringify(videoInfo);
               updateWatchButtonState();
           }
@@ -930,36 +956,38 @@ let counterPollInterval = null;
           // Add to history
           addToYouTubeHistory(videoInfo);
 
-          // Open video in about:blank using YouTube no-cookie embed
-          const watchUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
-          const html = `
-              <!doctype html>
-              <html>
-              <head><meta charset="UTF-8"><title>YouTube</title></head>
-              <body style="margin:0; background:#000;">
-                  <iframe src="${watchUrl}" allowfullscreen allow="autoplay; encrypted-media" style="border:0; width:100vw; height:100vh;"></iframe>
-              </body>
-              </html>
-          `;
-          // Try to open about:blank and write the embed (no feature flags to avoid popup blockers)
-          let win = window.open('about:blank', '_blank');
-          if (win && typeof win.document !== 'undefined') {
+          // Build the target URL: prefer user input; fallback to no-cookie embed
+          const baseUrl = rawInputUrl ||
+              directUrlFallback ||
+              `https://www.youtube-nocookie.com/embed/${videoId}?playlist=${videoId}&autoplay=1&iv_load_policy=3&loop=1&start=`;
+
+          // Insert dash after the first 't' in youtube hosts (youtube -> yout-ube) so it redirects to nocookie
+          const dashifyYouTube = (raw) => {
+              if (!raw) return '';
               try {
-                  win.document.write(html);
-                  win.document.close();
-              } catch (err) {
-                  win = null;
+                  const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+                  const h = u.hostname;
+                  const replacements = {
+                      'youtube.com': 'yout-ube.com',
+                      'www.youtube.com': 'www.yout-ube.com',
+                      'youtube-nocookie.com': 'youtube-nocookie.com',
+                      'www.youtube-nocookie.com': 'www.youtube-nocookie.com',
+                      'youtu.be': 'www.yout-ube.com',
+                      'www.youtu.be': 'www.yout-ube.com'
+                  };
+                  u.hostname = replacements[h] || h.replace('youtube', 'yout-ube');
+                  return u.toString();
+              } catch (_) {
+                  return raw.replace('youtube', 'yout-ube');
               }
-          }
+          };
+
+          const targetUrl = dashifyYouTube(baseUrl);
+
+          // Open directly in a new tab (no about:blank wrapper)
+          const win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
           if (!win) {
-              // Fallback to direct open if about:blank is blocked
-              const a = document.createElement('a');
-              a.href = watchUrl;
-              a.target = '_blank';
-              a.rel = 'noopener';
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
+              notifications.show('Please allow popups for YouTube to open in a new tab.', 'error', 3000);
           }
 
           // Close modal
@@ -15116,31 +15144,12 @@ gameSites = ensureAccurateDescriptions([
           const sidePanelStatsBtn = document.getElementById('sidePanelStatsBtn');
           const sidePanelAchievementsBtn = document.getElementById('sidePanelAchievementsBtn');
           
-          // YouTube button handler
-          if (sidePanelYouTubeBtn && !sidePanelYouTubeBtn.hasAttribute('data-handler-attached')) {
-              sidePanelYouTubeBtn.setAttribute('data-handler-attached', 'true');
-              sidePanelYouTubeBtn.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  openYoutubePrompt(e);
-              });
+          // Remove sidebar YouTube/Random buttons entirely
+          if (sidePanelYouTubeBtn && sidePanelYouTubeBtn.parentElement) {
+              sidePanelYouTubeBtn.parentElement.removeChild(sidePanelYouTubeBtn);
           }
-          
-          // Random Game button handler
-          if (sidePanelRandomGameBtn && !sidePanelRandomGameBtn.hasAttribute('data-handler-attached')) {
-              sidePanelRandomGameBtn.setAttribute('data-handler-attached', 'true');
-              sidePanelRandomGameBtn.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  const randomGameBtn = document.getElementById('randomGameBtn');
-                  if (randomGameBtn) {
-                      randomGameBtn.click();
-                  } else if (typeof getRandomPlayableGame === 'function') {
-                      const game = getRandomPlayableGame();
-                      if (game) {
-                          const gamePath = getGamePagePathFromTitle(game.title);
-                          if (gamePath) window.location.href = gamePath;
-                      }
-                  }
-              });
+          if (sidePanelRandomGameBtn && sidePanelRandomGameBtn.parentElement) {
+              sidePanelRandomGameBtn.parentElement.removeChild(sidePanelRandomGameBtn);
           }
           
           // Drawing button - call function directly or try to click button
