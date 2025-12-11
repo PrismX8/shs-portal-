@@ -822,6 +822,18 @@ let emojiPaletteLoaded = false;
   syncGlobalChatNameInput();
 
   let globalChatStateLookupInFlight = false;
+  async function fetchIpFallbackLocation() {
+      try {
+          const res = await fetch('https://ipapi.co/json/');
+          if (!res.ok) throw new Error('ip api fail');
+          const data = await res.json();
+          return data.region || data.city || data.country_name || '';
+      } catch (err) {
+          console.warn('IP fallback location failed', err);
+          return '';
+      }
+  }
+
   async function autoDetectState() {
       if (globalChatState || globalChatStateLookupInFlight) return;
       globalChatStateLookupInFlight = true;
@@ -856,7 +868,24 @@ let emojiPaletteLoaded = false;
           }
       } catch (err) {
           console.warn('State lookup failed', err);
-          setGlobalChatStatus('Location lookup denied or failed.', true);
+          // Fallback to IP-based lookup
+          try {
+              setGlobalChatStatus('Trying IP-based location...');
+              const fallback = await fetchIpFallbackLocation();
+              if (fallback) {
+                  globalChatDetectedState = fallback;
+                  if (!globalChatState) {
+                      globalChatState = fallback;
+                  }
+                  localStorage.setItem('globalChatState', fallback);
+                  syncGlobalChatNameInput();
+                  setGlobalChatStatus(`Detected location: ${fallback}`);
+              } else {
+                  setGlobalChatStatus('Location lookup denied or failed.', true);
+              }
+          } catch (_) {
+              setGlobalChatStatus('Location lookup denied or failed.', true);
+          }
       } finally {
           globalChatStateLookupInFlight = false;
       }
@@ -5456,11 +5485,16 @@ async function ensureBackendChatConnection() {
                           (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   // Treat existing lite-mode flag as a strong performance hint
   const isLiteMode = document.documentElement.classList.contains('lite-mode') || isLowPerformance;
+  // Apply lag-free mode only on low-end devices
+  const enableLagFree = isLowPerformance;
+  if (enableLagFree) {
+      document.documentElement.classList.add('lag-free');
+  }
   
   // Flag to pause heavy home visuals (background, snow, etc.)
   // Used for non‑home pages and when a fullscreen game is active.
   window.homeVisualsPaused = false;
-  window.disableHeavyHomeVisuals = true; // kill heavy visuals globally (keep snow)
+  window.disableHeavyHomeVisuals = enableLagFree; // kill heavy visuals only on low-end (keep snow)
   
   // Helper: detect if we are on the main homepage
   function isHomePage() {

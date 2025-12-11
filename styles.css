@@ -11976,6 +11976,21 @@ body.game-page-slim footer {
     color: #94a3b8;
     padding: 12px 0;
 }
+
+/* Lag-free mode: disable animations/transitions except snow */
+.lag-free * {
+    transition: none !important;
+    animation: none !important;
+}
+.lag-free .snow,
+.lag-free .snow:before,
+.lag-free .snow:after {
+    animation: snow 10s linear infinite !important;
+}
+.lag-free #snowCanvas {
+    display: block;
+}
+
 @media (max-width: 768px) {
     body.game-page-slim .premium-game-page {
         padding: 16px 10px 32px;
