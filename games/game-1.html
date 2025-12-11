@@ -2,6 +2,22 @@
 <html lang="en">
 <head>
     <script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "uh0lyeydcq");</script><meta charset="UTF-8">
+    <script>
+        // Always open this page as a full page, not inside the homepage iframe
+        (function enforceTopWindow() {
+            try {
+                if (window.top !== window) {
+                    const ref = document.referrer ? new URL(document.referrer) : null;
+                    // Only break out if we're being framed by the same site (homepage inline loader)
+                    if (!ref || ref.hostname === window.location.hostname) {
+                        window.top.location = window.location.href;
+                    }
+                }
+            } catch (e) {
+                // If same-origin check fails, do nothing
+            }
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Play 1 - Premium gaming experience with fullscreen gameplay, ratings, and user reviews.">
     <meta name="keywords" content="1, online games, browser games">
@@ -549,7 +565,6 @@
         <span class="status-indicator online" style="margin-left: 12px;"></span>
     </div>
     <header class="glass-effect animate-on-scroll">
-        <button id="mobileMenuBtn" title="Menu" class="header-icon-btn hover-lift mobile-menu-btn"><i class="fas fa-bars"></i></button>
         <button id="adminBtn" title="Admin Panel" class="header-icon-btn hover-lift">
             <i class="fas fa-cog"></i>
         </button>
@@ -581,91 +596,7 @@
             <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
         </button>
     </header>
-
-    <!-- Category Side Panel -->
-    <div id="categorySidePanel" class="category-side-panel">
-        <div class="category-panel-header">
-            <h3><i class="fas fa-th"></i> Categories</h3>
-            <button id="closeCategoryPanel" class="close-panel-btn">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="category-panel-content">
-            <a href="../index.html" class="category-panel-item">
-                <i class="fas fa-home"></i>
-                <div class="category-panel-label-container">Home</div>
-            </a>
-            <a href="../pages/recently-played.html" class="category-panel-item">
-                <i class="fas fa-clock"></i>
-                <div class="category-panel-label-container">Recently played</div>
-            </a>
-            <a href="../pages/games-new.html" class="category-panel-item">
-                <i class="fas fa-star"></i>
-                <div class="category-panel-label-container">New</div>
-            </a>
-            <a href="../pages/all-games.html?category=popular" class="category-panel-item">
-                <i class="fas fa-fire"></i>
-                <div class="category-panel-label-container">Popular Games</div>
-            </a>
-            <a href="../pages/all-games.html?category=trending" class="category-panel-item">
-                <i class="fas fa-chart-line"></i>
-                <div class="category-panel-label-container">Updated</div>
-            </a>
-            <hr class="category-panel-divider">
-            <a href="../pages/all-games.html?category=racing" class="category-panel-item">
-                <div class="category-panel-label-container">🏎️ Racing</div>
-            </a>
-            <a href="../pages/all-games.html?category=action" class="category-panel-item">
-                <div class="category-panel-label-container">⚔️ Action</div>
-            </a>
-            <a href="../pages/all-games.html?category=puzzle" class="category-panel-item">
-                <div class="category-panel-label-container">🧩 Puzzle</div>
-            </a>
-            <a href="../pages/all-games.html?category=shooting" class="category-panel-item">
-                <div class="category-panel-label-container">🔫 Shooting</div>
-            </a>
-            <a href="../pages/all-games.html" class="category-panel-item">
-                <div class="category-panel-label-container">🎮 All Games</div>
-            </a>
-        </div>
-        <hr class="category-panel-divider">
-        <div class="category-panel-nav">
-            <button id="sidePanelDrawingBtn" class="category-panel-item">
-                <i class="fas fa-paint-brush"></i>
-                <div class="category-panel-label-container">Drawing</div>
-            </button>
-            <button id="sidePanelChatBtn" class="category-panel-item">
-                <i class="fas fa-comments"></i>
-                <div class="category-panel-label-container">Chat</div>
-            </button>
-            <a href="#" id="sidePanelProfileBtn" class="category-panel-item">
-                <i class="fas fa-user-circle"></i>
-                <div class="category-panel-label-container">Profile</div>
-            </a>
-            <a href="#" id="sidePanelLeaderboardBtn" class="category-panel-item">
-                <i class="fas fa-medal"></i>
-                <div class="category-panel-label-container">Leaderboard</div>
-            </a>
-            <a href="#" id="sidePanelFriendsBtn" class="category-panel-item">
-                <i class="fas fa-user-friends"></i>
-                <div class="category-panel-label-container">Friends</div>
-            </a>
-            <hr class="category-panel-divider">
-            <a href="../pages/about-us.html" class="category-panel-item">
-                <i class="fas fa-info-circle"></i>
-                <div class="category-panel-label-container">About</div>
-            </a>
-            <a href="../pages/contact-us.html" class="category-panel-item">
-                <i class="fas fa-envelope"></i>
-                <div class="category-panel-label-container">Contact</div>
-            </a>
-            <a href="../pages/privacy-policy.html" class="category-panel-item">
-                <i class="fas fa-shield-alt"></i>
-                <div class="category-panel-label-container">Privacy</div>
-            </a>
-        </div>
-    </div>
-
+    
     <!-- Notification Dropdown -->
     <div id="notificationDropdown" class="notification-dropdown">
         <div class="notification-dropdown-header">
@@ -817,8 +748,7 @@
         function getDb() {
             if (typeof db !== 'undefined' && db !== null) {
                 return db;
-            }
-            return null;
+            }            return null;
         }
         // Fullscreen functionality - target the container div, not the iframe
         function initFullscreen() {
@@ -1066,7 +996,6 @@
     </script>
 </body>
 </html>
-
 
 
 

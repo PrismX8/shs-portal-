@@ -220,10 +220,6 @@
             <i class="fas fa-paint-brush"></i>
             <span>Drawing</span>
         </button>
-        <button id="navChatBtn" class="nav-item nav-button nav-featured">
-            <i class="fas fa-comments"></i>
-            <span>Chat</span>
-        </button>
         <a href="#" id="navProfileBtn" class="nav-item">
             <i class="fas fa-user-circle"></i>
             <span>Profile</span>
@@ -373,10 +369,6 @@
             <button id="sidePanelDrawingBtn" class="category-panel-item">
                 <i class="fas fa-paint-brush"></i>
                 <div class="category-panel-label-container">Drawing</div>
-            </button>
-            <button id="sidePanelChatMovedBtn" class="category-panel-item" style="font-size:12px;" onclick="alert('Chat was moved to the bottom right corner of the screen.');">
-                <i class="fas fa-comments"></i>
-                <div class="category-panel-label-container" style="font-size:12px; line-height:1.2;">Chat moved to bottom right corner</div>
             </button>
             <a href="#" id="sidePanelProfileBtn" class="category-panel-item">
                 <i class="fas fa-user-circle"></i>
@@ -1469,8 +1461,7 @@
       <button id="closeLeaderboardBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
     </div>
     <div style="display:flex; gap:10px; margin-bottom:20px;">
-      <button class="leaderboardTab" data-tab="chatters" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Top Chatters</button>
-      <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Most Active</button>
+      <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Most Active</button>
       <button class="leaderboardTab" data-tab="achievements" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Achievements</button>
       <button class="leaderboardTab" data-tab="stats" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Daily/Weekly</button>
     </div>
@@ -1650,7 +1641,6 @@
 "cvfnt":"'Avant Garde', Avantgarde, 'Century Gothic', CenturyGothic, AppleGothic, sans-serif",
 "cvfntsz":"25px","cvfntw":"bolder","cvbg":"404040","cvw":197,"cvh":55}}
 </script>
-<script src="//st.chatango.com/js/gz/emb.js" async></script>
 
 <!-- Footer with Essential Pages - Thin & Small -->
 <footer class="site-footer">

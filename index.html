@@ -87,6 +87,59 @@
   <div class="spinner" aria-hidden="true"></div>
   <div class="loading-text">Loading Nebulo...</div>
 </div>
+<div id="globalChatModal" style="display:none; position:fixed; inset:0; background:rgba(6,8,15,0.7); backdrop-filter:blur(16px); z-index:20000; align-items:center; justify-content:center; padding:20px;">
+  <div id="globalChatPanel" style="width:min(920px, 96vw); height:min(720px, 90vh); background:radial-gradient(circle at 20% 20%, rgba(124,58,237,0.08), transparent 35%), radial-gradient(circle at 80% 0%, rgba(99,102,241,0.08), transparent 30%), linear-gradient(150deg, rgba(18,18,28,0.96), rgba(12,14,22,0.92)); border:1px solid rgba(255,255,255,0.12); border-radius:24px; box-shadow:0 30px 90px rgba(0,0,0,0.65), 0 0 1px rgba(255,255,255,0.35); padding:26px; color:#f5f5f5; display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <img src="images/logoshs.png" alt="Site Logo" style="width:42px; height:42px; border-radius:12px; object-fit:cover; border:1px solid rgba(255,255,255,0.1); box-shadow:0 6px 18px rgba(0,0,0,0.35);">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; font-weight:900; letter-spacing:0.6px; color:#e0d7ff; font-size:19px; text-transform:uppercase;">
+            Nebulo • Global Chat
+          </div>
+          <div id="globalChatLocationLabel" style="margin-top:6px; font-size:12px; color:rgba(255,255,255,0.72);">
+            Chatting from: <span id="globalChatLocationValue">Detecting...</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input id="globalChatNameInput" type="text" maxlength="24" placeholder="Display name" style="width:180px; padding:10px 12px; border-radius:10px; border:1px solid rgba(124,58,237,0.4); background:rgba(255,255,255,0.06); color:#f5f5f5; font-size:13px;">
+        <button id="globalChatNameSave" style="padding:10px 12px; border:none; border-radius:10px; background:linear-gradient(135deg, #7C3AED, #9F7AEA); color:white; font-weight:700; cursor:pointer;">Save</button>
+        <button id="globalChatSettingsBtn" style="padding:10px 12px; border:none; border-radius:10px; background:linear-gradient(135deg, #0ea5e9, #6366f1); color:white; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;"><i class="fas fa-cog"></i> Settings</button>
+        <button id="closeGlobalChat" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:#fff; width:38px; height:38px; border-radius:12px; cursor:pointer; font-size:18px;">&times;</button>
+      </div>
+    </div>
+    <div id="globalChatSettingsModal" style="display:none; position:absolute; top:70px; right:24px; width:300px; background:rgba(18,18,24,0.98); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:16px; box-shadow:0 22px 60px rgba(0,0,0,0.55); z-index:10;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; color:#fff; font-weight:700;">
+        Settings
+        <button id="closeGlobalChatSettings" style="background:rgba(255,255,255,0.08); border:none; border-radius:8px; color:#fff; width:28px; height:28px; cursor:pointer;">&times;</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; color:#e5e7eb; font-size:13px;">
+        <div>
+          <div style="margin-bottom:4px;">Theme</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <button class="globalChatThemeBtn" data-theme="nebula" style="padding:6px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #7C3AED, #9F7AEA); color:#fff; cursor:pointer;">Nebula</button>
+            <button class="globalChatThemeBtn" data-theme="sunset" style="padding:6px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #F97316, #EF4444); color:#fff; cursor:pointer;">Sunset</button>
+            <button class="globalChatThemeBtn" data-theme="ocean" style="padding:6px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #06B6D4, #2563EB); color:#fff; cursor:pointer;">Ocean</button>
+            <button class="globalChatThemeBtn" data-theme="dark" style="padding:6px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #0f172a, #111827); color:#fff; cursor:pointer;">Dark</button>
+          </div>
+        </div>
+        <div>
+          <div style="margin-bottom:4px;">My bubble color</div>
+          <input id="globalChatMyBubbleColor" type="color" value="#8b5cf6" style="width:100%; height:32px; border:none; border-radius:8px; background:transparent; cursor:pointer; padding:0;">
+        </div>
+      </div>
+    </div>
+    <div id="globalChatBox" style="flex:1; overflow-y:auto; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:18px; padding:16px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.06); display:flex; flex-direction:column; gap:12px; backdrop-filter:blur(4px);"></div>
+    <div style="font-size:12px; color:rgba(255,255,255,0.75); padding:6px 10px; border-radius:10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);" id="globalChatStatus" aria-live="polite"></div>
+    <div style="font-size:12px; color:rgba(255,255,255,0.7); min-height:14px;" id="globalChatTyping" aria-live="polite"></div>
+    <div style="display:flex; gap:10px; align-items:center; position:relative;">
+      <button id="globalChatEmojiBtn" style="width:44px; height:44px; border:none; border-radius:14px; background:rgba(255,255,255,0.08); color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(0,0,0,0.3);"><i class="far fa-smile"></i></button>
+      <div id="globalChatEmojiPicker" style="display:none; position:absolute; bottom:56px; left:0; background:rgba(20,20,30,0.95); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:8px; box-shadow:0 12px 30px rgba(0,0,0,0.45); z-index:15; max-height:240px; width:320px; overflow-y:auto; display:grid; grid-template-columns:repeat(8, 1fr); gap:4px;"></div>
+      <input id="globalChatInput" type="text" placeholder="Type a message..." style="flex:1; padding:14px 16px; border-radius:14px; border:1px solid rgba(124,58,237,0.45); background:rgba(255,255,255,0.05); color:#f5f5f5; font-size:14px;">
+      <button id="globalChatSendBtn" style="padding:14px 18px; border:none; border-radius:14px; background:linear-gradient(135deg, #8B5CF6, #6366F1); color:white; font-weight:800; cursor:pointer; min-width:110px; box-shadow:0 10px 30px rgba(99,102,241,0.35);">Send</button>
+    </div>
+  </div>
+</div>
 <img loading="lazy" src="images/squarereef.png" alt="Square Reef Border" class="page-border-frame">
 <canvas id="starCanvas"></canvas>
 <canvas id="interactiveBackground"></canvas>
@@ -148,10 +201,6 @@
             <i class="fas fa-paint-brush"></i>
             <div class="category-panel-label-container">Drawing</div>
         </button>
-        <button id="sidePanelChatBtn" class="category-panel-item">
-            <i class="fas fa-comments"></i>
-            <div class="category-panel-label-container">Chat</div>
-        </button>
         <button id="sidePanelThemeBtn" class="category-panel-item">
             <i class="fas fa-palette"></i>
             <div class="category-panel-label-container">Themes</div>
@@ -187,64 +236,59 @@
     </div>
 </div>
 <!-- Visitor Counter -->
-<div id="globalVisitorCounter" class="visitor-counter-bar" style="width:min(1200px, 100%); margin:0 auto 12px; display:flex; justify-content:center; padding:0 12px; box-sizing:border-box;">
-    <div class="visitor-counter-widget" style="display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;">
-        <div class="visitor-counter-title" style="margin:0; font-weight:600;">Live Visitor Counter</div>
-        <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+<div id="globalVisitorCounter" class="visitor-counter-bar">
+    <div class="visitor-counter-widget">
+        <div class="visitor-counter-title">Live Visitor Counter</div>
+        <div class="visitor-counter-embed">
             <div id="sfcxjb4c16r647pqel69taflfc534eq7klk"></div>
             <script type="text/javascript" src="https://counter1.optistats.ovh/private/counter.js?c=xjb4c16r647pqel69taflfc534eq7klk&down=async" async></script>
         </div>
     </div>
 </div>
-<header class="glass-effect animate-on-scroll">
-    <button id="mobileMenuBtn" title="Menu" class="header-icon-btn hover-lift mobile-menu-btn">
-        <i class="fas fa-bars"></i>
-    </button>
-    <button id="adminBtn" title="Admin Panel" class="header-icon-btn hover-lift">
-        <i class="fas fa-cog"></i>
-    </button>
-    <button id="creditsBtn" title="Credits" class="header-icon-btn hover-lift">
-        <i class="fas fa-star"></i>
-    </button>
-    <div class="headerContent">
-        <div class="header-logo-container">
-            <a href="index.html" style="text-decoration: none;">
-                <img src="images/logoshs.png" alt="Nebulo Logo" class="header-logo">
-            </a>
-    </div>
-        <div class="headerText gradient-text">
-        Nebulo
-    </div>
-</script>
-        <div class="header-actions">
-            <button id="openDrawingBtnHeader" class="header-action-btn hover-lift nav-featured" title="Drawing">
+<header class="site-header">
+    <div class="site-header__inner">
+        <a href="index.html" class="brand-link">
+            <span class="brand-logo">
+                <img src="images/logoshs.png" alt="Nebulo Logo">
+            </span>
+            <span class="brand-copy">
+                <span class="brand-name">Nebulo</span>
+                <span class="brand-tagline">Play · Create · Connect</span>
+            </span>
+        </a>
+        <div class="header-actions primary-actions">
+            <button id="globalChatToggle" class="header-action-btn is-primary" title="Open global chat">
+                <i class="fas fa-comments"></i>
+                <span>Global Chat</span>
+            </button>
+            <button id="openDrawingBtnHeader" class="header-action-btn" title="Drawing">
                 <i class="fas fa-paint-brush"></i>
                 <span>Drawing</span>
             </button>
-            <a href="blog/blog.html" class="header-action-btn hover-lift" title="Blog">
+            <a href="blog/blog.html" class="header-action-btn" title="Blog">
                 <i class="fas fa-newspaper"></i>
                 <span>Blog</span>
             </a>
-            <button id="youtubeWatcherBtn" title="Watch YouTube Videos Unblocked" class="youtube-watcher-btn hover-lift">
-                <i class="fab fa-youtube"></i>
-                <span class="youtube-btn-text">Watch YouTube</span>
-            </button>
-            <button id="movieBtn" class="header-action-img-btn hover-lift" title="Open Movies">
-                <img src="https://frogiesarcade.win/stuff/apps/movies.jpg" alt="Movies" class="header-action-img">
-            </button>
-            <button id="discordBtn" title="Join Discord" class="header-action-btn hover-lift">
-                <i class="fab fa-discord"></i>
-                <span>Discord</span>
-            </button>
-            <button id="requestGamesBtn" title="Request Games" class="header-action-btn hover-lift">
+            <button id="requestGamesBtn" class="header-action-btn is-ghost" title="Request Games or Apps">
                 <i class="fas fa-plus"></i>
                 <span>Request Games/Apps</span>
+            </button>
+        </div>
+        <div class="header-actions quick-actions">
+            <button id="youtubeWatcherBtn" class="header-icon-btn youtube-watcher-btn" title="Watch YouTube unblocked" aria-label="Watch YouTube unblocked">
+                <i class="fab fa-youtube"></i>
+            </button>
+            <button id="movieBtn" class="header-icon-btn header-thumb-btn" title="Open Movies" aria-label="Open Movies">
+                <img src="https://frogiesarcade.win/stuff/apps/movies.jpg" alt="Movies">
+            </button>
+            <button id="discordBtn" class="header-icon-btn discord" title="Join Discord" aria-label="Join Discord">
+                <i class="fab fa-discord"></i>
             </button>
         </div>
     </div>
 </header>
 <!-- Main Navigation Bar -->
-<nav class="main-navigation glass-effect">
+<nav class="main-navigation">
     <div class="nav-container">
         <a href="index.html" class="nav-item nav-home">
             <i class="fas fa-home"></i>
@@ -273,10 +317,6 @@
         <button id="openDrawingBtn" class="nav-item nav-button nav-featured">
             <i class="fas fa-paint-brush"></i>
             <span>Drawing</span>
-        </button>
-        <button id="navChatBtn" class="nav-item nav-button nav-featured">
-            <i class="fas fa-comments"></i>
-            <span>Chat</span>
         </button>
         <!-- <a href="#" id="navProfileBtn" class="nav-item">
             <i class="fas fa-user-circle"></i>
@@ -1364,8 +1404,7 @@
       <button id="closeLeaderboardBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
     </div>
     <div style="display:flex; gap:10px; margin-bottom:20px;">
-      <button class="leaderboardTab" data-tab="chatters" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Top Chatters</button>
-      <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Most Active</button>
+      <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Most Active</button>
       <button class="leaderboardTab" data-tab="achievements" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Achievements</button>
       <button class="leaderboardTab" data-tab="stats" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Daily/Weekly</button>
     </div>
@@ -1526,36 +1565,6 @@
 <button id="backToTopBtn" class="back-to-top-btn" title="Back to top">
     <i class="fas fa-arrow-up"></i>
 </button>
-<!-- Floating chat embed -->
-<div id="floatingChatEmbed"
-     style="position:fixed; bottom:16px; right:16px; z-index:5000; padding:8px;
-            border:4px solid #404040; border-radius:14px; background:rgba(0,0,0,0.35);
-            backdrop-filter:blur(6px);">
-</div>
-
-<script id="cid0020000425975845363"
-        data-cfasync="false"
-        async
-        src="https://st.chatango.com/js/gz/emb.js"
-        style="width:200px;height:300px;">
-{"handle":"globalgamehall","arch":"js",
- "styles":{
-   "a":"404040","b":100,"c":"FFFFFF","d":"FFFFFF",
-   "k":"404040","l":"404040","m":"404040","n":"FFFFFF",
-   "p":"10","q":"404040","r":100,"pos":"br","cv":1,
-   "cvfnt":"'Avant Garde',Avantgarde,'Century Gothic',CenturyGothic,AppleGothic,sans-serif",
-   "cvfntsz":"25px","cvfntw":"bolder","cvbg":"404040",
-   "cvw":197,"cvh":55
-}}
-</script>
-
-<script>
-// ensure widget loads after browser paint
-setTimeout(() => {
-    const embed = document.getElementById("floatingChatEmbed");
-    if (embed) embed.style.display = "block";
-}, 300);
-</script>
 
 
 
@@ -1737,14 +1746,6 @@ setTimeout(() => {
         </div>
     </div>
 </div>
-<!-- Chat Embed Modal -->
-<div id="chatEmbedModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); z-index:20000; align-items:center; justify-content:center;">
-  <div style="position:relative; width:min(800px, 90%); height:min(600px, 80vh); background:transparent; overflow:hidden;">
-    <button id="closeChatEmbedBtn" style="position:absolute; top:10px; left:10px; border:none; background:rgba(255,255,255,0.1); color:#fff; width:36px; height:36px; border-radius:8px; cursor:pointer; z-index:10;">&times;</button>
-    <iframe id="chatEmbedIframe" src="https://chitchatter.im/public/3fb1a84b-94c2-469e-8576-4ee38a1fd81b?embed=1" allow="camera;microphone;display-capture;fullscreen" style="border:0; width:100%; height:100%; display:block;" allowfullscreen referrerpolicy="no-referrer"></iframe>
-  </div>
-</div>
-
 <!-- Cookie Settings Modal -->
 <div id="cookieSettingsModal" class="cookie-modal" style="display: none;">
     <div class="cookie-modal-content">
@@ -1839,6 +1840,8 @@ setTimeout(() => {
 <script defer src="backend-api-client.js"></script>
 <!-- Firebase SDK -->
 <script defer src="/firebase-shim.js"></script>
+<!-- Supabase for global chat -->
+<script defer src="https://unpkg.com/@supabase/supabase-js"></script>
 <script>
   // Configure backend endpoints for the custom API/socket
   window.BACKEND_API_URL = window.BACKEND_API_URL || 'https://shs-portal-backend.vercel.app/api';

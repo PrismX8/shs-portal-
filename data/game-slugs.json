@@ -2320,6 +2320,10 @@
     "slug": "duo-survival-3"
   },
   {
+    "title": "Clash Royale",
+    "slug": "clash-royale"
+  },
+  {
     "title": "Duo Survival 2",
     "slug": "duo-survival-2"
   },
@@ -3118,9 +3122,5 @@
   {
     "title": "Slime Rancher",
     "slug": "slime-rancher"
-  },
-  {
-    "title": "Clash Royale",
-    "slug": "clash-royale"
   }
 ]

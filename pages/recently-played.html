@@ -12,48 +12,94 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="../styles.css">
 </head>
-<body class="all-games-page">
-<div id="visitorCounter" class="animate-on-scroll">
-    <span id="onlineCount">0</span> Online | <span id="totalCount">0</span> Total Visitors
-    <span class="status-indicator online" style="margin-left: 12px;"></span>
-</div>
-<header class="glass-effect animate-on-scroll">
-        <button id="adminBtn" title="Admin Panel" class="header-icon-btn hover-lift">
-            <i class="fas fa-cog"></i>
-        </button>
-        <button id="creditsBtn" title="Credits" class="header-icon-btn hover-lift">
-            <i class="fas fa-star"></i>
-        </button>
-        <div class="headerContent">
-            <div class="header-logo-container">
-                <a href="../index.html" style="text-decoration: none;">
-                    <img src="../images/logoshs.png" alt="Nebulo Logo" class="header-logo">
-                </a>
+<body class="recent-page with-sidebar">
+    <div id="globalVisitorCounter" class="visitor-counter-bar">
+        <div class="visitor-counter-widget">
+            <div class="visitor-counter-title">Live Visitor Counter</div>
+            <div class="visitor-counter-embed">
+                <div id="sfcxjb4c16r647pqel69taflfc534eq7klk"></div>
+                <script type="text/javascript" src="https://counter1.optistats.ovh/private/counter.js?c=xjb4c16r647pqel69taflfc534eq7klk&down=async" async></script>
+            </div>
         </div>
-            <div class="headerText gradient-text">
-            Nebulo
-        </div>
-            <div class="header-actions">
-                <a href="../index.html" class="header-action-btn hover-lift" title="Back to Homepage">
-                    <i class="fas fa-home"></i>
-                    <span>Home</span>
-                </a>
-                <a href="blog/blog.html" class="header-action-btn hover-lift" title="Blog">
+    </div>
+    <header class="site-header">
+        <div class="site-header__inner">
+            <a href="../index.html" class="brand-link">
+                <span class="brand-logo">
+                    <img src="../images/logoshs.png" alt="Nebulo Logo">
+                </span>
+                <span class="brand-copy">
+                    <span class="brand-name">Nebulo</span>
+                    <span class="brand-tagline">Play · Create · Connect</span>
+                </span>
+            </a>
+            <div class="header-actions primary-actions">
+                <button id="globalChatToggle" class="header-action-btn is-primary" title="Open global chat">
+                    <i class="fas fa-comments"></i>
+                    <span>Global Chat</span>
+                </button>
+                <button id="openDrawingBtnHeader" class="header-action-btn" title="Drawing">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Drawing</span>
+                </button>
+                <a href="../blog/blog.html" class="header-action-btn" title="Blog">
                     <i class="fas fa-newspaper"></i>
                     <span>Blog</span>
                 </a>
-                <button id="youtubeWatcherBtn" title="Watch YouTube Videos Privately" class="youtube-watcher-btn hover-lift">
+                <button id="requestGamesBtn" class="header-action-btn is-ghost" title="Request Games or Apps">
+                    <i class="fas fa-plus"></i>
+                    <span>Request Games/Apps</span>
+                </button>
+            </div>
+            <div class="header-actions quick-actions">
+                <button id="youtubeWatcherBtn" class="header-icon-btn youtube-watcher-btn" title="Watch YouTube unblocked" aria-label="Watch YouTube unblocked">
                     <i class="fab fa-youtube"></i>
-                    <span class="youtube-btn-text">Watch YouTube Privately</span>
+                </button>
+                <button id="movieBtn" class="header-icon-btn header-thumb-btn" title="Open Movies" aria-label="Open Movies">
+                    <img src="https://frogiesarcade.win/stuff/apps/movies.jpg" alt="Movies">
+                </button>
+                <button id="discordBtn" class="header-icon-btn discord" title="Join Discord" aria-label="Join Discord">
+                    <i class="fab fa-discord"></i>
                 </button>
             </div>
         </div>
-        <button id="notificationBellBtn" title="Notifications" class="header-icon-btn hover-lift notification-bell-btn">
-            <i class="fas fa-bell"></i>
-            <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
-        </button>
     </header>
-
+    <nav class="main-navigation">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-item nav-home">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <div class="nav-item nav-dropdown">
+                <a href="../pages/all-games.html" class="nav-link">
+                    <i class="fas fa-gamepad"></i>
+                    <span>All Games</span>
+                </a>
+                <div class="nav-dropdown-content">
+                    <a href="../pages/all-games.html?category=action">
+                        <i class="fas fa-fist-raised"></i> Action Games
+                    </a>
+                    <a href="../pages/all-games.html?category=racing">
+                        <i class="fas fa-car"></i> Racing Games
+                    </a>
+                    <a href="../pages/all-games.html?category=puzzle">
+                        <i class="fas fa-puzzle-piece"></i> Puzzle Games
+                    </a>
+                    <a href="../pages/games-new.html">
+                        <i class="fas fa-star"></i> New Games
+                    </a>
+                </div>
+            </div>
+            <button id="openDrawingBtn" class="nav-item nav-button nav-featured">
+                <i class="fas fa-paint-brush"></i>
+                <span>Drawing</span>
+            </button>
+            <a href="../blog/blog.html" class="nav-item">
+                <i class="fas fa-newspaper"></i>
+                <span>Blog</span>
+            </a>
+        </div>
+    </nav>
 
 <div class="page-container">
     <div id="gamesGridContainer" class="games-grid-container">

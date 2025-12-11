@@ -1,4 +1,12 @@
   console.time('scriptExecution');
+  // Suppress noisy syntax errors when the Clarity tag is blocked/rewritten by filters
+  window.addEventListener('error', (e) => {
+      const src = e.filename || '';
+      if (src.includes('uh0lyeydcq') || src.includes('clarity.ms/tag/uh0lyeydcq')) {
+          e.preventDefault();
+          return true;
+      }
+  }, true);
   // Global popup guard: block unwanted new tabs/windows to unknown domains
   (function hardenPopups() {
       const isMoviesPage = window.location.pathname.endsWith('movies.html') ||
@@ -9,7 +17,6 @@
       const nativeOpen = window.open;
       const allowedHosts = new Set([
           window.location.hostname,
-          'st.chatango.com',
           'www.fmovies.gd',
           'ww22.0123movie.net',
           'movies4ufree.net',
@@ -138,24 +145,140 @@
       return false;
   }
 
-  // Global link interceptor: open navigations in about:blank with wrapper when possible
+  // Lightweight single-page navigation: load internal pages in an overlay iframe without changing URL
+  const spaFrame = document.createElement('iframe');
+  spaFrame.id = 'spaFrameOverlay';
+  Object.assign(spaFrame.style, {
+      position: 'fixed',
+      inset: '0',
+      width: '100vw',
+      height: '100vh',
+      border: '0',
+      display: 'none',
+      zIndex: '20000',
+      background: '#05060b'
+  });
+  const spaSpinner = document.createElement('div');
+  spaSpinner.id = 'spaFrameSpinner';
+  Object.assign(spaSpinner.style, {
+      position: 'fixed',
+      inset: '0',
+      display: 'none',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: '20001',
+      background: 'rgba(0,0,0,0.45)',
+      backdropFilter: 'blur(6px)'
+  });
+  spaSpinner.innerHTML = '<div style="width:64px;height:64px;border:6px solid rgba(255,255,255,0.12);border-top-color:#ffd700;border-radius:50%;animation:spaSpin 0.8s linear infinite;"></div>';
+  const spaCloseBtn = document.createElement('button');
+  spaCloseBtn.id = 'spaFrameClose';
+  spaCloseBtn.textContent = 'Back to Home';
+  Object.assign(spaCloseBtn.style, {
+      position: 'fixed',
+      top: '14px',
+      left: '14px',
+      padding: '10px 14px',
+      borderRadius: '12px',
+      border: '1px solid rgba(255,255,255,0.2)',
+      background: 'rgba(0,0,0,0.6)',
+      color: '#fff',
+      fontSize: '14px',
+      cursor: 'pointer',
+      zIndex: '20002',
+      display: 'none',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)',
+      backdropFilter: 'blur(6px)'
+  });
+  const styleSpa = document.createElement('style');
+  styleSpa.textContent = '@keyframes spaSpin{to{transform:rotate(360deg);}}';
+  document.head.appendChild(styleSpa);
+  document.body.appendChild(spaFrame);
+  document.body.appendChild(spaSpinner);
+  document.body.appendChild(spaCloseBtn);
+  function showSpaSpinner(show) {
+      spaSpinner.style.display = show ? 'flex' : 'none';
+  }
+  function hideSpaFrame() {
+      spaFrame.style.display = 'none';
+      spaFrame.removeAttribute('src');
+      showSpaSpinner(false);
+      spaCloseBtn.style.display = 'none';
+  }
+  spaFrame.addEventListener('load', () => showSpaSpinner(false));
+  spaFrame.addEventListener('load', () => {
+      showSpaSpinner(false);
+      try {
+          const loc = spaFrame.contentWindow?.location;
+          if (loc && (loc.pathname === '/' || loc.pathname.endsWith('/index.html') || loc.pathname === '/index.html')) {
+              hideSpaFrame();
+          }
+      } catch (_) {
+          // ignore cross-frame errors
+      }
+  });
+  spaCloseBtn.addEventListener('click', hideSpaFrame);
+  document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideSpaFrame();
+  });
+
+  function navigateInternally(url) {
+      // Heavy pages: open in about:blank wrapper instead of overlay
+      if (url.pathname.includes('all-games.html') || url.pathname.includes('/blog')) {
+          openGameInBlank(url.href);
+          return;
+      }
+      const path = url.pathname;
+      // Treat home/index as exit back to base content
+      const isHome = path.endsWith('/') || path.endsWith('/index.html') || path === '/index.html';
+      if (isHome) {
+          hideSpaFrame();
+          return;
+      }
+      showSpaSpinner(true);
+      spaFrame.src = url.href;
+      spaFrame.style.display = 'block';
+      spaCloseBtn.style.display = 'block';
+  }
+
+  // Global link interceptor: internal pages load in overlay iframe; external still open with wrapper
   document.addEventListener('click', (e) => {
       const link = e.target.closest('a');
       if (!link) return;
       const href = link.getAttribute('href');
       if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-      // Allow same-page anchors
       try {
           const url = new URL(href, window.location.href);
+          // Allow same-page anchors
           if (url.origin === window.location.origin && url.hash && url.pathname === window.location.pathname) return;
-          e.preventDefault();
-          // Use game wrapper for internal pages; direct for external
           const isInternal = url.origin === window.location.origin;
-          if (isInternal) {
+          // Home links: open via about:blank wrapper and close overlay
+          if (isInternal && url.pathname.endsWith('/index.html')) {
+              e.preventDefault();
               openGameInBlank(url.href);
-          } else {
-              openGameInBlank(url.href) || window.open(url.href, '_blank');
+              hideSpaFrame();
+              return;
           }
+          // Sidebar home: force return to base
+          if (isInternal && (url.pathname.endsWith('/index.html') || url.pathname === '/')) {
+              e.preventDefault();
+              hideSpaFrame();
+              return;
+          }
+          // Heavy pages: open in about:blank wrapper and keep base tab untouched
+          if (isInternal && (url.pathname.includes('all-games.html') || url.pathname.includes('/blog'))) {
+              e.preventDefault();
+              openGameInBlank(url.href);
+              return;
+          }
+          if (!isInternal) {
+              e.preventDefault();
+              openGameInBlank(url.href) || window.open(url.href, '_blank');
+              return;
+          }
+          // Internal: load in overlay frame and keep base URL the same
+          e.preventDefault();
+          navigateInternally(url);
       } catch (_) {
           // If URL parsing fails, let default happen
       }
@@ -211,32 +334,777 @@
       }
   }, true);
 
-  // Backend-powered leaderboard (chatters)
+  // -------- Global Chat (Supabase) --------
+  const globalChatToggle = document.getElementById('globalChatToggle');
+  const globalChatModal = document.getElementById('globalChatModal');
+  const globalChatPanel = document.getElementById('globalChatPanel');
+  const closeGlobalChat = document.getElementById('closeGlobalChat');
+  const globalChatBox = document.getElementById('globalChatBox');
+  const globalChatInput = document.getElementById('globalChatInput');
+  const globalChatSendBtn = document.getElementById('globalChatSendBtn');
+  const globalChatEmojiBtn = document.getElementById('globalChatEmojiBtn');
+  const globalChatEmojiPicker = document.getElementById('globalChatEmojiPicker');
+  const globalChatStatus = document.getElementById('globalChatStatus');
+  const globalChatTypingEl = document.getElementById('globalChatTyping');
+  const globalChatNameInput = document.getElementById('globalChatNameInput');
+  const globalChatNameSave = document.getElementById('globalChatNameSave');
+  const globalChatLocationValue = document.getElementById('globalChatLocationValue');
+  const globalChatSettingsBtn = document.getElementById('globalChatSettingsBtn');
+  const globalChatSettingsModal = document.getElementById('globalChatSettingsModal');
+  const closeGlobalChatSettings = document.getElementById('closeGlobalChatSettings');
+  const globalChatThemeButtons = document.querySelectorAll('.globalChatThemeBtn');
+  const globalChatMyBubbleColorInput = document.getElementById('globalChatMyBubbleColor');
+  const globalChatSeen = new Set();
+  let globalChatDetectedState = '';
+  let globalChatUsername = (() => {
+      const stored = localStorage.getItem('globalChatUsername');
+      if (stored) return stored;
+      const generated = `User${Math.floor(Math.random() * 9999)}`;
+      localStorage.setItem('globalChatUsername', generated);
+      return generated;
+  })();
+  let globalChatState = (() => {
+      const stored = localStorage.getItem('globalChatState');
+      return stored || '';
+  })();
+  let customMyBubbleColor = localStorage.getItem('globalChatMyBubbleColor') || '';
+  let reactionsById = {};
+  const reactionListNodes = new Map();
+const COMMON_EMOJIS = [
+  '\u{1F600}','\u{1F603}','\u{1F604}','\u{1F601}','\u{1F606}','\u{1F605}','\u{1F602}','\u{1F923}',
+  '\u{1F60A}','\u{1F60D}','\u{1F618}','\u{1F61B}','\u{1F61C}','\u{1F61D}','\u{1F60E}',
+  '\u{1F642}','\u{1F609}','\u{1F917}','\u{1F929}','\u{1F973}','\u{1F60F}','\u{1F612}','\u{1F620}',
+  '\u{1F621}','\u{1F624}','\u{1F92C}','\u{1F62D}','\u{1F613}','\u{1F622}','\u{1F625}','\u{1F630}',
+  '\u{1F631}','\u{1F628}','\u{1F62E}','\u{1F634}','\u{1F635}','\u{1F637}','\u{1F912}','\u{1F915}',
+  '\u{1F47B}','\u{1F47D}','\u{1F921}','\u{1F4A9}','\u{1F44D}','\u{1F44E}','\u{1F44C}','\u{1F44F}',
+  '\u{1F64C}','\u{1F64F}','\u{1F91D}','\u{1F918}','\u{1F919}','\u{1F91F}','\u{1F44A}','\u{1F4AA}',
+  '\u{2764}\u{FE0F}','\u{1F494}','\u{1F496}','\u{2728}','\u{1F389}','\u{1F525}','\u{1F340}',
+  '\u{1F31F}','\u{2B50}','\u{2600}\u{FE0F}','\u{1F319}','\u{2614}', '6','7'
+];
+const EMOJI_POPULAR = [
+  '\u{1F600}','\u{1F605}','\u{1F602}','\u{1F60A}','\u{1F60D}','\u{1F60E}','\u{1F62D}','\u{1F914}',
+  '\u{1F620}','\u{1F44D}','\u{1F44F}','\u{1F64F}','\u{1F525}','\u{1F480}','\u{1F389}','\u{1F973}',
+  '\u{1F92F}','\u{1F91D}','\u{2764}\u{FE0F}','\u{2728}','\u{1F44C}','\u{1F64C}','\u{1F634}','\u{1F922}','\u{1F921}','6','7'
+];
+let emojiPaletteLoaded = false;
+  let emojiList = [...COMMON_EMOJIS];
+  const typingUsers = new Map(); // user -> lastSeen
+  let typingThrottleTs = 0;
+  let typingTimeout = null;
+  const chatThemes = {
+      nebula: {
+          panelBg: 'linear-gradient(145deg, rgba(17,17,27,0.92), rgba(28,21,46,0.95))',
+          panelBorder: 'rgba(124,58,237,0.35)',
+          boxBg: 'rgba(255,255,255,0.02)',
+          boxBorder: 'rgba(255,255,255,0.05)',
+          bubbleBg: 'linear-gradient(135deg, rgba(124,58,237,0.18), rgba(99,102,241,0.22))',
+          bubbleBorder: 'rgba(124,58,237,0.35)',
+          bubbleShadow: '0 8px 22px rgba(0,0,0,0.25)',
+          sendBg: 'linear-gradient(135deg, #8B5CF6, #6366F1)'
+      },
+      sunset: {
+          panelBg: 'linear-gradient(145deg, rgba(48,19,7,0.92), rgba(83,23,17,0.95))',
+          panelBorder: 'rgba(249,115,22,0.4)',
+          boxBg: 'rgba(255,255,255,0.03)',
+          boxBorder: 'rgba(249,115,22,0.2)',
+          bubbleBg: 'linear-gradient(135deg, rgba(249,115,22,0.22), rgba(239,68,68,0.24))',
+          bubbleBorder: 'rgba(249,115,22,0.4)',
+          bubbleShadow: '0 10px 24px rgba(0,0,0,0.28)',
+          sendBg: 'linear-gradient(135deg, #F97316, #EF4444)'
+      },
+      ocean: {
+          panelBg: 'linear-gradient(145deg, rgba(6,30,49,0.9), rgba(4,49,70,0.94))',
+          panelBorder: 'rgba(6,182,212,0.35)',
+          boxBg: 'rgba(255,255,255,0.025)',
+          boxBorder: 'rgba(6,182,212,0.2)',
+          bubbleBg: 'linear-gradient(135deg, rgba(6,182,212,0.22), rgba(37,99,235,0.24))',
+          bubbleBorder: 'rgba(6,182,212,0.35)',
+          bubbleShadow: '0 10px 24px rgba(0,0,0,0.28)',
+          sendBg: 'linear-gradient(135deg, #06B6D4, #2563EB)'
+      },
+      dark: {
+          panelBg: 'linear-gradient(145deg, rgba(10,10,15,0.96), rgba(18,18,22,0.96))',
+          panelBorder: 'rgba(255,255,255,0.08)',
+          boxBg: 'rgba(255,255,255,0.03)',
+          boxBorder: 'rgba(255,255,255,0.08)',
+          bubbleBg: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.04))',
+          bubbleBorder: 'rgba(255,255,255,0.08)',
+          bubbleShadow: '0 10px 24px rgba(0,0,0,0.35)',
+          sendBg: 'linear-gradient(135deg, #1f2937, #0f172a)'
+      }
+  };
+  let activeChatTheme = localStorage.getItem('globalChatTheme') || 'dark';
+  let currentBubbleStyle = chatThemes[activeChatTheme] || chatThemes.nebula;
+
+  function hexToRgb(hex) {
+      let h = hex.replace('#','');
+      if (h.length === 3) {
+          h = h.split('').map(c => c + c).join('');
+      }
+      const int = parseInt(h, 16);
+      if (Number.isNaN(int) || h.length !== 6) return null;
+      return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+  }
+
+  function persistReactions() {
+      try {
+          localStorage.setItem('globalChatReactions', JSON.stringify(reactionsById));
+      } catch (_) {}
+  }
+
+  function buildPersonalBubbleStyle() {
+      const rgb = hexToRgb(customMyBubbleColor || '');
+      if (!rgb) {
+          return {
+              bg: currentBubbleStyle.bubbleBg,
+              border: currentBubbleStyle.bubbleBorder,
+              shadow: currentBubbleStyle.bubbleShadow
+          };
+      }
+      const [r,g,b] = rgb;
+      const border = `rgba(${r}, ${g}, ${b}, 0.9)`;
+      const bg = `linear-gradient(135deg, rgba(${r}, ${g}, ${b}, 0.12), rgba(${r}, ${g}, ${b}, 0.18))`;
+      const shadow = `0 8px 22px rgba(${r}, ${g}, ${b}, 0.18)`;
+      return { bg, border, shadow };
+  }
+
+  function unifiedToEmoji(unified) {
+      if (!unified) return '';
+      try {
+          return unified.split('-').map(u => String.fromCodePoint(parseInt(u, 16))).join('');
+      } catch (_) {
+          return '';
+      }
+  }
+
+  async function loadEmojiPicker(targetContainer, onSelect) {
+      if (!targetContainer) return;
+      const populate = (list) => {
+          targetContainer.innerHTML = '';
+          const ordered = [...new Set([...EMOJI_POPULAR, ...list])];
+          ordered.forEach(ch => {
+              const btn = document.createElement('button');
+              btn.textContent = ch;
+              btn.style.border = 'none';
+              btn.style.background = 'transparent';
+              btn.style.fontSize = '18px';
+              btn.style.cursor = 'pointer';
+              btn.style.padding = '6px';
+              btn.addEventListener('click', () => onSelect(ch));
+              targetContainer.appendChild(btn);
+          });
+      };
+      populate(emojiList);
+      emojiPaletteLoaded = true;
+      targetContainer.style.display = 'grid';
+  }
+
+  function applyChatTheme(themeKey) {
+      const theme = chatThemes[themeKey] || chatThemes.nebula;
+      activeChatTheme = themeKey;
+      currentBubbleStyle = theme;
+      localStorage.setItem('globalChatTheme', themeKey);
+      if (globalChatPanel) {
+          globalChatPanel.style.background = theme.panelBg;
+          globalChatPanel.style.borderColor = theme.panelBorder;
+      }
+      if (globalChatBox) {
+          globalChatBox.style.background = theme.boxBg;
+          globalChatBox.style.borderColor = theme.boxBorder;
+      }
+      if (globalChatSendBtn) {
+          globalChatSendBtn.style.background = theme.sendBg;
+      }
+  }
+  applyChatTheme(activeChatTheme);
+  let supabaseChatClient = null;
+  let globalChatSubscription = null;
+  const messageNodeIndex = new Map();
+
+  function appendGlobalChatMessage(msg) {
+      if (!globalChatBox || !msg) return;
+      const key = msg.id ? `id:${msg.id}` : `temp:${msg.user_id || ''}:${msg.content || ''}:${msg.created_at || ''}`;
+      if (globalChatSeen.has(key)) return;
+      globalChatSeen.add(key);
+      let displayText = msg.content || '';
+      let stateText = '';
+      try {
+          const parsed = JSON.parse(msg.content);
+          if (parsed && typeof parsed === 'object') {
+              if (typeof parsed.text === 'string') displayText = parsed.text;
+              if (typeof parsed.state === 'string') stateText = parsed.state;
+          }
+      } catch (_) {
+          // non-JSON content is fine; show raw text
+      }
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'flex-start';
+      row.style.alignItems = 'flex-start';
+      const bubble = document.createElement('div');
+      const isMine = (msg.user_id || '') === globalChatUsername;
+      if (isMine && customMyBubbleColor) {
+          const personal = buildPersonalBubbleStyle();
+          bubble.style.background = personal.bg;
+          bubble.style.border = `1px solid ${personal.border}`;
+          bubble.style.boxShadow = personal.shadow;
+      } else {
+          bubble.style.background = currentBubbleStyle.bubbleBg;
+          bubble.style.border = `1px solid ${currentBubbleStyle.bubbleBorder}`;
+          bubble.style.boxShadow = currentBubbleStyle.bubbleShadow || '0 8px 22px rgba(0,0,0,0.25)';
+      }
+      bubble.style.borderRadius = '16px';
+      bubble.style.padding = '12px 14px';
+      bubble.style.backdropFilter = 'blur(6px)';
+      bubble.style.transition = 'transform 0.15s ease';
+      bubble.style.width = '100%';
+      bubble.dataset.msgId = msg.id || '';
+      if (stateText) {
+          const stateLine = document.createElement('div');
+          stateLine.textContent = stateText;
+          stateLine.style.fontSize = '11px';
+          stateLine.style.color = 'rgba(255,255,255,0.55)';
+          stateLine.style.marginBottom = '2px';
+          bubble.appendChild(stateLine);
+      }
+      const user = document.createElement('strong');
+      user.textContent = `${msg.user_id || 'User'}: `;
+      const text = document.createElement('span');
+      text.textContent = displayText;
+      bubble.appendChild(user);
+      bubble.appendChild(text);
+
+      const actionsRow = document.createElement('div');
+      actionsRow.style.display = 'flex';
+      actionsRow.style.alignItems = 'center';
+      actionsRow.style.justifyContent = 'space-between';
+      actionsRow.style.marginTop = '8px';
+
+      // Reactions bar
+      const reactBar = document.createElement('div');
+      reactBar.style.display = 'flex';
+      reactBar.style.alignItems = 'center';
+      reactBar.style.gap = '8px';
+      reactBar.style.marginTop = '8px';
+      reactBar.style.position = 'relative';
+      const reactBtn = document.createElement('button');
+      reactBtn.innerHTML = '<span style="font-size:14px;">😊+</span>';
+      reactBtn.title = 'React';
+      reactBtn.style.border = 'none';
+      reactBtn.style.borderRadius = '8px';
+      reactBtn.style.padding = '6px 8px';
+      reactBtn.style.background = 'rgba(255,255,255,0.1)';
+      reactBtn.style.color = '#fff';
+      reactBtn.style.cursor = 'pointer';
+      reactBtn.style.minWidth = '32px';
+      const reactList = document.createElement('div');
+      reactList.style.display = 'flex';
+      reactList.style.gap = '6px';
+      reactList.style.flexWrap = 'wrap';
+      const reactPicker = document.createElement('div');
+      reactPicker.className = 'react-picker';
+      reactPicker.style.display = 'none';
+      reactPicker.style.position = 'absolute';
+      reactPicker.style.top = '36px';
+      reactPicker.style.left = '0';
+      reactPicker.style.background = 'rgba(20,20,30,0.95)';
+      reactPicker.style.border = '1px solid rgba(255,255,255,0.1)';
+      reactPicker.style.borderRadius = '10px';
+      reactPicker.style.padding = '8px';
+      reactPicker.style.boxShadow = '0 10px 25px rgba(0,0,0,0.4)';
+      reactPicker.style.zIndex = '20';
+      reactPicker.style.width = '280px';
+      reactPicker.style.maxHeight = '260px';
+      reactPicker.style.overflowY = 'auto';
+      reactPicker.style.display = 'none';
+      reactPicker.style.gridTemplateColumns = 'repeat(7, 1fr)';
+      reactPicker.style.gap = '4px';
+      COMMON_EMOJIS.forEach(em => {
+          const btn = document.createElement('button');
+          btn.textContent = em;
+          btn.style.border = 'none';
+          btn.style.background = 'transparent';
+          btn.style.fontSize = '16px';
+          btn.style.cursor = 'pointer';
+          btn.style.padding = '4px';
+          btn.addEventListener('click', () => {
+              addReaction(msg.id, em);
+              renderReactions(msg.id, reactList);
+              reactPicker.style.display = 'none';
+      });
+      reactPicker.appendChild(btn);
+      });
+      reactBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (reactPicker.style.display === 'grid') {
+              reactPicker.style.display = 'none';
+              return;
+          }
+          await loadEmojiPicker(reactPicker, (em) => {
+              addReaction(msg.id, em);
+              renderReactions(msg.id, reactList);
+              reactPicker.style.display = 'none';
+          });
+          reactPicker.style.display = 'grid';
+      });
+      reactBar.appendChild(reactBtn);
+      reactBar.appendChild(reactList);
+      reactionListNodes.set(msg.id, reactList);
+      actionsRow.appendChild(reactBar);
+
+      // Delete button for own messages
+      if (isMine && msg.id) {
+          const delBtn = document.createElement('button');
+          delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+          delBtn.title = 'Delete message';
+          delBtn.style.border = 'none';
+          delBtn.style.borderRadius = '8px';
+          delBtn.style.padding = '6px 8px';
+          delBtn.style.background = 'rgba(255,255,255,0.08)';
+          delBtn.style.color = '#f87171';
+          delBtn.style.cursor = 'pointer';
+          delBtn.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              if (!confirm('Delete this message?')) return;
+              if (!supabaseChatClient) return;
+              try {
+                  const { error } = await supabaseChatClient.from('messages').delete().eq('id', msg.id);
+                  if (error) throw error;
+                  removeMessageById(msg.id);
+              } catch (err) {
+                  console.error('Delete failed', err);
+                  setGlobalChatStatus('Delete failed.', true);
+              }
+          });
+          actionsRow.appendChild(delBtn);
+      }
+
+      bubble.appendChild(actionsRow);
+      bubble.appendChild(reactPicker);
+
+      row.appendChild(bubble);
+      globalChatBox.appendChild(row);
+      scrollGlobalChatToBottom();
+      if (msg.id) {
+          messageNodeIndex.set(msg.id, row);
+      }
+
+      // Render existing reactions for this message
+      renderReactions(msg.id, reactList);
+  }
+
+  function renderReactions(id, container) {
+      if (!container) return;
+      container.innerHTML = '';
+      const list = reactionsById[id] || [];
+      const counts = {};
+      list.forEach(em => { counts[em] = (counts[em] || 0) + 1; });
+      Object.entries(counts).forEach(([em, count]) => {
+          const chip = document.createElement('span');
+          chip.textContent = count > 1 ? `${em} ${count}` : em;
+          chip.style.padding = '4px 6px';
+          chip.style.borderRadius = '8px';
+          chip.style.background = 'rgba(255,255,255,0.08)';
+          container.appendChild(chip);
+      });
+  }
+
+  async function addReaction(id, emoji) {
+      if (!id || !supabaseChatClient) return;
+      const { error, data } = await supabaseChatClient
+          .from('reactions')
+          .insert([{ message_id: id, emoji, user_id: globalChatUsername }])
+          .select('*')
+          .single();
+      if (error) {
+          console.error('Reaction save failed', error);
+          return;
+      }
+      // Optimistic local update so it appears immediately
+      if (!reactionsById[id]) reactionsById[id] = [];
+      reactionsById[id].push(emoji);
+      const node = reactionListNodes.get(id);
+      if (node) renderReactions(id, node);
+  }
+
+  function removeMessageById(id) {
+      const node = messageNodeIndex.get(id);
+      if (node && node.parentNode) {
+          node.parentNode.removeChild(node);
+      }
+      messageNodeIndex.delete(id);
+      delete reactionsById[id];
+      reactionListNodes.delete(id);
+      globalChatSeen.delete(`id:${id}`);
+  }
+
+  function scrollGlobalChatToBottom() {
+      if (!globalChatBox) return;
+      requestAnimationFrame(() => {
+          if (!globalChatBox) return;
+          globalChatBox.scrollTop = globalChatBox.scrollHeight;
+      });
+      setTimeout(() => {
+          if (!globalChatBox) return;
+          globalChatBox.scrollTop = globalChatBox.scrollHeight;
+      }, 75);
+  }
+
+  function setGlobalChatStatus(text, isError = false) {
+      if (!globalChatStatus) return;
+      globalChatStatus.textContent = text || '';
+      globalChatStatus.style.color = isError ? '#f87171' : 'rgba(255,255,255,0.7)';
+  }
+
+  function updateTypingIndicator() {
+      if (!globalChatTypingEl) return;
+      const now = Date.now();
+      // prune stale (older than 8s)
+      typingUsers.forEach((ts, user) => {
+          if (now - ts > 8000) typingUsers.delete(user);
+      });
+      const ordered = Array.from(typingUsers.entries())
+          .sort((a, b) => a[1] - b[1]) // earliest start first
+          .map(([user]) => user)
+          .filter(Boolean);
+      if (ordered.length === 0) {
+          globalChatTypingEl.textContent = '';
+      } else if (ordered.length > 3) {
+          globalChatTypingEl.textContent = 'Several people are typing…';
+      } else {
+          const list = ordered.join(', ');
+          globalChatTypingEl.textContent = `${list} ${ordered.length === 1 ? 'is' : 'are'} typing…`;
+      }
+  }
+
+  async function sendTypingState(active) {
+      const client = await initGlobalChatClient();
+      if (!client) return;
+      const now = Date.now();
+      if (active) {
+          if (now - typingThrottleTs < 3000) {
+              typingUsers.set(globalChatUsername, now);
+              updateTypingIndicator();
+              scheduleTypingClear();
+              return;
+          }
+          typingThrottleTs = now;
+          typingUsers.set(globalChatUsername, now);
+          updateTypingIndicator();
+          await client.from('typing').upsert({
+              user_id: globalChatUsername,
+              typing: true,
+              updated_at: new Date().toISOString()
+          });
+          scheduleTypingClear();
+      } else {
+          typingUsers.delete(globalChatUsername);
+          updateTypingIndicator();
+          await client.from('typing')
+              .update({ typing: false, updated_at: new Date().toISOString() })
+              .eq('user_id', globalChatUsername);
+      }
+  }
+
+  function scheduleTypingClear() {
+      if (typingTimeout) clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => sendTypingState(false), 7000);
+  }
+
+  function syncGlobalChatNameInput() {
+      if (globalChatNameInput) {
+          globalChatNameInput.value = globalChatUsername;
+      }
+      if (globalChatLocationValue) {
+          globalChatLocationValue.textContent = globalChatState || globalChatDetectedState || 'Detecting...';
+      }
+  }
+  syncGlobalChatNameInput();
+
+  let globalChatStateLookupInFlight = false;
+  async function autoDetectState() {
+      if (globalChatState || globalChatStateLookupInFlight) return;
+      globalChatStateLookupInFlight = true;
+      try {
+          setGlobalChatStatus('Requesting location...');
+          const coords = await new Promise((resolve, reject) => {
+              if (!navigator.geolocation) return reject(new Error('Geolocation unavailable'));
+              navigator.geolocation.getCurrentPosition(
+                  (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+                  (err) => reject(err),
+                  { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+              );
+          });
+          setGlobalChatStatus('Resolving location...');
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lon}`);
+          if (!res.ok) throw new Error(`reverse geocode failed ${res.status}`);
+          const data = await res.json();
+          const candidate = data.address?.state || data.address?.region || data.address?.county || data.address?.country || '';
+          if (candidate) {
+              globalChatDetectedState = candidate;
+              if (!globalChatState) {
+                  syncGlobalChatNameInput();
+              }
+              setGlobalChatStatus(`Detected location: ${candidate}`);
+              // persist detected state for reuse across sessions
+              localStorage.setItem('globalChatState', candidate);
+              if (!globalChatState) {
+                  globalChatState = candidate;
+              }
+          } else {
+              setGlobalChatStatus('Could not detect location.', true);
+          }
+      } catch (err) {
+          console.warn('State lookup failed', err);
+          setGlobalChatStatus('Location lookup denied or failed.', true);
+      } finally {
+          globalChatStateLookupInFlight = false;
+      }
+  }
+
+  function saveGlobalChatName() {
+      const val = (globalChatNameInput?.value || '').trim();
+      if (!val) {
+          setGlobalChatStatus('Name cannot be empty.', true);
+          return;
+      }
+      globalChatUsername = val;
+      localStorage.setItem('globalChatUsername', globalChatUsername);
+      setGlobalChatStatus('Name saved.');
+  }
+  globalChatNameSave?.addEventListener('click', saveGlobalChatName);
+  globalChatNameInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+          e.preventDefault();
+          saveGlobalChatName();
+      }
+  });
+  globalChatThemeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+          const theme = btn.getAttribute('data-theme');
+          applyChatTheme(theme);
+      });
+  });
+  if (globalChatMyBubbleColorInput && customMyBubbleColor) {
+      globalChatMyBubbleColorInput.value = customMyBubbleColor;
+  }
+  globalChatMyBubbleColorInput?.addEventListener('input', () => {
+      customMyBubbleColor = globalChatMyBubbleColorInput.value;
+      localStorage.setItem('globalChatMyBubbleColor', customMyBubbleColor);
+      applyChatTheme(activeChatTheme);
+  });
+  function insertEmoji(em) {
+      if (!globalChatInput) return;
+      const start = globalChatInput.selectionStart || globalChatInput.value.length;
+      const end = globalChatInput.selectionEnd || start;
+      const current = globalChatInput.value;
+      globalChatInput.value = current.slice(0, start) + em + current.slice(end);
+      globalChatInput.focus();
+      const caret = start + em.length;
+      globalChatInput.setSelectionRange(caret, caret);
+      if (globalChatEmojiPicker) globalChatEmojiPicker.style.display = 'none';
+  }
+
+  globalChatEmojiBtn?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!globalChatEmojiPicker) return;
+      if (globalChatEmojiPicker.style.display === 'grid') {
+          globalChatEmojiPicker.style.display = 'none';
+          return;
+      }
+      await loadEmojiPicker(globalChatEmojiPicker, insertEmoji);
+      globalChatEmojiPicker.style.display = 'grid';
+  });
+  globalChatInput?.addEventListener('input', () => {
+      sendTypingState(true);
+  });
+  globalChatInput?.addEventListener('blur', () => {
+      sendTypingState(false);
+  });
+
+  async function initGlobalChatClient() {
+      if (!window.supabase) {
+          console.warn('Supabase client not loaded for global chat.');
+          setGlobalChatStatus('Supabase client failed to load.', true);
+          return null;
+      }
+      if (supabaseChatClient) return supabaseChatClient;
+      const supabaseUrl = 'https://bvhigzazfcsoqeivnmxe.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2aGlnemF6ZmNzb3FlaXZubXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0MDcyMzgsImV4cCI6MjA4MDk4MzIzOH0.KbWzdBWkcUsprvm8F7iQYXdokxtSKlUVXcChsiQPQSU';
+      supabaseChatClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+      try {
+          const { data } = await supabaseChatClient
+              .from('messages')
+              .select('*')
+              .order('created_at', { ascending: true });
+          (data || []).forEach(appendGlobalChatMessage);
+          // Load reactions shared across users
+          const { data: reactionData } = await supabaseChatClient
+              .from('reactions')
+              .select('id,message_id,emoji');
+          (reactionData || []).forEach(r => {
+              if (!reactionsById[r.message_id]) reactionsById[r.message_id] = [];
+              reactionsById[r.message_id].push(r.emoji);
+          });
+          reactionListNodes.forEach((node, msgId) => renderReactions(msgId, node));
+          // Load current typing users (recent)
+          const cutoff = new Date(Date.now() - 8000).toISOString();
+          const { data: typingData } = await supabaseChatClient
+              .from('typing')
+              .select('user_id, typing, updated_at')
+              .gt('updated_at', cutoff);
+          (typingData || []).forEach(t => {
+              if (t.typing && t.user_id) typingUsers.set(t.user_id, new Date(t.updated_at).getTime());
+          });
+          updateTypingIndicator();
+      } catch (err) {
+          console.error('Failed to load chat history:', err);
+          setGlobalChatStatus('Failed to load chat history.', true);
+      }
+      globalChatSubscription = supabaseChatClient
+          .channel('global-chat')
+          .on(
+              'postgres_changes',
+              { event: 'INSERT', schema: 'public', table: 'messages' },
+              payload => appendGlobalChatMessage(payload.new)
+          )
+          .on(
+              'postgres_changes',
+              { event: 'DELETE', schema: 'public', table: 'messages' },
+              payload => {
+                  if (payload.old?.id) {
+                      removeMessageById(payload.old.id);
+                  }
+              }
+          )
+          .on(
+              'postgres_changes',
+              { event: 'INSERT', schema: 'public', table: 'reactions' },
+              payload => {
+                  const r = payload.new;
+                  if (!r || !r.message_id || !r.emoji) return;
+                  if (!reactionsById[r.message_id]) reactionsById[r.message_id] = [];
+                  reactionsById[r.message_id].push(r.emoji);
+                  const node = reactionListNodes.get(r.message_id);
+                  if (node) renderReactions(r.message_id, node);
+              }
+          )
+          .on(
+              'postgres_changes',
+              { event: 'UPDATE', schema: 'public', table: 'typing' },
+              payload => {
+                  const t = payload.new;
+                  if (!t || !t.user_id) return;
+                  typingUsers.set(t.user_id, Date.now());
+                  if (!t.typing) typingUsers.delete(t.user_id);
+                  updateTypingIndicator();
+              }
+          )
+          .on(
+              'postgres_changes',
+              { event: 'INSERT', schema: 'public', table: 'typing' },
+              payload => {
+                  const t = payload.new;
+                  if (!t || !t.user_id) return;
+                  typingUsers.set(t.user_id, Date.now());
+                  if (!t.typing) typingUsers.delete(t.user_id);
+                  updateTypingIndicator();
+              }
+          )
+          .subscribe();
+      return supabaseChatClient;
+  }
+
+  async function sendGlobalChatMessage() {
+      if (!globalChatInput) return;
+      const text = (globalChatInput.value || '').trim();
+      if (!text) return;
+      setGlobalChatStatus('Sending...');
+      globalChatInput.value = '';
+      const client = await initGlobalChatClient();
+      if (!client) {
+          setGlobalChatStatus('Chat client not ready.', true);
+          return;
+      }
+      const stateToSend = globalChatState || globalChatDetectedState;
+      const contentPayload = JSON.stringify({ text, state: stateToSend });
+      const { data, error } = await client
+          .from('messages')
+          .insert([{ user_id: globalChatUsername, content: contentPayload }])
+          .select('*')
+          .single();
+      if (error) {
+          console.error('Message send error:', error);
+          setGlobalChatStatus('Failed to send message.', true);
+      } else {
+          if (data) appendGlobalChatMessage(data);
+          setGlobalChatStatus('Sent!');
+          sendTypingState(false);
+      }
+  }
+
+  function openGlobalChatPanel() {
+      if (!globalChatPanel) return;
+      if (globalChatModal) globalChatModal.style.display = 'flex';
+      globalChatPanel.style.display = 'flex';
+      setGlobalChatStatus('');
+      applyChatTheme(activeChatTheme);
+      initGlobalChatClient();
+      autoDetectState();
+      scrollGlobalChatToBottom();
+      setTimeout(scrollGlobalChatToBottom, 200);
+  }
+
+  globalChatToggle?.addEventListener('click', openGlobalChatPanel);
+  closeGlobalChat?.addEventListener('click', () => {
+      if (globalChatPanel) globalChatPanel.style.display = 'none';
+      if (globalChatModal) globalChatModal.style.display = 'none';
+      setGlobalChatStatus('');
+  });
+  globalChatSendBtn?.addEventListener('click', sendGlobalChatMessage);
+  globalChatInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+          e.preventDefault();
+          sendGlobalChatMessage();
+      }
+  });
+  globalChatModal?.addEventListener('click', (e) => {
+      if (e.target === globalChatModal) {
+          if (globalChatPanel) globalChatPanel.style.display = 'none';
+          globalChatModal.style.display = 'none';
+          setGlobalChatStatus('');
+          if (globalChatEmojiPicker) globalChatEmojiPicker.style.display = 'none';
+          sendTypingState(false);
+      }
+  });
+  globalChatSettingsBtn?.addEventListener('click', () => {
+      if (globalChatSettingsModal) {
+          globalChatSettingsModal.style.display = globalChatSettingsModal.style.display === 'block' ? 'none' : 'block';
+      }
+  });
+  closeGlobalChatSettings?.addEventListener('click', () => {
+      if (globalChatSettingsModal) globalChatSettingsModal.style.display = 'none';
+  });
+
+  document.addEventListener('click', (e) => {
+      if (globalChatEmojiPicker && !globalChatEmojiPicker.contains(e.target) && !globalChatEmojiBtn?.contains(e.target)) {
+          globalChatEmojiPicker.style.display = 'none';
+      }
+      document.querySelectorAll('.react-picker').forEach(p => {
+          if (!p.contains(e.target) && !p.previousSibling?.contains?.(e.target)) {
+              p.style.display = 'none';
+          }
+      });
+      // Clicking outside chat input clears typing
+      if (e.target !== globalChatInput) {
+          sendTypingState(false);
+      }
+  });
+
+  // Leaderboard loader
   function loadLeaderboardBackend(type) {
       if(!leaderboardContent) return;
-      leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Loading...</p>';
-      if(type === 'chatters') {
-          if (backendApi) {
-                      backendApi.getChatLeaderboard(10).then(rows => {
-                  const mapped = rows.map((row, i) => ({
-                      rank: i + 1,
-                      name: row.username || row.user || 'User',
-                      value: row.messages || 0,
-                      label: 'messages',
-                      avatar: row.avatar || '👤',
-                      avatarImage: row.avatarImage || null
-                  }));
-                  displayLeaderboard(mapped);
-              }).catch(err => {
-                  console.error('Error loading leaderboard:', err);
-                  leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading leaderboard.</p>';
-              });
-          } else {
-              leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Backend not available.</p>';
-          }
-      } else if(type === 'active') {
-          leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Active list coming soon.</p>';
-      }
+      loadLeaderboard(type || 'active');
   }
 let chatBackendReady = false;
 let backendChatListenersAttached = false;
@@ -4592,6 +5460,7 @@ async function ensureBackendChatConnection() {
   // Flag to pause heavy home visuals (background, snow, etc.)
   // Used for non‑home pages and when a fullscreen game is active.
   window.homeVisualsPaused = false;
+  window.disableHeavyHomeVisuals = true; // kill heavy visuals globally (keep snow)
   
   // Helper: detect if we are on the main homepage
   function isHomePage() {
@@ -4626,6 +5495,8 @@ async function ensureBackendChatConnection() {
   const isTabVisible = () => !document.hidden;
   
   function initSparkles() {
+      // Skip entirely when heavy visuals are disabled
+      if (window.disableHeavyHomeVisuals) return;
       // In lite-mode, skip sparkles entirely to save CPU/GPU
       if (document.documentElement.classList.contains('lite-mode')) return;
       const canvas = document.getElementById('sparkleCanvas');
@@ -5295,7 +6166,7 @@ async function ensureBackendChatConnection() {
       let snowflakes = [];
       let animationRunning = true;
       let animationId = null; // Track animation frame ID
-      const snowflakeCount = isLowPerformance ? 15 : 20; // Further reduced for better performance
+      const snowflakeCount = isLowPerformance ? 10 : 14; // Keep snow but lighten GPU load
 
       // Pause animations when tab is hidden
       document.addEventListener('visibilitychange', () => {
@@ -5594,23 +6465,6 @@ async function ensureBackendChatConnection() {
   })();
   
 const chatContainer = document.getElementById('chatContainer');
-// Ensure Chatango embed exists in the chat container
-function ensureChatEmbed() {
-    const chatContainer = document.getElementById('chatContainer');
-    if (!chatContainer) return;
-    if (chatContainer.querySelector('[data-chatango-embed]')) return;
-    chatContainer.innerHTML = '';
-    const script = document.createElement('script');
-    script.id = 'cid0020000425975081866';
-    script.dataset.cfasync = 'false';
-    script.dataset.chatangoEmbed = 'true';
-    script.async = true;
-    script.src = 'https://st.chatango.com/js/gz/emb.js';
-    script.style.width = '200px';
-    script.style.height = '300px';
-    script.textContent = '{"handle":"globalgamehall","arch":"js","styles":{"a":"000099","b":100,"c":"FFFFFF","d":"FFFFFF","k":"000099","l":"000099","m":"000099","n":"FFFFFF","p":"10","q":"000099","r":100,"pos":"br","cv":1,"cvfnt":"Calibri, Candara, Segoe, \'Segoe UI\', Optima, Arial, sans-serif, sans-serif","cvfntsz":"20px","cvfntw":"bold","cvbg":"000099","cvw":202,"cvh":45}}';
-    chatContainer.appendChild(script);
-}
 const toggleChatBtn = document.getElementById('toggleChatBtn');
   if (toggleChatBtn && toggleChatBtn.tagName === 'A') {
       toggleChatBtn.setAttribute('href', 'javascript:void(0)');
@@ -5624,7 +6478,6 @@ const toggleChatBtn = document.getElementById('toggleChatBtn');
       const chatContainer = document.getElementById('chatContainer');
       if (chatContainer) {
           const isHidden = (chatContainer.style.display === 'none' || chatContainer.style.display === '');
-          ensureChatEmbed();
           chatContainer.style.display = 'flex';
           chatContainer.style.visibility = 'visible';
           chatContainer.style.opacity = '1';
@@ -5641,7 +6494,6 @@ const toggleChatBtn = document.getElementById('toggleChatBtn');
           fallback.className = 'chat-container';
           fallback.style.cssText = 'display:flex; position:fixed; bottom:20px; right:20px; width:380px; max-height:600px; background:rgba(15,15,25,0.95); backdrop-filter:blur(20px); border-radius:16px; border:1px solid rgba(255,215,0,0.2); z-index:20000; box-shadow:0 10px 40px rgba(0,0,0,0.5); flex-direction:column; visibility:visible; opacity:1;';
           document.body.appendChild(fallback);
-          ensureChatEmbed();
       }
   });
   
@@ -8150,17 +9002,17 @@ if (profileStatus) {
   const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
   const leaderboardContent = document.getElementById('leaderboardContent');
   const leaderboardTabs = document.querySelectorAll('.leaderboardTab');
-  let currentLeaderboardTab = 'chatters';
+  let currentLeaderboardTab = 'active';
   
   leaderboardBtn?.addEventListener('click', () => {
       if (!requireProfileForOnlineFeature('Leaderboard', () => {
           leaderboardModal.style.display = 'flex';
-          loadLeaderboardBackend('chatters');
+          loadLeaderboardBackend('active');
       })) {
           return;
       }
       leaderboardModal.style.display = 'flex';
-      loadLeaderboardBackend('chatters');
+      loadLeaderboardBackend('active');
   });
   
   closeLeaderboardBtn?.addEventListener('click', () => {
@@ -8185,45 +9037,15 @@ if (profileStatus) {
   });
   
   function loadLeaderboard(type) {
-      if(!db || !leaderboardContent) return;
+      if(!leaderboardContent) return;
       
       leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Loading...</p>';
       
-      if(type === 'chatters') {
-          // Load only recent messages (last 500) instead of all for better performance
-          // Don't load all profiles - use avatar data from messages instead
-          db.ref('chat').limitToLast(500).once('value').then(chatSnap => {
-              const messages = chatSnap.val() || {};
-              const userCounts = {};
-              const userProfiles = {}; // Store profile data for each user
-              
-              // Count messages and get profiles from messages (no need to load all profiles)
-              Object.values(messages).forEach(msg => {
-                  if(msg && msg.user) {
-                      userCounts[msg.user] = (userCounts[msg.user] || 0) + 1;
-                      if(msg.avatar || msg.avatarImage) {
-                          userProfiles[msg.user] = {
-                              avatar: msg.avatar || '👤',
-                              avatarImage: msg.avatarImage || null
-                          };
-                      }
-                  }
-              });
-              
-              const sorted = Object.entries(userCounts).sort((a,b) => b[1] - a[1]).slice(0, 10);
-              displayLeaderboard(sorted.map(([user, count], i) => ({
-                  rank: i + 1,
-                  name: user,
-                  value: count,
-                  label: 'messages',
-                  avatar: userProfiles[user]?.avatar || '👤',
-                  avatarImage: userProfiles[user]?.avatarImage || null
-              })));
-          }).catch(err => {
-              console.error('Error loading leaderboard:', err);
-              leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading leaderboard.</p>';
-          });
-      } else if(type === 'active') {
+      if(type === 'active') {
+          if(!db) {
+              leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Active leaderboard requires a database connection.</p>';
+              return;
+          }
           // Load only online users, then load profiles for top 10 only
           db.ref('online').once('value').then(onlineSnap => {
               const online = onlineSnap.val() || {};
@@ -11778,6 +12600,23 @@ function generateAccurateDescription(game = {}) {
     return `${title} is a ${descriptor} game where you ${mechanic}. ${secondary}`;
 }
 
+const GAME_PLACEHOLDER_IMAGE = '/images/logoshs.png';
+function getSafeImageUrl(game = {}) {
+    const fallback = GAME_PLACEHOLDER_IMAGE;
+    try {
+        const candidate = (game && (game.image || game.thumbnail || game.thumb || '')) || '';
+        const raw = String(candidate).trim();
+        if (!raw) return fallback;
+        if (raw.startsWith('data:') || raw.startsWith('blob:')) return raw;
+        if (raw.includes('images.weserv.nl/?url=')) return raw;
+        const normalized = raw.startsWith('http') ? raw : `https://${raw.replace(/^\/+/, '')}`;
+        const hostless = normalized.replace(/^https?:\/\//i, '');
+        return `https://images.weserv.nl/?url=${encodeURIComponent(hostless)}&output=webp`;
+    } catch (e) {
+        return fallback;
+    }
+}
+
 function normalizeGameData(game = {}) {
     if (!game) return game;
     const tags = normalizeGameTags(game);
@@ -11785,7 +12624,8 @@ function normalizeGameData(game = {}) {
     if (isGenericDescription(description)) {
         description = generateAccurateDescription({ ...game, tags });
     }
-    return { ...game, tags, description };
+    const image = getSafeImageUrl(game);
+    return { ...game, tags, description, image };
 }
 
 function ensureAccurateDescriptions(games = []) {
@@ -12146,12 +12986,12 @@ gameSites = ensureAccurateDescriptions([
           return createBigGameCubeHTML(site, index, gameKey, ratingData);
       }).join('');
       
-      // Helper function to convert title to filename
-      function titleToFilename(title) {
-          return title.toLowerCase()
-              .replace(/[^a-z0-9]+/g, '-')
-              .replace(/^-|-$/g, '');
-      }
+        // Helper function to convert title to filename
+        function titleToFilename(title) {
+            return title.toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '');
+        }
       
       // Helper function to get correct games path based on current location
       function getGamesPath(filename) {
@@ -12159,17 +12999,15 @@ gameSites = ensureAccurateDescriptions([
           return isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
       }
 
-      // Add click handlers - navigate to individual game pages
-      container.querySelectorAll('.big-game-cube').forEach(cube => {
-          cube.addEventListener('click', (e) => {
-              const filename = cube.getAttribute('data-filename');
-              if (filename) {
-                  // Navigate to the individual game page (about:blank tab)
-                  openGameInBlank(getGamesPath(filename));
-              }
-          });
-      });
-  }
+        // Add click handlers - navigate to individual game pages
+        container.querySelectorAll('.big-game-cube').forEach(cube => {
+            cube.addEventListener('click', (e) => {
+                const embed = cube.getAttribute('data-embed');
+                const title = cube.getAttribute('data-title') || 'Game';
+                openGamePageOrInline(embed, title);
+            });
+        });
+    }
   
   function renderGamesGrid(filteredGames = null, resetPagination = false) {
       const gamesGrid = document.getElementById('gamesGrid');
@@ -12288,25 +13126,23 @@ gameSites = ensureAccurateDescriptions([
           return isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
       }
       
-      // Add click handlers - navigate to individual game pages
-      gamesGrid.querySelectorAll('.big-game-cube').forEach(cube => {
-          cube.addEventListener('click', (e) => {
-              // Don't navigate if dragging
-              if (cube.classList.contains('dragging')) {
-                  return;
-              }
-              // Navigate to game page
-              const embed = cube.getAttribute('data-embed');
-              const title = cube.getAttribute('data-title');
-              const filename = cube.getAttribute('data-filename');
-              if (title && title.toLowerCase().includes('clash royale')) {
-                  alert('You need to make or log into a Clash Royale account before playing.');
-              }
-              
-              // Navigate to the individual game page
-              openGameInBlank(getGamesPath(filename));
-          });
-      });
+        // Add click handlers - navigate to individual game pages
+        gamesGrid.querySelectorAll('.big-game-cube').forEach(cube => {
+            cube.addEventListener('click', (e) => {
+                // Don't navigate if dragging
+                if (cube.classList.contains('dragging')) {
+                    return;
+                }
+                // Navigate to game page
+                const embed = cube.getAttribute('data-embed');
+                const title = cube.getAttribute('data-title');
+                if (title && title.toLowerCase().includes('clash royale')) {
+                    alert('You need to make or log into a Clash Royale account before playing.');
+                }
+                
+                openGamePageOrInline(embed, title || 'Game');
+            });
+        });
       
       // Add rating click handlers
       gamesGrid.querySelectorAll('.game-cube-stars .fa-star').forEach(star => {
@@ -12981,7 +13817,7 @@ gameSites = ensureAccurateDescriptions([
               if (filename) {
                   const isInPagesFolder = window.location.pathname.includes('/pages/');
                   const gamesPath = isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
-                  openGameInBlank(gamesPath);
+                  window.location.href = gamesPath;
               }
           });
       });
@@ -13064,7 +13900,7 @@ gameSites = ensureAccurateDescriptions([
                               if (filename) {
                                   const isInPagesFolder = window.location.pathname.includes('/pages/');
                                   const gamesPath = isInPagesFolder ? `../games/${filename}` : `games/${filename}`;
-                                  openGameInBlank(gamesPath);
+                                  window.location.href = gamesPath;
                               }
                           });
                       });
@@ -14414,13 +15250,71 @@ gameSites = ensureAccurateDescriptions([
           setTimeout(() => {
               iframeContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }, 100);
-      }, 100);
-  }
-  
-  // Handle URL parameters on page load and browser navigation
-  function handleUrlParameters() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const gameSlug = urlParams.get('game');
+        }, 100);
+    }
+    
+    // Load a game inline on the homepage; if no iframe exists, bounce to index with game param
+    function resolveGamePageUrl(embed, title) {
+        const pagePath = getGamePagePathFromTitle(title);
+        if (pagePath) {
+            try {
+                return new URL(pagePath, window.location.href).href;
+            } catch (_) {
+                return pagePath;
+            }
+        }
+        if (embed) {
+            try {
+                const embeddedUrl = new URL(embed, window.location.href);
+                if (/\/game-[a-z0-9-]+\.html$/i.test(embeddedUrl.pathname || '')) {
+                    return embeddedUrl.href;
+                }
+            } catch (_) {
+                // ignore
+            }
+        }
+        return null;
+    }
+
+    function openGamePageOrInline(embed, title) {
+        const targetUrl = resolveGamePageUrl(embed, title);
+        if (targetUrl) {
+            window.location.href = targetUrl;
+            return;
+        }
+        openGameInline(embed, title);
+    }
+
+    function openGameInline(embed, title) {
+        if (!embed) return;
+        // If the embed itself is a game detail page, navigate directly so full page loads
+        try {
+            const embeddedUrl = new URL(embed, window.location.href);
+            const isGameHtml = /\/game-[a-z0-9-]+\.html$/i.test(embeddedUrl.pathname || '');
+            if (isGameHtml) {
+                window.location.href = embeddedUrl.href;
+                return;
+            }
+        } catch (_) {
+            // if URL parsing fails, fall back to inline behavior
+        }
+        const slug = titleToSlug(title || 'game');
+        const iframeContainer = document.getElementById('iframeContainer');
+        if (!iframeContainer) {
+            const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+            window.location.href = `${basePath}index.html?game=${encodeURIComponent(slug)}`;
+            return;
+        }
+        const basePath = window.location.pathname.split('?')[0];
+        const newUrl = `${basePath}?game=${encodeURIComponent(slug)}`;
+        window.history.pushState({ game: slug }, '', newUrl);
+        loadGameSite(embed, title || 'Game');
+    }
+    
+    // Handle URL parameters on page load and browser navigation
+    function handleUrlParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameSlug = urlParams.get('game');
       const openModal = urlParams.get('open');
       
       if (gameSlug && typeof gameSites !== 'undefined' && gameSites.length > 0) {
@@ -14740,48 +15634,6 @@ gameSites = ensureAccurateDescriptions([
               window.debugDropdown();
           }
       }, 1000);
-      
-      // Chat button in navigation
-      const navChatBtn = document.getElementById('navChatBtn');
-      if (navChatBtn) {
-          navChatBtn.addEventListener('click', () => {
-              const chatEmbedModal = document.getElementById('chatEmbedModal');
-              if (chatEmbedModal) {
-                  chatEmbedModal.style.display = 'flex';
-                  chatEmbedModal.setAttribute('aria-hidden', 'false');
-              }
-          });
-      }
-
-
-      // Side panel chat button
-      const sidePanelChatMovedBtn = document.getElementById('sidePanelChatMovedBtn');
-      if (sidePanelChatMovedBtn) {
-          sidePanelChatMovedBtn.addEventListener('click', () => {
-              const chatEmbedModal = document.getElementById('chatEmbedModal');
-              if (chatEmbedModal) {
-                  chatEmbedModal.style.display = 'flex';
-                  chatEmbedModal.setAttribute('aria-hidden', 'false');
-              }
-          });
-      }
-
-      // Close chat embed modal
-      const closeChatEmbedBtn = document.getElementById('closeChatEmbedBtn');
-      const chatEmbedModal = document.getElementById('chatEmbedModal');
-      if (closeChatEmbedBtn && chatEmbedModal) {
-          closeChatEmbedBtn.addEventListener('click', () => {
-              chatEmbedModal.style.display = 'none';
-              chatEmbedModal.setAttribute('aria-hidden', 'true');
-          });
-          // Close on background click
-          chatEmbedModal.addEventListener('click', (e) => {
-              if (e.target === chatEmbedModal) {
-                  chatEmbedModal.style.display = 'none';
-                  chatEmbedModal.setAttribute('aria-hidden', 'true');
-              }
-          });
-      }
       
       // Navigation collapse/expand button
       const navCollapseBtn = document.getElementById('navCollapseBtn');
@@ -15134,7 +15986,6 @@ gameSites = ensureAccurateDescriptions([
           
           // Connect side panel buttons to their functionality - works on all pages
           const sidePanelDrawingBtn = document.getElementById('sidePanelDrawingBtn');
-          const sidePanelChatBtn = document.getElementById('sidePanelChatBtn');
           const sidePanelProfileBtn = document.getElementById('sidePanelProfileBtn');
           const sidePanelLeaderboardBtn = document.getElementById('sidePanelLeaderboardBtn');
           const sidePanelFriendsBtn = document.getElementById('sidePanelFriendsBtn');
@@ -15175,10 +16026,9 @@ gameSites = ensureAccurateDescriptions([
               return '../'.repeat(depth) + 'index.html';
           }
           
-          // Helper function to attach drawing/chat button handlers
+          // Helper function to attach sidebar button handlers
           function attachSidebarButtonHandlers() {
               const sidePanelDrawingBtn = document.getElementById('sidePanelDrawingBtn');
-              const sidePanelChatBtn = document.getElementById('sidePanelChatBtn');
               const sidePanelThemeBtn = document.getElementById('sidePanelThemeBtn');
               const sidePanelStatsBtn = document.getElementById('sidePanelStatsBtn');
               const sidePanelAchievementsBtn = document.getElementById('sidePanelAchievementsBtn');
@@ -15197,39 +16047,6 @@ gameSites = ensureAccurateDescriptions([
                   });
               }
               
-              // Chat button handler (sidebar opens chat embed directly)
-              if (sidePanelChatBtn && !sidePanelChatBtn.hasAttribute('data-handler-attached')) {
-                  sidePanelChatBtn.setAttribute('data-handler-attached', 'true');
-                  if (sidePanelChatBtn.tagName === 'A') {
-                  sidePanelChatBtn.setAttribute('href', 'javascript:void(0)');
-              } else if (sidePanelChatBtn.tagName === 'BUTTON') {
-                  sidePanelChatBtn.setAttribute('type', 'button');
-              }
-              sidePanelChatBtn.addEventListener('click', (e) => {
-                  if (e && typeof e.preventDefault === 'function') e.preventDefault();
-                  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-                  e.preventDefault();
-                  alert('Chat has moved to the bottom right corner of the screen.');
-
-                  // Open chat in-place on any page
-                  let chatContainer = document.getElementById('chatContainer');
-                  if (!chatContainer) {
-                      // Minimal fallback container if not injected yet
-                      chatContainer = document.createElement('div');
-                      chatContainer.id = 'chatContainer';
-                      chatContainer.className = 'chat-container';
-                      chatContainer.style.cssText = 'display:none; position:fixed; bottom:20px; right:20px; width:380px; max-height:600px; background:rgba(15,15,25,0.95); backdrop-filter:blur(20px); border-radius:16px; border:1px solid rgba(255,215,0,0.2); z-index:15000; box-shadow:0 10px 40px rgba(0,0,0,0.5); flex-direction:column;';
-                      chatContainer.innerHTML = '<div style=\"padding:12px; color:#ffd700; font-weight:600;\">Chat</div><div id=\"chatMessages\" style=\"flex:1; min-height:200px;\"></div><div style=\"padding:12px;\"><input id=\"chatInput\" type=\"text\" style=\"width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,215,0,0.3); background:rgba(255,255,255,0.05); color:#fff;\" placeholder=\"Type a message...\"></div>';
-                      document.body.appendChild(chatContainer);
-                  }
-                  ensureChatEmbed();
-                  chatContainer.style.display = 'flex';
-                  chatContainer.style.visibility = 'visible';
-                  chatContainer.style.opacity = '1';
-                  chatContainer.style.pointerEvents = 'auto';
-              });
-          }
-
               // Theme toggle
               if (sidePanelThemeBtn && !sidePanelThemeBtn.hasAttribute('data-handler-attached')) {
                   sidePanelThemeBtn.setAttribute('data-handler-attached', 'true');
@@ -15270,9 +16087,7 @@ gameSites = ensureAccurateDescriptions([
           // Also check periodically for dynamically injected buttons (for game pages, blog pages)
           const checkInterval = setInterval(() => {
               const drawingBtn = document.getElementById('sidePanelDrawingBtn');
-              const chatBtn = document.getElementById('sidePanelChatBtn');
-              if ((drawingBtn && !drawingBtn.hasAttribute('data-handler-attached')) ||
-                  (chatBtn && !chatBtn.hasAttribute('data-handler-attached'))) {
+              if (drawingBtn && !drawingBtn.hasAttribute('data-handler-attached')) {
                   attachSidebarButtonHandlers();
               }
           }, 500);
@@ -15317,14 +16132,14 @@ gameSites = ensureAccurateDescriptions([
           //             if (!requireProfileForOnlineFeature('Leaderboard', () => {
           //                 leaderboardModal.style.display = 'flex';
           //                   if (typeof loadLeaderboardBackend === 'function') {
-          //                       loadLeaderboardBackend('chatters');
+          //                       loadLeaderboardBackend('active');
           //                   }
           //             })) {
           //                 return;
           //             }
           //             leaderboardModal.style.display = 'flex';
           //           if (typeof loadLeaderboardBackend === 'function') {
-          //               loadLeaderboardBackend('chatters');
+          //               loadLeaderboardBackend('active');
           //           }
           //         } else {
           //             // Fallback: try to click leaderboard button
@@ -15441,9 +16256,6 @@ gameSites = ensureAccurateDescriptions([
               document.body.insertAdjacentHTML('beforeend', chatContainerHTML);
           }
 
-          // Ensure chat embed is loaded on subpages (e.g., all-games)
-          ensureChatEmbed();
-          
           // Inject profile modal if missing - use FULL structure that matches index.html
           if (!document.getElementById('profileModal')) {
               const profileModalHTML = `
@@ -15548,8 +16360,7 @@ gameSites = ensureAccurateDescriptions([
                               <button id="closeLeaderboardBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
                           </div>
                           <div style="display:flex; gap:10px; margin-bottom:20px;">
-                              <button class="leaderboardTab" data-tab="chatters" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Top Chatters</button>
-                              <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Most Active</button>
+                              <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Most Active</button>
                               <button class="leaderboardTab" data-tab="achievements" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Achievements</button>
                               <button class="leaderboardTab" data-tab="stats" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Daily/Weekly</button>
                           </div>

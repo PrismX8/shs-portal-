@@ -1428,8 +1428,7 @@ header small {
       <button id="closeLeaderboardBtn" style="border:none; background:rgba(255,215,0,0.1); color:#FFD700; font-size:20px; cursor:pointer; width:38px; height:38px; border-radius:12px; transition:all 0.3s ease; border:1px solid rgba(255,215,0,0.2);">&times;</button>
     </div>
     <div style="display:flex; gap:10px; margin-bottom:20px;">
-      <button class="leaderboardTab" data-tab="chatters" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Top Chatters</button>
-      <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Most Active</button>
+      <button class="leaderboardTab" data-tab="active" style="flex:1; padding:10px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:8px; color:#FFD700; cursor:pointer;">Most Active</button>
       <button class="leaderboardTab" data-tab="achievements" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Achievements</button>
       <button class="leaderboardTab" data-tab="stats" style="flex:1; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,215,0,0.2); border-radius:8px; color:rgba(255,255,255,0.7); cursor:pointer;">Daily/Weekly</button>
     </div>
@@ -3953,11 +3952,11 @@ const leaderboardModal = document.getElementById('leaderboardModal');
 const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
 const leaderboardContent = document.getElementById('leaderboardContent');
 const leaderboardTabs = document.querySelectorAll('.leaderboardTab');
-let currentLeaderboardTab = 'chatters';
+let currentLeaderboardTab = 'active';
 
 leaderboardBtn?.addEventListener('click', () => {
     leaderboardModal.style.display = 'flex';
-    loadLeaderboard('chatters');
+    loadLeaderboard('active');
 });
 
 closeLeaderboardBtn?.addEventListener('click', () => {
@@ -3982,58 +3981,15 @@ leaderboardTabs.forEach(tab => {
 });
 
 function loadLeaderboard(type) {
-    if(!db || !leaderboardContent) return;
+    if(!leaderboardContent) return;
 
-    leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,255,255,0.5);">Loading...</p>';
+    leaderboardContent.innerHTML = '<p style=\"text-align:center; color:rgba(255,255,255,0.5);\">Loading...</p>';
 
-    if(type === 'chatters') {
-        // Load only recent messages (last 500) instead of all for better performance
-        Promise.all([
-            db.ref('chat').limitToLast(500).once('value'),
-            db.ref('profiles').once('value')
-        ]).then(([chatSnap, profilesSnap]) => {
-            const messages = chatSnap.val() || {};
-            const profiles = profilesSnap.val() || {};
-            const userCounts = {};
-            const userProfiles = {}; // Store profile data for each user
-
-            // Count messages and get profiles from messages
-            Object.values(messages).forEach(msg => {
-                if(msg && msg.user) {
-                    userCounts[msg.user] = (userCounts[msg.user] || 0) + 1;
-                    if(msg.avatar || msg.avatarImage) {
-                        userProfiles[msg.user] = {
-                            avatar: msg.avatar || '👤',
-                            avatarImage: msg.avatarImage || null
-                        };
-                    }
-                }
-            });
-
-            // Get profiles from profiles collection
-            Object.values(profiles).forEach(profile => {
-                if(profile && profile.username && !userProfiles[profile.username]) {
-                    userProfiles[profile.username] = {
-                        avatar: profile.avatar || '👤',
-                        avatarImage: profile.avatarImage || null
-                    };
-                }
-            });
-
-            const sorted = Object.entries(userCounts).sort((a,b) => b[1] - a[1]).slice(0, 10);
-            displayLeaderboard(sorted.map(([user, count], i) => ({
-                rank: i + 1,
-                name: user,
-                value: count,
-                label: 'messages',
-                avatar: userProfiles[user]?.avatar || '👤',
-                avatarImage: userProfiles[user]?.avatarImage || null
-            })));
-        }).catch(err => {
-            console.error('Error loading leaderboard:', err);
-            leaderboardContent.innerHTML = '<p style="text-align:center; color:rgba(255,0,0,0.7);">Error loading leaderboard.</p>';
-        });
-    } else if(type === 'active') {
+    if(type === 'active') {
+        if(!db) {
+            leaderboardContent.innerHTML = '<p style=\"text-align:center; color:rgba(255,255,255,0.5);\">Active leaderboard requires a database connection.</p>';
+            return;
+        }
         // Load both in parallel for faster loading
         Promise.all([
             db.ref('online').once('value'),

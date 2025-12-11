@@ -2,6 +2,22 @@
 <html lang="en">
 <head>
     <script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "uh0lyeydcq");</script><meta charset="UTF-8">
+    <script>
+        // Always open this page as a full page, not inside the homepage iframe
+        (function enforceTopWindow() {
+            try {
+                if (window.top !== window) {
+                    const ref = document.referrer ? new URL(document.referrer) : null;
+                    // Only break out if we're being framed by the same site (homepage inline loader)
+                    if (!ref || ref.hostname === window.location.hostname) {
+                        window.top.location = window.location.href;
+                    }
+                }
+            } catch (e) {
+                // If same-origin check fails, do nothing
+            }
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Play Yokai Dungeon - Premium gaming experience with fullscreen gameplay, ratings, and user reviews.">
     <meta name="keywords" content="Yokai Dungeon, online games, browser games">
@@ -631,9 +647,6 @@
             <button class="premium-fullscreen-btn" id="fullscreenBtn">
                 <i class="fas fa-expand"></i> Play Fullscreen
             </button>
-            <button class="premium-fullscreen-btn" id="refreshBtn" style="background: rgba(0, 123, 255, 0.2); border-color: rgba(0, 123, 255, 0.4); color: #00d4ff;">
-                <i class="fas fa-refresh"></i> Refresh Game
-            </button>
             <div class="premium-game-description">
                 <h2 class="premium-game-description-title">About Yokai Dungeon</h2>
                 <div class="premium-game-description-body">
@@ -735,7 +748,7 @@
         function getDb() {
             if (typeof db !== 'undefined' && db !== null) {
                 return db;
-            }           return null;
+            }            return null;
         }
         // Fullscreen functionality - target the container div, not the iframe
         function initFullscreen() {
@@ -969,12 +982,6 @@
                 }
             });
         });
-        // Refresh game embed
-        document.getElementById('refreshBtn').addEventListener('click', () => {
-            const iframe = document.getElementById('gameEmbed');
-            iframe.src = iframe.src; // Reload the iframe
-        });
-
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('gameTitle').textContent = gameTitle;
@@ -989,7 +996,6 @@
     </script>
 </body>
 </html>
-
 
 
 
