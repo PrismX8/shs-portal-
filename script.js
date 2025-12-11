@@ -1126,6 +1126,7 @@ let emojiPaletteLoaded = false;
       } catch (err) {
           console.error('Failed to load chat history:', err);
           setGlobalChatStatus('Failed to load chat history.', true);
+          suppressChatToast = false;
       }
       suppressChatToast = false;
       chatHistoryBootstrapped = true;
@@ -1244,9 +1245,17 @@ let emojiPaletteLoaded = false;
       globalChatUnread = 0;
       updateChatBadge();
   });
+
+  document.addEventListener('DOMContentLoaded', () => {
+      // Initialize chat backend early so live messages/typing arrive even before chat is opened
+      ensureChatToast();
+      ensureChatBadge();
+      initGlobalChatClient();
+  });
   closeGlobalChat?.addEventListener('click', () => {
       if (globalChatPanel) globalChatPanel.style.display = 'none';
       if (globalChatModal) globalChatModal.style.display = 'none';
+       globalChatIsOpen = false;
       setGlobalChatStatus('');
       // Reset unread badge when closing
       globalChatUnread = 0;
