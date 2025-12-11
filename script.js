@@ -527,6 +527,7 @@ let emojiPaletteLoaded = false;
   let chatHistoryBootstrapped = false;
   let globalChatUnread = 0;
   let globalChatBadge = null;
+  let globalChatIsOpen = false;
 
   function ensureChatToast() {
       if (!chatToastStyleInjected) {
@@ -577,12 +578,16 @@ let emojiPaletteLoaded = false;
           chatToastEl.innerHTML = `<span class="toast-user"></span><span class="toast-text"></span>`;
           document.body.appendChild(chatToastEl);
       }
-      if (globalChatToggle && !globalChatBadge) {
-          globalChatBadge = document.createElement('div');
-          globalChatBadge.className = 'chat-unread-badge';
-          globalChatToggle.style.position = 'relative';
-          globalChatToggle.appendChild(globalChatBadge);
-      }
+  }
+
+  function ensureChatBadge() {
+      if (globalChatBadge) return;
+      if (!globalChatToggle) return;
+      ensureChatToast();
+      globalChatBadge = document.createElement('div');
+      globalChatBadge.className = 'chat-unread-badge';
+      globalChatToggle.style.position = 'relative';
+      globalChatToggle.appendChild(globalChatBadge);
   }
 
   function showChatToast(user, text) {
@@ -599,6 +604,7 @@ let emojiPaletteLoaded = false;
   }
 
   function updateChatBadge() {
+      ensureChatBadge();
       if (!globalChatBadge) return;
       if (globalChatUnread > 0) {
           globalChatBadge.textContent = Math.min(globalChatUnread, 99);
@@ -1207,9 +1213,11 @@ let emojiPaletteLoaded = false;
 
   function openGlobalChatPanel() {
       if (!globalChatPanel) return;
+      ensureChatBadge();
       if (globalChatModal) globalChatModal.style.display = 'flex';
       globalChatPanel.style.display = 'flex';
-      setGlobalChatStatus('');
+      globalChatIsOpen = true;
+      setGlobalChatStatus('Loading chat...');
       applyChatTheme(activeChatTheme);
       initGlobalChatClient();
       autoDetectState();
@@ -1217,11 +1225,17 @@ let emojiPaletteLoaded = false;
       setTimeout(scrollGlobalChatToBottom, 200);
   }
 
-  globalChatToggle?.addEventListener('click', () => {
-      const isOpen = globalChatPanel && globalChatPanel.style.display === 'flex';
+  globalChatToggle?.addEventListener('click', (e) => {
+      if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+      }
+      ensureChatBadge();
+      const isOpen = globalChatIsOpen && globalChatPanel && globalChatPanel.style.display === 'flex';
       if (isOpen) {
           if (globalChatPanel) globalChatPanel.style.display = 'none';
           if (globalChatModal) globalChatModal.style.display = 'none';
+          globalChatIsOpen = false;
           setGlobalChatStatus('');
       } else {
           openGlobalChatPanel();
