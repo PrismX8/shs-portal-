@@ -520,6 +520,112 @@ let emojiPaletteLoaded = false;
   let supabaseChatClient = null;
   let globalChatSubscription = null;
   const messageNodeIndex = new Map();
+  let chatToastTimer = null;
+  let chatToastEl = null;
+  let chatToastStyleInjected = false;
+  let suppressChatToast = true; // prevent toasts during history bootstrap
+  let chatHistoryBootstrapped = false;
+  let globalChatUnread = 0;
+  let globalChatBadge = null;
+
+  function ensureChatToast() {
+      if (!chatToastStyleInjected) {
+          const style = document.createElement('style');
+          style.textContent = `
+              .chat-toast {
+                  position: fixed;
+                  top: 16px;
+                  left: 16px;
+                  z-index: 100000;
+                  background: rgba(16, 18, 30, 0.9);
+                  border: 1px solid rgba(255, 255, 255, 0.15);
+                  color: #f8fafc;
+                  padding: 10px 14px;
+                  border-radius: 10px;
+                  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                  font-size: 13px;
+                  font-weight: 700;
+                  max-width: min(320px, 90vw);
+                  display: none;
+              }
+              .chat-toast .toast-user { color: #a5b4fc; margin-right: 6px; }
+              .chat-toast .toast-text { color: #e2e8f0; }
+              .chat-unread-badge {
+                  position: absolute;
+                  top: -6px;
+                  left: -6px;
+                  background: #ef4444;
+                  color: #fff;
+                  border-radius: 999px;
+                  width: 22px;
+                  height: 22px;
+                  display: none;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 12px;
+                  font-weight: 800;
+                  box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+                  z-index: 9999;
+              }
+          `;
+          document.head.appendChild(style);
+          chatToastStyleInjected = true;
+      }
+      if (!chatToastEl) {
+          chatToastEl = document.createElement('div');
+          chatToastEl.className = 'chat-toast';
+          chatToastEl.innerHTML = `<span class="toast-user"></span><span class="toast-text"></span>`;
+          document.body.appendChild(chatToastEl);
+      }
+      if (globalChatToggle && !globalChatBadge) {
+          globalChatBadge = document.createElement('div');
+          globalChatBadge.className = 'chat-unread-badge';
+          globalChatToggle.style.position = 'relative';
+          globalChatToggle.appendChild(globalChatBadge);
+      }
+  }
+
+  function showChatToast(user, text) {
+      ensureChatToast();
+      const userEl = chatToastEl.querySelector('.toast-user');
+      const textEl = chatToastEl.querySelector('.toast-text');
+      userEl.textContent = user ? `${user}:` : 'Message:';
+      textEl.textContent = text || '';
+      chatToastEl.style.display = 'inline-flex';
+      if (chatToastTimer) clearTimeout(chatToastTimer);
+      chatToastTimer = setTimeout(() => {
+          if (chatToastEl) chatToastEl.style.display = 'none';
+      }, 1500);
+  }
+
+  function updateChatBadge() {
+      if (!globalChatBadge) return;
+      if (globalChatUnread > 0) {
+          globalChatBadge.textContent = Math.min(globalChatUnread, 99);
+          globalChatBadge.style.display = 'flex';
+      } else {
+          globalChatBadge.style.display = 'none';
+      }
+  }
+
+  function formatChatTime(ts) {
+      try {
+          const d = new Date(ts || Date.now());
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (_) {
+          return '';
+      }
+  }
+
+  function getMessageTimestamp(msg) {
+      try {
+          const raw = msg.created_at || msg.createdAt || msg.timestamp;
+          if (!raw) return Date.now();
+          return new Date(raw).getTime();
+      } catch (_) {
+          return Date.now();
+      }
+  }
 
   function appendGlobalChatMessage(msg) {
       if (!globalChatBox || !msg) return;
@@ -568,11 +674,33 @@ let emojiPaletteLoaded = false;
           bubble.appendChild(stateLine);
       }
       const user = document.createElement('strong');
-      user.textContent = `${msg.user_id || 'User'}: `;
+      const userName = msg.user_id || 'User';
+      user.textContent = `${userName}: `;
       const text = document.createElement('span');
       text.textContent = displayText;
+      const time = document.createElement('span');
+      time.textContent = formatChatTime(msg.created_at || msg.createdAt || msg.timestamp || Date.now());
+      time.style.fontSize = '11px';
+      time.style.color = 'rgba(255,255,255,0.55)';
+      time.style.marginLeft = '8px';
+
       bubble.appendChild(user);
       bubble.appendChild(text);
+      bubble.appendChild(time);
+
+      // Show lightweight toast in upper-left for any new message
+      const toastSnippet = (displayText || '').slice(0, 80);
+      const msgTime = getMessageTimestamp(msg);
+      const isRecent = Date.now() - msgTime < 5 * 60 * 1000; // 5 minutes freshness window
+      if (!suppressChatToast && isRecent) {
+          showChatToast(userName, toastSnippet);
+      }
+
+      // Increment unread count for new incoming messages when chat panel is closed
+      if (globalChatPanel && globalChatPanel.style.display !== 'flex' && !isMine) {
+          globalChatUnread += 1;
+          updateChatBadge();
+      }
 
       const actionsRow = document.createElement('div');
       actionsRow.style.display = 'flex';
@@ -966,7 +1094,10 @@ let emojiPaletteLoaded = false;
               .from('messages')
               .select('*')
               .order('created_at', { ascending: true });
+          suppressChatToast = true;
           (data || []).forEach(appendGlobalChatMessage);
+          suppressChatToast = false;
+          chatHistoryBootstrapped = true;
           // Load reactions shared across users
           const { data: reactionData } = await supabaseChatClient
               .from('reactions')
@@ -990,6 +1121,8 @@ let emojiPaletteLoaded = false;
           console.error('Failed to load chat history:', err);
           setGlobalChatStatus('Failed to load chat history.', true);
       }
+      suppressChatToast = false;
+      chatHistoryBootstrapped = true;
       globalChatSubscription = supabaseChatClient
           .channel('global-chat')
           .on(
@@ -1084,11 +1217,26 @@ let emojiPaletteLoaded = false;
       setTimeout(scrollGlobalChatToBottom, 200);
   }
 
-  globalChatToggle?.addEventListener('click', openGlobalChatPanel);
+  globalChatToggle?.addEventListener('click', () => {
+      const isOpen = globalChatPanel && globalChatPanel.style.display === 'flex';
+      if (isOpen) {
+          if (globalChatPanel) globalChatPanel.style.display = 'none';
+          if (globalChatModal) globalChatModal.style.display = 'none';
+          setGlobalChatStatus('');
+      } else {
+          openGlobalChatPanel();
+      }
+      // Reset unread badge whenever the button is used
+      globalChatUnread = 0;
+      updateChatBadge();
+  });
   closeGlobalChat?.addEventListener('click', () => {
       if (globalChatPanel) globalChatPanel.style.display = 'none';
       if (globalChatModal) globalChatModal.style.display = 'none';
       setGlobalChatStatus('');
+      // Reset unread badge when closing
+      globalChatUnread = 0;
+      updateChatBadge();
   });
   globalChatSendBtn?.addEventListener('click', sendGlobalChatMessage);
   globalChatInput?.addEventListener('keydown', (e) => {
@@ -1139,7 +1287,6 @@ let chatBackendReady = false;
 let backendChatListenersAttached = false;
 let chatPollInterval = null;
 const backendChatMessageIds = new Set();
-let chatHistoryBootstrapped = false;
 let counterPollInterval = null;
 
   function createVisitorId() {
