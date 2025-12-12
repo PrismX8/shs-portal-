@@ -528,6 +528,8 @@ let emojiPaletteLoaded = false;
   let globalChatUnread = 0;
   let globalChatBadge = null;
   let globalChatIsOpen = false;
+  let supabaseChatPollInterval = null;
+  let lastSupabaseChatTs = 0;
 
   function ensureChatToast() {
       if (!chatToastStyleInjected) {
@@ -537,13 +539,13 @@ let emojiPaletteLoaded = false;
                   position: fixed;
                   top: 16px;
                   left: 16px;
-                  z-index: 100000;
-                  background: rgba(16, 18, 30, 0.9);
+                  z-index: 1000000;
+                  background: rgba(16, 18, 30, 0.95);
                   border: 1px solid rgba(255, 255, 255, 0.15);
                   color: #f8fafc;
                   padding: 10px 14px;
                   border-radius: 10px;
-                  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                  box-shadow: 0 16px 40px rgba(0,0,0,0.55), 0 0 0 2px rgba(99,102,241,0.35);
                   font-size: 13px;
                   font-weight: 700;
                   max-width: min(320px, 90vw);
@@ -580,15 +582,30 @@ let emojiPaletteLoaded = false;
       }
   }
 
-  function ensureChatBadge() {
-      if (globalChatBadge) return;
-      if (!globalChatToggle) return;
-      ensureChatToast();
-      globalChatBadge = document.createElement('div');
-      globalChatBadge.className = 'chat-unread-badge';
-      globalChatToggle.style.position = 'relative';
-      globalChatToggle.appendChild(globalChatBadge);
-  }
+function ensureChatBadge() {
+    if (!globalChatBadge) {
+        ensureChatToast();
+        globalChatBadge = document.createElement('div');
+        globalChatBadge.className = 'chat-unread-badge';
+        globalChatBadge.textContent = ' ';
+    }
+    const target = document.getElementById('globalChatToggle') || globalChatToggle;
+    if (!target) return;
+    if (globalChatBadge.parentElement !== target) {
+        globalChatBadge.remove();
+        if (getComputedStyle(target).position === 'static') {
+            target.style.position = 'relative';
+        }
+        target.appendChild(globalChatBadge);
+    }
+    // Seed empty badge (hidden until count > 0)
+    globalChatBadge.style.visibility = 'visible';
+    globalChatBadge.style.opacity = '1';
+    globalChatBadge.style.transform = 'scale(1)';
+    globalChatBadge.style.color = '#fff';
+    globalChatBadge.style.fontWeight = '800';
+    globalChatBadge.style.fontSize = '12px';
+}
 
   function showChatToast(user, text) {
       ensureChatToast();
@@ -600,18 +617,16 @@ let emojiPaletteLoaded = false;
       if (chatToastTimer) clearTimeout(chatToastTimer);
       chatToastTimer = setTimeout(() => {
           if (chatToastEl) chatToastEl.style.display = 'none';
-      }, 1500);
+      }, 3000);
   }
 
   function updateChatBadge() {
       ensureChatBadge();
       if (!globalChatBadge) return;
-      if (globalChatUnread > 0) {
-          globalChatBadge.textContent = Math.min(globalChatUnread, 99);
-          globalChatBadge.style.display = 'flex';
-      } else {
-          globalChatBadge.style.display = 'none';
-      }
+      globalChatBadge.textContent = globalChatUnread > 0 ? Math.min(globalChatUnread, 99) : ' ';
+      globalChatBadge.style.visibility = 'visible';
+      globalChatBadge.style.opacity = '1';
+      globalChatBadge.style.transform = 'scale(1)';
   }
 
   function formatChatTime(ts) {
@@ -697,16 +712,17 @@ let emojiPaletteLoaded = false;
       // Show lightweight toast in upper-left for any new message
       const toastSnippet = (displayText || '').slice(0, 80);
       const msgTime = getMessageTimestamp(msg);
+      lastSupabaseChatTs = Math.max(lastSupabaseChatTs, msgTime);
       const isRecent = Date.now() - msgTime < 5 * 60 * 1000; // 5 minutes freshness window
       if (!suppressChatToast && isRecent) {
           showChatToast(userName, toastSnippet);
       }
 
       // Increment unread count for new incoming messages when chat panel is closed
-      if (globalChatPanel && globalChatPanel.style.display !== 'flex' && !isMine) {
-          globalChatUnread += 1;
-          updateChatBadge();
-      }
+  if (globalChatPanel && globalChatPanel.style.display !== 'flex' && !isMine) {
+      globalChatUnread += 1;
+      updateChatBadge();
+  }
 
       const actionsRow = document.createElement('div');
       actionsRow.style.display = 'flex';
@@ -1086,22 +1102,28 @@ let emojiPaletteLoaded = false;
   });
 
   async function initGlobalChatClient() {
-      if (!window.supabase) {
-          console.warn('Supabase client not loaded for global chat.');
-          setGlobalChatStatus('Supabase client failed to load.', true);
-          return null;
-      }
-      if (supabaseChatClient) return supabaseChatClient;
-      const supabaseUrl = 'https://bvhigzazfcsoqeivnmxe.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2aGlnemF6ZmNzb3FlaXZubXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0MDcyMzgsImV4cCI6MjA4MDk4MzIzOH0.KbWzdBWkcUsprvm8F7iQYXdokxtSKlUVXcChsiQPQSU';
-      supabaseChatClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-      try {
-          const { data } = await supabaseChatClient
+    if (!window.supabase) {
+        console.warn('Supabase client not loaded for global chat.');
+        setGlobalChatStatus('Supabase client failed to load.', true);
+        return null;
+    }
+    if (supabaseChatClient) {
+        ensureChatRealtime();
+        return supabaseChatClient;
+    }
+    const supabaseUrl = 'https://bvhigzazfcsoqeivnmxe.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2aGlnemF6ZmNzb3FlaXZubXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0MDcyMzgsImV4cCI6MjA4MDk4MzIzOH0.KbWzdBWkcUsprvm8F7iQYXdokxtSKlUVXcChsiQPQSU';
+    supabaseChatClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    try {
+        const { data } = await supabaseChatClient
               .from('messages')
               .select('*')
               .order('created_at', { ascending: true });
           suppressChatToast = true;
-          (data || []).forEach(appendGlobalChatMessage);
+          (data || []).forEach(m => {
+              appendGlobalChatMessage(m);
+              lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
+          });
           suppressChatToast = false;
           chatHistoryBootstrapped = true;
           // Load reactions shared across users
@@ -1112,76 +1134,97 @@ let emojiPaletteLoaded = false;
               if (!reactionsById[r.message_id]) reactionsById[r.message_id] = [];
               reactionsById[r.message_id].push(r.emoji);
           });
-          reactionListNodes.forEach((node, msgId) => renderReactions(msgId, node));
-          // Load current typing users (recent)
-          const cutoff = new Date(Date.now() - 8000).toISOString();
-          const { data: typingData } = await supabaseChatClient
-              .from('typing')
+        reactionListNodes.forEach((node, msgId) => renderReactions(msgId, node));
+        // Load current typing users (recent)
+        const cutoff = new Date(Date.now() - 8000).toISOString();
+        const { data: typingData } = await supabaseChatClient
+            .from('typing')
               .select('user_id, typing, updated_at')
               .gt('updated_at', cutoff);
           (typingData || []).forEach(t => {
               if (t.typing && t.user_id) typingUsers.set(t.user_id, new Date(t.updated_at).getTime());
-          });
-          updateTypingIndicator();
-      } catch (err) {
-          console.error('Failed to load chat history:', err);
-          setGlobalChatStatus('Failed to load chat history.', true);
-          suppressChatToast = false;
-      }
-      suppressChatToast = false;
-      chatHistoryBootstrapped = true;
-      globalChatSubscription = supabaseChatClient
-          .channel('global-chat')
-          .on(
-              'postgres_changes',
-              { event: 'INSERT', schema: 'public', table: 'messages' },
-              payload => appendGlobalChatMessage(payload.new)
-          )
-          .on(
-              'postgres_changes',
-              { event: 'DELETE', schema: 'public', table: 'messages' },
-              payload => {
-                  if (payload.old?.id) {
-                      removeMessageById(payload.old.id);
+        });
+        updateTypingIndicator();
+    } catch (err) {
+        console.error('Failed to load chat history:', err);
+        setGlobalChatStatus('Failed to load chat history.', true);
+        suppressChatToast = false;
+    }
+    suppressChatToast = false;
+    chatHistoryBootstrapped = true;
+    ensureChatRealtime();
+    // Start lightweight polling as a backup in case realtime misses events
+    if (!supabaseChatPollInterval) {
+        supabaseChatPollInterval = setInterval(pollSupabaseChat, 8000);
+    }
+    return supabaseChatClient;
+  }
+
+  function ensureChatRealtime() {
+      if (!supabaseChatClient) return;
+      const needsNew = !globalChatSubscription || globalChatSubscription.state !== 'subscribed';
+      if (needsNew) {
+          globalChatSubscription = supabaseChatClient
+              .channel('global-chat')
+              .on(
+                  'postgres_changes',
+                  { event: 'INSERT', schema: 'public', table: 'messages' },
+                  payload => appendGlobalChatMessage(payload.new)
+              )
+              .on(
+                  'postgres_changes',
+                  { event: 'DELETE', schema: 'public', table: 'messages' },
+                  payload => {
+                      if (payload.old?.id) {
+                          removeMessageById(payload.old.id);
+                      }
                   }
-              }
-          )
-          .on(
-              'postgres_changes',
-              { event: 'INSERT', schema: 'public', table: 'reactions' },
-              payload => {
-                  const r = payload.new;
-                  if (!r || !r.message_id || !r.emoji) return;
-                  if (!reactionsById[r.message_id]) reactionsById[r.message_id] = [];
-                  reactionsById[r.message_id].push(r.emoji);
-                  const node = reactionListNodes.get(r.message_id);
-                  if (node) renderReactions(r.message_id, node);
-              }
-          )
-          .on(
-              'postgres_changes',
-              { event: 'UPDATE', schema: 'public', table: 'typing' },
-              payload => {
-                  const t = payload.new;
-                  if (!t || !t.user_id) return;
-                  typingUsers.set(t.user_id, Date.now());
-                  if (!t.typing) typingUsers.delete(t.user_id);
-                  updateTypingIndicator();
-              }
-          )
-          .on(
-              'postgres_changes',
-              { event: 'INSERT', schema: 'public', table: 'typing' },
-              payload => {
-                  const t = payload.new;
-                  if (!t || !t.user_id) return;
-                  typingUsers.set(t.user_id, Date.now());
-                  if (!t.typing) typingUsers.delete(t.user_id);
-                  updateTypingIndicator();
-              }
-          )
-          .subscribe();
-      return supabaseChatClient;
+              )
+              .on(
+                  'postgres_changes',
+                  { event: 'INSERT', schema: 'public', table: 'reactions' },
+                  payload => {
+                      const r = payload.new;
+                      if (!r || !r.message_id || !r.emoji) return;
+                      if (!reactionsById[r.message_id]) reactionsById[r.message_id] = [];
+                      reactionsById[r.message_id].push(r.emoji);
+                      const node = reactionListNodes.get(r.message_id);
+                      if (node) renderReactions(r.message_id, node);
+                  }
+              )
+              .on(
+                  'postgres_changes',
+                  { event: 'UPDATE', schema: 'public', table: 'typing' },
+                  payload => {
+                      const t = payload.new;
+                      if (!t || !t.user_id) return;
+                      typingUsers.set(t.user_id, Date.now());
+                      if (!t.typing) typingUsers.delete(t.user_id);
+                      updateTypingIndicator();
+                  }
+              )
+              .on(
+                  'postgres_changes',
+                  { event: 'INSERT', schema: 'public', table: 'typing' },
+                  payload => {
+                      const t = payload.new;
+                      if (!t || !t.user_id) return;
+                      typingUsers.set(t.user_id, Date.now());
+                      if (!t.typing) typingUsers.delete(t.user_id);
+                      updateTypingIndicator();
+                  }
+              )
+              .subscribe((status) => {
+                  if (status === 'SUBSCRIBED') {
+                      console.log('Global chat realtime connected');
+                  }
+                  if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                      console.warn('Global chat realtime closed; retrying in 5s');
+                      globalChatSubscription = null;
+                      setTimeout(ensureChatRealtime, 5000);
+                  }
+              });
+      }
   }
 
   async function sendGlobalChatMessage() {
@@ -1219,6 +1262,9 @@ let emojiPaletteLoaded = false;
       globalChatPanel.style.display = 'flex';
       globalChatIsOpen = true;
       setGlobalChatStatus('Loading chat...');
+      // Reset unread since user opened the panel
+      globalChatUnread = 0;
+      updateChatBadge();
       applyChatTheme(activeChatTheme);
       initGlobalChatClient();
       autoDetectState();
@@ -1250,8 +1296,197 @@ let emojiPaletteLoaded = false;
       // Initialize chat backend early so live messages/typing arrive even before chat is opened
       ensureChatToast();
       ensureChatBadge();
+      updateChatBadge();
       initGlobalChatClient();
   });
+
+  // ----- Blog hero injection -----
+  function initBlogHero() {
+      const main = document.querySelector('.blog-main');
+      if (!main) return;
+      const hero = document.createElement('section');
+      hero.className = 'blog-hero';
+      const h1 = document.querySelector('.blog-container h1') || document.querySelector('h1');
+      const title = (h1 && h1.textContent.trim()) || document.title || 'Nebulo Blog';
+      const metaDesc = document.querySelector('meta[name=\"description\"]')?.getAttribute('content') || 'Tips, guides, and game picks from Nebulo.';
+      const date = new Date();
+      const dateStr = date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+      hero.innerHTML = `
+        <div class="blog-hero__title"><i class="fas fa-pen-nib"></i><span>${title}</span></div>
+        <p class="blog-hero__subtitle">${metaDesc}</p>
+        <div class="blog-hero__meta">
+          <span class="blog-hero__pill"><i class="fas fa-calendar-alt"></i> ${dateStr}</span>
+          <span class="blog-hero__pill"><i class="fas fa-newspaper"></i> Nebulo Blog</span>
+        </div>
+      `;
+      main.parentNode.insertBefore(hero, main);
+  }
+  document.addEventListener('DOMContentLoaded', initBlogHero);
+
+  // Replace blog headers with the main site header for consistency
+  function replaceBlogHeader() {
+      const isBlogPage = document.querySelector('.blog-main');
+      if (!isBlogPage) return;
+      const existingHeader = document.querySelector('header');
+      if (existingHeader) existingHeader.remove();
+      const existingNav = document.querySelector('nav.main-navigation');
+      if (existingNav) existingNav.remove();
+
+      const headerHTML = `
+      <header class="site-header">
+        <div class="site-header__inner">
+          <a href="../index.html" class="brand-link">
+            <span class="brand-logo">
+              <img src="../images/logoshs.png" alt="Nebulo Logo">
+            </span>
+            <span class="brand-copy">
+              <span class="brand-name">Nebulo</span>
+              <span class="brand-tagline">Play | Create | Connect</span>
+            </span>
+          </a>
+          <div class="header-actions primary-actions">
+            <button id="globalChatToggle" class="header-action-btn is-primary" title="Open global chat">
+              <i class="fas fa-comments"></i>
+              <span>Global Chat</span>
+            </button>
+            <button id="openDrawingBtnHeader" class="header-action-btn" title="Drawing">
+              <i class="fas fa-paint-brush"></i>
+              <span>Drawing</span>
+            </button>
+            <a href="../blog/blog.html" class="header-action-btn" title="Blog">
+              <i class="fas fa-newspaper"></i>
+              <span>Blog</span>
+            </a>
+            <button id="requestGamesBtn" class="header-action-btn is-ghost" title="Request Games or Apps">
+              <i class="fas fa-plus"></i>
+              <span>Request Games/Apps</span>
+            </button>
+          </div>
+          <div class="header-actions quick-actions">
+            <button id="youtubeWatcherBtn" class="header-icon-btn youtube-watcher-btn" title="Watch YouTube unblocked" aria-label="Watch YouTube unblocked">
+              <i class="fab fa-youtube"></i>
+            </button>
+            <button id="movieBtn" class="header-icon-btn header-thumb-btn" title="Open Movies" aria-label="Open Movies">
+              <img src="https://frogiesarcade.win/stuff/apps/movies.jpg" alt="Movies">
+            </button>
+            <button id="discordBtn" class="header-icon-btn discord" title="Join Discord" aria-label="Join Discord">
+              <i class="fab fa-discord"></i>
+            </button>
+          </div>
+        </div>
+      </header>`;
+
+      const navHTML = `
+      <nav class="main-navigation">
+        <div class="nav-container">
+          <a href="../index.html" class="nav-item nav-home">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+          </a>
+          <div class="nav-item nav-dropdown">
+            <a href="../pages/all-games.html" class="nav-link">
+              <i class="fas fa-gamepad"></i>
+              <span>All Games</span>
+            </a>
+            <div class="nav-dropdown-content">
+              <a href="../pages/all-games.html?category=action">
+                <i class="fas fa-fist-raised"></i> Action Games
+              </a>
+              <a href="../pages/all-games.html?category=racing">
+                <i class="fas fa-car"></i> Racing Games
+              </a>
+              <a href="../pages/all-games.html?category=puzzle">
+                <i class="fas fa-puzzle-piece"></i> Puzzle Games
+              </a>
+              <a href="../pages/games-new.html">
+                <i class="fas fa-star"></i> New Games
+              </a>
+            </div>
+          </div>
+          <button id="openDrawingBtn" class="nav-item nav-button nav-featured">
+            <i class="fas fa-paint-brush"></i>
+            <span>Drawing</span>
+          </button>
+          <a href="../pages/movies.html" class="nav-item">
+            <i class="fas fa-film"></i>
+            <span>Movies</span>
+          </a>
+          <a href="../pages/contact-us.html" class="nav-item">
+            <i class="fas fa-envelope"></i>
+            <span>Contact</span>
+          </a>
+        </div>
+      </nav>`;
+
+      const frag = document.createElement('div');
+      frag.innerHTML = headerHTML + navHTML;
+      const first = document.body.firstChild;
+      document.body.insertBefore(frag.firstElementChild, first);
+      document.body.insertBefore(frag.lastElementChild, document.body.children[1]);
+  }
+  document.addEventListener('DOMContentLoaded', replaceBlogHeader);
+
+  // Global footer injection for all pages
+  function resolvePathPrefix() {
+      const segments = (window.location.pathname || '').split('/').filter(Boolean);
+      if (segments.length <= 1) return '';
+      return '../'.repeat(segments.length - 1);
+  }
+
+  function buildFooterMarkup(prefix, year) {
+      return `
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="${prefix}images/logoshs.png" alt="Nebulo logo">
+        <div>
+          <h4>Nebulo</h4>
+          <p>Unblocked-friendly hub for games, chat, and tools that still feel fast on low-end devices.</p>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Explore</h5>
+        <ul>
+          <li><a href="${prefix}index.html"><i class="fas fa-home"></i>Home</a></li>
+          <li><a href="${prefix}index.html#gamesGridContainer"><i class="fas fa-gamepad"></i>Play Games</a></li>
+          <li><a href="${prefix}pages/recently-played.html"><i class="fas fa-history"></i>Recently Played</a></li>
+          <li><a href="${prefix}blog/blog.html"><i class="fas fa-newspaper"></i>Blog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Support</h5>
+        <ul>
+          <li><a href="${prefix}pages/contact-us.html"><i class="fas fa-envelope"></i>Contact</a></li>
+          <li><a href="${prefix}pages/about-us.html"><i class="fas fa-users"></i>About Nebulo</a></li>
+          <li><a href="${prefix}ads.txt"><i class="fas fa-ad"></i>Ads.txt</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Legal</h5>
+        <ul>
+          <li><a href="${prefix}pages/privacy-policy.html"><i class="fas fa-shield-alt"></i>Privacy Policy</a></li>
+          <li><a href="${prefix}pages/privacy-policy.html#data-rights"><i class="fas fa-user-shield"></i>Your Choices</a></li>
+          <li><a href="${prefix}pages/contact-us.html"><i class="fas fa-question-circle"></i>Report an Issue</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; ${year} Nebulo. Built for quick sessions anywhere.</p>
+    </div>`;
+  }
+
+  function injectGlobalFooter() {
+      const prefix = resolvePathPrefix();
+      const footerYear = new Date().getFullYear();
+      let footer = document.querySelector('.site-footer');
+      if (!footer) {
+          footer = document.createElement('footer');
+          footer.className = 'site-footer';
+          document.body.appendChild(footer);
+      }
+      footer.classList.add('visible');
+      footer.innerHTML = buildFooterMarkup(prefix, footerYear);
+  }
+  document.addEventListener('DOMContentLoaded', injectGlobalFooter);
   closeGlobalChat?.addEventListener('click', () => {
       if (globalChatPanel) globalChatPanel.style.display = 'none';
       if (globalChatModal) globalChatModal.style.display = 'none';
@@ -5653,10 +5888,18 @@ async function ensureBackendChatConnection() {
                           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
                           (navigator.connection && navigator.connection.effectiveType && ['slow-2g', '2g'].includes(navigator.connection.effectiveType)) ||
                           (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  // Treat existing lite-mode flag as a strong performance hint
-  const isLiteMode = document.documentElement.classList.contains('lite-mode') || isLowPerformance;
-  // Apply lag-free mode only on low-end devices
-  const enableLagFree = isLowPerformance;
+  let storedLitePref = null;
+  try { storedLitePref = localStorage.getItem('liteModePreference'); } catch (_) {}
+  const userPrefersLite = storedLitePref === 'on';
+  const userPrefersFull = storedLitePref === 'off';
+  // Treat existing lite-mode flag as a strong performance hint, but allow user override
+  const baseLiteMode = document.documentElement.classList.contains('lite-mode') || isLowPerformance;
+  const isLiteMode = userPrefersFull ? false : (userPrefersLite || baseLiteMode);
+  if (userPrefersFull) {
+      document.documentElement.classList.remove('lite-mode');
+  }
+  // Apply lag-free mode only on low-end devices (respect manual opt-out)
+  const enableLagFree = userPrefersFull ? false : (isLowPerformance || isLiteMode);
   if (enableLagFree) {
       document.documentElement.classList.add('lag-free');
   }
@@ -5664,7 +5907,7 @@ async function ensureBackendChatConnection() {
   // Flag to pause heavy home visuals (background, snow, etc.)
   // Used for non‑home pages and when a fullscreen game is active.
   window.homeVisualsPaused = false;
-  window.disableHeavyHomeVisuals = enableLagFree; // kill heavy visuals only on low-end (keep snow)
+  window.disableHeavyHomeVisuals = enableLagFree; // kill heavy visuals on low-end/lite devices (keep snow)
   
   // Helper: detect if we are on the main homepage
   function isHomePage() {
@@ -5677,15 +5920,13 @@ async function ensureBackendChatConnection() {
       window.homeVisualsPaused = true;
   }
   function resumeHomeVisuals() {
-      // Only resume animations on the real homepage,
-      // and never resume heavy visuals while in lite-mode.
+      // Only resume animations on the real homepage; heavy visuals stay off in lite-mode via flags.
       if (!isHomePage()) return;
-      if (document.documentElement.classList.contains('lite-mode')) return;
       window.homeVisualsPaused = false;
   }
   
   // Apply reduced animations for low-performance devices
-  if (isLowPerformance) {
+  if (isLowPerformance && !userPrefersFull) {
       document.documentElement.style.setProperty('--animation-duration', '0.1s');
       document.documentElement.classList.add('low-performance-mode');
       // Also enable lite-mode visuals everywhere for low-performance devices
@@ -5693,7 +5934,7 @@ async function ensureBackendChatConnection() {
   }
   
   // In lite-mode or on non-home pages, pause home-only visuals to reduce lag
-  if (!isHomePage() || isLiteMode) {
+  if (!isHomePage()) {
       pauseHomeVisuals();
   }
   const isTabVisible = () => !document.hidden;
@@ -6361,8 +6602,6 @@ async function ensureBackendChatConnection() {
   
   // ================= Christmas Snow Animation =================
   function initSnow() {
-        // In lite-mode, skip snow animation entirely to save CPU/GPU
-        if (document.documentElement.classList.contains('lite-mode')) return;
       const snowCanvas = document.getElementById('snowCanvas');
       if (!snowCanvas) return;
       
@@ -15480,14 +15719,36 @@ gameSites = ensureAccurateDescriptions([
         return null;
     }
 
-    function openGamePageOrInline(embed, title) {
-        const targetUrl = resolveGamePageUrl(embed, title);
-        if (targetUrl) {
-            window.location.href = targetUrl;
-            return;
-        }
-        openGameInline(embed, title);
-    }
+  function openGamePageOrInline(embed, title) {
+      const targetUrl = resolveGamePageUrl(embed, title);
+      if (targetUrl) {
+          window.location.href = targetUrl;
+          return;
+      }
+      openGameInline(embed, title);
+  }
+
+  async function pollSupabaseChat() {
+      if (!supabaseChatClient) return;
+      try {
+          const since = lastSupabaseChatTs
+              ? new Date(lastSupabaseChatTs + 1).toISOString()
+              : new Date(Date.now() - 5 * 60 * 1000).toISOString();
+          const { data, error } = await supabaseChatClient
+              .from('messages')
+              .select('*')
+              .gt('created_at', since)
+              .order('created_at', { ascending: true })
+              .limit(50);
+          if (error) {
+              console.warn('Chat poll error:', error);
+              return;
+          }
+          (data || []).forEach(m => appendGlobalChatMessage(m));
+      } catch (err) {
+          console.warn('Chat poll failed:', err);
+      }
+  }
 
     function openGameInline(embed, title) {
         if (!embed) return;
@@ -16234,11 +16495,44 @@ gameSites = ensureAccurateDescriptions([
           function attachSidebarButtonHandlers() {
               const sidePanelDrawingBtn = document.getElementById('sidePanelDrawingBtn');
               const sidePanelThemeBtn = document.getElementById('sidePanelThemeBtn');
+              const sidePanelLiteToggleBtn = document.getElementById('sidePanelLiteToggleBtn');
               const sidePanelStatsBtn = document.getElementById('sidePanelStatsBtn');
               const sidePanelAchievementsBtn = document.getElementById('sidePanelAchievementsBtn');
               const themeBtn = document.getElementById('themeBtn');
               const statsBtn = document.getElementById('statsBtn');
               const achievementsBtn = document.getElementById('achievementsBtn');
+              
+              // Lite mode toggle (persist preference and reload to fully apply)
+              const updateLiteToggleUI = () => {
+                  if (!sidePanelLiteToggleBtn) return;
+                  const enabled = document.documentElement.classList.contains('lite-mode');
+                  const label = sidePanelLiteToggleBtn.querySelector('.category-panel-label-container');
+                  if (label) {
+                      label.textContent = `Lite Mode: ${enabled ? 'On' : 'Off'}`;
+                  }
+                  sidePanelLiteToggleBtn.classList.toggle('active', enabled);
+              };
+              const setLiteMode = (enabled) => {
+                  if (enabled) {
+                      document.documentElement.classList.add('lite-mode');
+                  } else {
+                      document.documentElement.classList.remove('lite-mode');
+                  }
+                  try {
+                      localStorage.setItem('liteModePreference', enabled ? 'on' : 'off');
+                  } catch (_) {}
+                  updateLiteToggleUI();
+                  setTimeout(() => window.location.reload(), 50);
+              };
+              if (sidePanelLiteToggleBtn && !sidePanelLiteToggleBtn.hasAttribute('data-handler-attached')) {
+                  sidePanelLiteToggleBtn.setAttribute('data-handler-attached', 'true');
+                  sidePanelLiteToggleBtn.addEventListener('click', (e) => {
+                      e.preventDefault();
+                      const enabled = document.documentElement.classList.contains('lite-mode');
+                      setLiteMode(!enabled);
+                  });
+                  updateLiteToggleUI();
+              }
               
               // Drawing button handler
               if (sidePanelDrawingBtn && !sidePanelDrawingBtn.hasAttribute('data-handler-attached')) {

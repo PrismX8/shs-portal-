@@ -22,74 +22,91 @@
     </header>
 
     <main class="legal-page-content">
-        <p><strong>Last Updated: December 2024</strong></p>
+        <p><strong>Last Updated: December 2025</strong></p>
 
-        <h2>1. Information We Collect</h2>
-        <p>Nebulo ("we," "our," or "us") collects information to provide and improve our services:</p>
+        <h2>What We Collect</h2>
         <ul>
-            <li><strong>Profile Information:</strong> When you create a profile, we collect your username and optional profile picture.</li>
-            <li><strong>Usage Data:</strong> We track game clicks, visitor counts, and interaction with our features to improve user experience.</li>
-            <li><strong>Chat Messages:</strong> Messages you send in our community chat are stored to facilitate communication.</li>
-            <li><strong>Cookies and Local Storage:</strong> We use browser local storage to remember your preferences and profile information.</li>
+            <li><strong>Global chat & reactions:</strong> Messages, reactions, typing status, usernames, and optional bubble colors you post in global chat. These are stored in Supabase with timestamps and an optional state/region label.</li>
+            <li><strong>Location (optional):</strong> If you allow it, we request device location to show a general state/region tag in chat. If blocked, we may look up an approximate region via IP. Precise coordinates are not stored.</li>
+            <li><strong>Usage & performance data:</strong> Basic logs about popular games, feature clicks, visitor counts, and stability to keep the site fast on low-end devices.</li>
+            <li><strong>Ads & analytics:</strong> Google AdSense for ads (cookies/ad IDs), Microsoft Clarity for session analytics/diagnostics, plus visitor counters (OptiStats and FreeVisitorCounters).</li>
+            <li><strong>Local storage (stays on your device):</strong> Theme, chat name/color, chat theme, last detected state, recent/favorite games, unread counts, low-end mode preference, and other in-site settings.</li>
         </ul>
 
-        <h2>2. How We Use Your Information</h2>
+        <h2>How We Use It</h2>
         <ul>
-            <li>To provide and maintain our gaming platform</li>
-            <li>To enable social features like chat, friends, and leaderboards</li>
-            <li>To analyze usage patterns and improve our services</li>
-            <li>To display personalized content and recommendations</li>
+            <li>Deliver real-time chat, reactions, typing indicators, and game pages.</li>
+            <li>Remember your preferences and keep performance smooth.</li>
+            <li>Measure what content works (aggregated stats) and fund the site with ads.</li>
         </ul>
 
-        <h2>3. Third-Party Services</h2>
-        <p>We use the following third-party services:</p>
+        <h2>Cookies & Local Storage</h2>
+        <p>AdSense uses cookies for ads and personalization. We use localStorage for preferences and gameplay convenience; clearing your browser data removes it.</p>
+
+        <h2>Location Details</h2>
+        <p>Granting location is optional. If allowed, we keep only a broad label (state/region/country) for chat display. If denied, we may use an approximate region from IP.</p>
+
+        <h2>Sharing</h2>
+        <p>Data is shared only with the services listed above (Supabase for chat, AdSense for ads, Clarity/visitor counters for analytics). We do not sell personal data.</p>
+
+        <h2>Security & Retention</h2>
+        <p>Chat and settings data are secured via Supabase and HTTPS. Chat history and reactions remain while the feature exists. Local storage stays on your device until you clear it. Aggregated analytics/traffic data may be retained to track trends.</p>
+
+        <h2 id="data-rights">Your Choices & Rights</h2>
         <ul>
-            <li><strong>Google AdSense:</strong> We display advertisements through Google AdSense. Google may use cookies and similar technologies to show you relevant ads based on your browsing history. You can learn more about how Google uses data at <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a>.</li>
-            <li><strong>Firebase:</strong> We use Google Firebase for data storage and real-time features. Firebase's privacy practices are governed by Google's Privacy Policy.</li>
+            <li>Decline location prompts or revoke permission in your device/browser settings.</li>
+            <li>Clear site data/local storage to remove on-device preferences.</li>
+            <li>Use ad settings to manage AdSense personalization.</li>
+            <li>Ask us to remove specific chat messages you posted.</li>
         </ul>
 
-        <h2>4. Cookies and Tracking</h2>
-        <p>We use cookies and local storage to:</p>
-        <ul>
-            <li>Remember your profile and preferences</li>
-            <li>Track visitor statistics</li>
-            <li>Enable personalized features</li>
-        </ul>
-        <p>You can control cookies through your browser settings, though this may affect site functionality.</p>
+        <h2>Children's Privacy</h2>
+        <p>Nebulo is a general-audience site. Children should avoid sharing personal details in chat. If we learn that personal data from a child under 13 was shared, we will remove it.</p>
 
-        <h2>5. Data Security</h2>
-        <p>We implement reasonable security measures to protect your information. However, no method of transmission over the internet is 100% secure.</p>
+        <h2>Changes</h2>
+        <p>We will update this policy as features change. The "Last Updated" date shows the latest revision.</p>
 
-        <h2>6. Children's Privacy</h2>
-        <p>Our service is intended for users of all ages. We do not knowingly collect personal information from children under 13 without parental consent.</p>
-
-        <h2>7. Your Rights</h2>
-        <p>You have the right to:</p>
-        <ul>
-            <li>Access and update your profile information</li>
-            <li>Delete your account and associated data</li>
-            <li>Opt out of certain data collection through browser settings</li>
-        </ul>
-
-        <h2>8. Changes to This Policy</h2>
-        <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page.</p>
-
-        <h2>9. Contact Us</h2>
-        <p>If you have questions about this Privacy Policy, please contact us through our <a href="contact-us.html">Contact Us</a> page.</p>
+        <h2>Contact</h2>
+        <p>Questions? Reach us through the <a href="contact-us.html">Contact page</a>.</p>
     </main>
 
-    <footer class="site-footer">
-        <div class="footer-content">
-            <div class="footer-section">
+    <footer class="site-footer visible">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <img src="../images/logoshs.png" alt="Nebulo logo">
+                <div>
+                    <h4>Nebulo</h4>
+                    <p>Unblocked-friendly hub for games, chat, and tools that still feel fast on low-end devices.</p>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h5>Explore</h5>
                 <ul>
-                    <li><a href="privacy-policy.html" class="footer-link">Privacy Policy</a></li>
-                    <li><a href="about-us.html" class="footer-link">About Us</a></li>
-                    <li><a href="contact-us.html" class="footer-link">Contact Us</a></li>
+                    <li><a href="../index.html"><i class="fas fa-home"></i>Home</a></li>
+                    <li><a href="../index.html#gamesGridContainer"><i class="fas fa-gamepad"></i>Play Games</a></li>
+                    <li><a href="recently-played.html"><i class="fas fa-history"></i>Recently Played</a></li>
+                    <li><a href="../blog/blog.html"><i class="fas fa-newspaper"></i>Blog</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h5>Support</h5>
+                <ul>
+                    <li><a href="contact-us.html"><i class="fas fa-envelope"></i>Contact</a></li>
+                    <li><a href="about-us.html"><i class="fas fa-users"></i>About Nebulo</a></li>
+                    <li><a href="../ads.txt"><i class="fas fa-ad"></i>Ads.txt</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h5>Legal</h5>
+                <ul>
+                    <li><a href="privacy-policy.html"><i class="fas fa-shield-alt"></i>Privacy Policy</a></li>
+                    <li><a href="privacy-policy.html#data-rights"><i class="fas fa-user-shield"></i>Your Choices</a></li>
+                    <li><a href="contact-us.html"><i class="fas fa-question-circle"></i>Report an Issue</a></li>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 Nebulo. All rights reserved.</p>
+            <p>&copy; 2025 Nebulo. Built for quick sessions anywhere.</p>
         </div>
     </footer>
 </div>
