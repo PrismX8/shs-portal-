@@ -1115,12 +1115,15 @@ function ensureChatBadge() {
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2aGlnemF6ZmNzb3FlaXZubXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0MDcyMzgsImV4cCI6MjA4MDk4MzIzOH0.KbWzdBWkcUsprvm8F7iQYXdokxtSKlUVXcChsiQPQSU';
     supabaseChatClient = window.supabase.createClient(supabaseUrl, supabaseKey);
     try {
-        const { data } = await supabaseChatClient
+        const { data: messagesData } = await supabaseChatClient
               .from('messages')
               .select('*')
-              .order('created_at', { ascending: true });
+              // Load only the most recent 75 messages to keep startup light
+              .order('created_at', { ascending: false })
+              .limit(75);
           suppressChatToast = true;
-          (data || []).forEach(m => {
+          // Supabase returns newest first; render oldest-to-newest
+          (messagesData || []).reverse().forEach(m => {
               appendGlobalChatMessage(m);
               lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
           });
