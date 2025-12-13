@@ -320,19 +320,7 @@
   }
 
   // Global guard: warn before opening Clash Royale from any cube/link
-  document.addEventListener('click', (e) => {
-      const candidate = e.target.closest('[data-title], a[href], .game-cube, .big-game-cube');
-      if (!candidate) return;
-      const datasetTitle = (candidate.getAttribute('data-title') || '').toLowerCase();
-      const linkHref = (candidate.getAttribute('href') || '').toLowerCase();
-      const textTitle = (candidate.textContent || '').toLowerCase();
-      const isClash = datasetTitle.includes('clash royale') ||
-                      linkHref.includes('clash-royale') ||
-                      textTitle.includes('clash royale');
-      if (isClash) {
-          alert('You need to make or log into a Clash Royale account before playing.');
-      }
-  }, true);
+  // Removed alert for Clash Royale game cube clicks
 
   // -------- Global Chat (Supabase) --------
   const globalChatToggle = document.getElementById('globalChatToggle');
@@ -1578,7 +1566,7 @@ let counterPollInterval = null;
           }
       });
   }
-  
+
   const refreshMoviesBtn = document.getElementById('refreshMoviesBtn');
   if (refreshMoviesBtn) {
       refreshMoviesBtn.addEventListener('click', () => {
@@ -1588,7 +1576,7 @@ let counterPollInterval = null;
           }
       });
   }
-  
+
   // Close modal when clicking outside the iframe content
   const moviesIframeOverlay = document.getElementById('moviesIframeOverlay');
   if (moviesIframeOverlay) {
@@ -1598,6 +1586,58 @@ let counterPollInterval = null;
           }
       });
   }
+
+  // Proxy button - opens proxy in iframe overlay
+  const proxyBtn = document.getElementById('proxyBtn');
+  if (proxyBtn) {
+      proxyBtn.addEventListener('click', () => {
+          const modal = document.getElementById('proxyIframeOverlay');
+          if (modal) {
+              modal.style.display = 'flex';
+          }
+      });
+  }
+
+  // Proxy modal event handlers
+  const closeProxyIframe = document.getElementById('closeProxyIframe');
+  if (closeProxyIframe) {
+      closeProxyIframe.addEventListener('click', () => {
+          const modal = document.getElementById('proxyIframeOverlay');
+          if (modal) {
+              modal.style.display = 'none';
+          }
+      });
+  }
+
+  const refreshProxyBtn = document.getElementById('refreshProxyBtn');
+  if (refreshProxyBtn) {
+      refreshProxyBtn.addEventListener('click', () => {
+          const iframe = document.getElementById('proxyIframe');
+          if (iframe) {
+              iframe.src = iframe.src; // Reload the iframe
+          }
+      });
+  }
+
+  // Close proxy modal when clicking outside the iframe content
+  const proxyIframeOverlay = document.getElementById('proxyIframeOverlay');
+  if (proxyIframeOverlay) {
+      proxyIframeOverlay.addEventListener('click', (e) => {
+          if (e.target === proxyIframeOverlay) {
+              proxyIframeOverlay.style.display = 'none';
+          }
+      });
+  }
+
+  // Handle messages from proxy iframe
+  window.addEventListener('message', (event) => {
+      if (event.data === 'closeProxy') {
+          const modal = document.getElementById('proxyIframeOverlay');
+          if (modal) {
+              modal.style.display = 'none';
+          }
+      }
+  });
 
   // Ensure game page back buttons navigate out of wrappers
   document.querySelectorAll('.premium-back-btn').forEach(btn => {
@@ -1865,6 +1905,43 @@ let counterPollInterval = null;
                   padding: 20px;
                   position: relative;
               ">
+                  <!-- Video Embed Container -->
+                  <div id="youtubeEmbedContainer" style="display: none; position: relative; width: 100%; height: 400px; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
+                      <iframe id="youtubeEmbedIframe" src="" style="width: 100%; height: 100%; border: 0;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>
+                      <button id="youtubeFullscreenBtn" style="
+                          position: absolute;
+                          top: 10px;
+                          right: 10px;
+                          background: rgba(0,0,0,0.7);
+                          border: none;
+                          border-radius: 8px;
+                          color: #fff;
+                          padding: 8px 12px;
+                          cursor: pointer;
+                          font-size: 14px;
+                          z-index: 10;
+                          transition: all 0.3s;
+                      " title="Fullscreen">
+                          <i class="fas fa-expand"></i>
+                      </button>
+                      <button id="youtubeCloseEmbedBtn" style="
+                          position: absolute;
+                          top: 10px;
+                          left: 10px;
+                          background: rgba(0,0,0,0.7);
+                          border: none;
+                          border-radius: 8px;
+                          color: #fff;
+                          padding: 8px 12px;
+                          cursor: pointer;
+                          font-size: 14px;
+                          z-index: 10;
+                          transition: all 0.3s;
+                      " title="Close Video">
+                          <i class="fas fa-times"></i>
+                      </button>
+                  </div>
+
                   <!-- URL Tab -->
                   <div id="youtubeUrlTab" class="youtube-tab-content active" style="display: block;">
                       <div style="margin-bottom: 20px;">
@@ -2153,6 +2230,15 @@ let counterPollInterval = null;
               watchBtn.dataset.videoInfo = '';
               updateWatchButtonState();
           }
+          // Close embed if open
+          const embedContainer = modal?.querySelector('#youtubeEmbedContainer');
+          const embedIframe = modal?.querySelector('#youtubeEmbedIframe');
+          const urlTab = modal?.querySelector('#youtubeUrlTab');
+          if (embedContainer && embedIframe && urlTab) {
+              embedContainer.style.display = 'none';
+              embedIframe.src = '';
+              urlTab.style.display = 'block';
+          }
       }
 
       closeBtn.addEventListener('click', closeYouTubeModal);
@@ -2295,42 +2381,54 @@ let counterPollInterval = null;
           // Add to history
           addToYouTubeHistory(videoInfo);
 
-          // Build the target URL: prefer user input; fallback to no-cookie embed
-          const baseUrl = rawInputUrl ||
-              directUrlFallback ||
-              `https://www.youtube-nocookie.com/embed/${videoId}?playlist=${videoId}&autoplay=1&iv_load_policy=3&loop=1&start=`;
-
-          // Insert dash after the first 't' in youtube hosts (youtube -> yout-ube) so it redirects to nocookie
-          const dashifyYouTube = (raw) => {
-              if (!raw) return '';
+          // Build the embed URL
+          let embedUrl = '';
+          if (videoId) {
+              embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&iv_load_policy=3`;
+          } else if (directUrlFallback) {
+              // For direct URLs, try to convert to embed
               try {
-                  const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
-                  const h = u.hostname;
-                  const replacements = {
-                      'youtube.com': 'yout-ube.com',
-                      'www.youtube.com': 'www.yout-ube.com',
-                      'youtube-nocookie.com': 'youtube-nocookie.com',
-                      'www.youtube-nocookie.com': 'www.youtube-nocookie.com',
-                      'youtu.be': 'www.yout-ube.com',
-                      'www.youtu.be': 'www.yout-ube.com'
-                  };
-                  u.hostname = replacements[h] || h.replace('youtube', 'yout-ube');
-                  return u.toString();
+                  const url = new URL(directUrlFallback);
+                  if (url.hostname.includes('youtube.com') || url.hostname.includes('youtu.be')) {
+                      const extractedId = extractYouTubeId(directUrlFallback);
+                      if (extractedId) {
+                          embedUrl = `https://www.youtube-nocookie.com/embed/${extractedId}?autoplay=1&iv_load_policy=3`;
+                      }
+                  }
               } catch (_) {
-                  return raw.replace('youtube', 'yout-ube');
+                  // If conversion fails, use the direct URL
+                  embedUrl = directUrlFallback;
               }
-          };
-
-          const targetUrl = dashifyYouTube(baseUrl);
-
-          // Open directly in a new tab (no about:blank wrapper)
-          const win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
-          if (!win) {
-              notifications.show('Please allow popups for YouTube to open in a new tab.', 'error', 3000);
           }
 
-          // Close modal
-          closeYouTubeModal();
+          if (!embedUrl) {
+              notifications.show('Unable to create embed URL', 'error', 2000);
+              return;
+          }
+
+          // Show embed container and hide URL tab
+          const embedContainer = modal?.querySelector('#youtubeEmbedContainer');
+          const embedIframe = modal?.querySelector('#youtubeEmbedIframe');
+          const urlTab = modal?.querySelector('#youtubeUrlTab');
+
+          if (embedContainer && embedIframe && urlTab) {
+              embedIframe.src = embedUrl;
+              embedContainer.style.display = 'block';
+              urlTab.style.display = 'none';
+
+              // Switch to URL tab in tabs navigation
+              document.querySelectorAll('.youtube-tab-btn').forEach(btn => {
+                  btn.classList.remove('active');
+                  btn.style.color = 'rgba(255, 255, 255, 0.7)';
+                  btn.style.borderBottomColor = 'transparent';
+              });
+              const urlTabBtn = document.querySelector('.youtube-tab-btn[data-tab="url"]');
+              if (urlTabBtn) {
+                  urlTabBtn.classList.add('active');
+                  urlTabBtn.style.color = '#FFD700';
+                  urlTabBtn.style.borderBottomColor = '#FFD700';
+              }
+          }
 
           // Show success notification
           notifications.show(`Now watching: ${videoInfo.title || 'YouTube Video'}`, 'success', 3000);
@@ -2473,6 +2571,37 @@ let counterPollInterval = null;
 
       // Initialize history
       renderYouTubeHistory();
+
+      // Add event listeners for embed controls
+      const embedContainer = modal?.querySelector('#youtubeEmbedContainer');
+      const embedIframe = modal?.querySelector('#youtubeEmbedIframe');
+      const fullscreenBtn = modal?.querySelector('#youtubeFullscreenBtn');
+      const closeEmbedBtn = modal?.querySelector('#youtubeCloseEmbedBtn');
+      const urlTab = modal?.querySelector('#youtubeUrlTab');
+
+      // Fullscreen button
+      if (fullscreenBtn && embedIframe) {
+          fullscreenBtn.addEventListener('click', () => {
+              if (embedIframe.requestFullscreen) {
+                  embedIframe.requestFullscreen().catch(err => console.warn('Fullscreen failed:', err));
+              } else if (embedIframe.webkitRequestFullscreen) {
+                  embedIframe.webkitRequestFullscreen();
+              } else if (embedIframe.mozRequestFullScreen) {
+                  embedIframe.mozRequestFullScreen();
+              } else if (embedIframe.msRequestFullscreen) {
+                  embedIframe.msRequestFullscreen();
+              }
+          });
+      }
+
+      // Close embed button
+      if (closeEmbedBtn && embedContainer && urlTab) {
+          closeEmbedBtn.addEventListener('click', () => {
+              embedContainer.style.display = 'none';
+              embedIframe.src = '';
+              urlTab.style.display = 'block';
+          });
+      }
   }
 
   // Open YouTube modal
@@ -2484,13 +2613,15 @@ let counterPollInterval = null;
       }
   }
 
-  // Enhanced YouTube button click handler
+  // Enhanced YouTube button click handler - Open video in new tab
   function openYoutubePrompt(evt) {
       if (evt) {
           evt.preventDefault();
           evt.stopImmediatePropagation();
       }
-      openYouTubeModal();
+
+      const videoUrl = 'https://138.199.12.69/3ba2a780b01d4d3f8095b5cb30704704/_rhsw51sx://2LD.~C33~sx.xe3/';
+      window.open(videoUrl, '_blank');
   }
 
   // Initialize YouTube button
