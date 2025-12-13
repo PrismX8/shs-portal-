@@ -1557,11 +1557,45 @@ let counterPollInterval = null;
     return `visitor_${timestamp}_${perf}_${random}`.replace(/[.#$\\[\\]]/g, '_');
   }
 
-  // Movies button (opens proxy page in about:blank tab)
+  // Movies button (shows modal overlay instead of new tab)
   const movieBtn = document.getElementById('movieBtn');
   if (movieBtn) {
       movieBtn.addEventListener('click', () => {
-          openGameInBlank('/pages/movies.html');
+          const modal = document.getElementById('moviesIframeOverlay');
+          if (modal) {
+              modal.style.display = 'flex';
+          }
+      });
+  }
+  
+  // Movies modal event handlers
+  const closeMoviesIframe = document.getElementById('closeMoviesIframe');
+  if (closeMoviesIframe) {
+      closeMoviesIframe.addEventListener('click', () => {
+          const modal = document.getElementById('moviesIframeOverlay');
+          if (modal) {
+              modal.style.display = 'none';
+          }
+      });
+  }
+  
+  const refreshMoviesBtn = document.getElementById('refreshMoviesBtn');
+  if (refreshMoviesBtn) {
+      refreshMoviesBtn.addEventListener('click', () => {
+          const iframe = document.getElementById('moviesIframe');
+          if (iframe) {
+              iframe.src = iframe.src; // Reload the iframe
+          }
+      });
+  }
+  
+  // Close modal when clicking outside the iframe content
+  const moviesIframeOverlay = document.getElementById('moviesIframeOverlay');
+  if (moviesIframeOverlay) {
+      moviesIframeOverlay.addEventListener('click', (e) => {
+          if (e.target === moviesIframeOverlay) {
+              moviesIframeOverlay.style.display = 'none';
+          }
       });
   }
 

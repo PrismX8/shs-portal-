@@ -261,6 +261,25 @@
         <iframe id="drawingIframe" src="" style="border:0; width:100%; height:100%; display:block; background:#000;" allowfullscreen referrerpolicy="no-referrer"></iframe>
     </div>
 </div>
+<!-- Movies iframe overlay -->
+<div id="moviesIframeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:20000; align-items:center; justify-content:center; padding:20px;">
+    <div style="position:relative; width:min(1400px, 96%); height:min(90vh, 900px); background:rgba(10,10,20,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:16px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+        <div style="position:absolute; top:0; left:0; right:0; height:60px; background:linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03)); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; padding:0 20px; z-index:10;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="display:inline-flex; width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg, #00d1ff, #7c62ff); box-shadow:0 6px 14px rgba(0,0,0,0.3);"></span>
+                <div>
+                    <div style="font-size:16px; font-weight:700; color:#f3f6ff;">Movies Unblocked</div>
+                    <div style="font-size:12px; color:#9aa4b8;">Proxy Embed</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button id="refreshMoviesBtn" style="padding:8px 12px; border-radius:8px; border:1px solid rgba(0,123,255,0.4); background:rgba(0,123,255,0.2); color:#00d1ff; cursor:pointer; font-size:13px; font-weight:600;"><i class="fas fa-refresh"></i> Refresh</button>
+                <button id="closeMoviesIframe" style="border:none; background:rgba(255,255,255,0.1); color:#fff; width:36px; height:36px; border-radius:8px; cursor:pointer;">&times;</button>
+            </div>
+        </div>
+        <iframe id="moviesIframe" src="https://fmoviesto.ru/home" style="border:0; width:100%; height:100%; display:block; background:#000; margin-top:60px;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="no-referrer" sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation" loading="lazy"></iframe>
+    </div>
+</div>
 <!-- Visitor Counter -->
 <div id="globalVisitorCounter" class="visitor-counter-bar">
     <div class="visitor-counter-widget">
