@@ -3,21 +3,11 @@
 <head>
   <script src="/about-blank-wrapper.js" data-ab-wrapper="true"></script>
   <script type="text/javascript">
-    const clarityLiteBlock = (() => {
-        const ua = navigator.userAgent || '';
-        const lowMem = navigator.deviceMemory && navigator.deviceMemory <= 4;
-        const lowCpu = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
-        return ua.includes('CrOS') || lowMem || lowCpu;
-    })();
-    if (!clarityLiteBlock && window.location.hostname !== '127.0.0.1' && window.location.hostname !== 'localhost') {
-        (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "uh0lyeydcq");
-    } else {
-        console.info('Lite mode: skipping analytics loader.');
-    }
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "uklz62a91n");
   </script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
