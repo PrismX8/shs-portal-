@@ -367,6 +367,20 @@
 <script defer src="../script.js"></script>
 <script defer src="../adblocker.js"></script>
 <script>
+  // Chat Worker: chat-worker.ethan-owsiany.workers.dev
+  // Used for: chat history, snapshot endpoint, chat polling
+  // ⚠️ IMPORTANT: Chat uses ONLY polling (no WebSockets)
+  // WebSockets are disabled by default to prevent Durable Objects billing
+  window.CHAT_API_BASE = "https://chat-worker.ethan-owsiany.workers.dev";
+  
+  // For local development with wrangler dev:
+  // window.CHAT_API_BASE = "http://localhost:8787";
+  
+  console.log('✅ CHAT_API_BASE configured:', window.CHAT_API_BASE);
+  console.log('✅ Chat mode: POLLING ONLY (WebSockets disabled)');
+</script>
+
+<script>
   (() => {
     let chatOnlyStarted = false;
 
