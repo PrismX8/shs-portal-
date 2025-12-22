@@ -692,24 +692,9 @@
           reason: String(reason || ''),
           ts: Date.now()
       };
-      // Send via Worker WebSocket
-      if (chatWorkerWs && chatWorkerWs.readyState === WebSocket.OPEN) {
-          try {
-              chatWorkerWs.send(JSON.stringify({
-                  type: 'chat',
-                  name: globalChatUsername || 'User',
-                  text: '', // Empty text for moderation events
-                  payload: payload
-              }));
-              return true;
-          } catch (err) {
-              console.warn('Report send failed', err);
-              return false;
-          }
-      } else {
-          console.warn('Worker WebSocket not connected for voice report');
-          return false;
-      }
+      // ✅ Polling mode: Voice reports disabled (no WebSocket)
+      console.warn('Voice reports disabled in polling mode');
+      return false;
   }
 
   async function sendVoiceModAction(action, targetUserId, opts = {}) {
@@ -1268,6 +1253,12 @@
 
       if (voiceDiscoveryConnectPromise) return voiceDiscoveryWs;
       voiceDiscoveryConnectPromise = Promise.resolve().then(() => {
+          // ✅ Free-tier safe: Disable WebSockets to prevent Durable Objects burn
+          if (!window.ENABLE_VOICE_WS) {
+              console.warn("Voice WebSocket disabled (free-tier safe mode)");
+              return;
+          }
+          
           const url = buildVoiceDiscoveryUrl();
           const ws = new WebSocket(url);
           voiceDiscoveryWs = ws;
@@ -4377,6 +4368,10 @@ let lastChatCleanupTs = 0;
   let chatToastTimer = null;
   let chatToastEl = null;
   let chatToastStyleInjected = false;
+  // ===== Free-tier safe defaults =====
+  window.ENABLE_VOICE_WS = false; // Disable WebSockets to prevent Durable Objects burn
+  let workerHistoryLoaded = false; // Track if worker history loaded (legacy flag, kept for compatibility)
+  
   let suppressChatToast = true; // prevent toasts during history bootstrap
   let chatHistoryBootstrapped = false;
   let globalChatUnread = 0;
@@ -5152,322 +5147,157 @@ function ensureChatBadge() {
       }
   }
 
-  // Connect to Cloudflare Worker WebSocket for chat
-  function connectChatWorker() {
-      if (chatWorkerWs && (chatWorkerWs.readyState === WebSocket.CONNECTING || chatWorkerWs.readyState === WebSocket.OPEN)) {
-          return; // Already connecting or connected
+  // ✅ Polling-based chat (no Durable Objects, no WebSockets)
+  async function pollChatMessages() {
+      if (!backendApi || !backendApi.connected) {
+          console.warn('⚠️ Backend API not available for polling');
+          return;
       }
       
       try {
-          chatWorkerWs = new WebSocket(CHAT_WS_URL);
-          chatWorkerConnected = false;
+          // Fetch recent messages from backend API (which queries Supabase)
+          const messages = await backendApi.getRecentChat(50, true);
           
-          chatWorkerWs.onopen = () => {
-              chatWorkerConnected = true;
-              console.log('✅ Chat Worker WebSocket CONNECTED');
-              console.log('📍 URL:', CHAT_WS_URL);
+          if (!Array.isArray(messages)) {
+              console.warn('⚠️ Invalid messages format from API');
+              return;
+          }
+          
+          // Process new messages (only ones we haven't seen)
+          let newCount = 0;
+          const seenCutoff = lastGlobalChatSeenTs || 0;
+          let unreadCount = 0;
+          
+          // If this is the first poll, load all messages
+          if (!chatHistoryBootstrapped) {
+              console.log(`📥 Initial chat poll: ${messages.length} messages`);
               
-              // Request initial snapshot
-              chatWorkerWs.send(JSON.stringify({ type: 'getSnapshot' }));
-              console.log('📤 Sent snapshot request to Worker');
-              
-              // Clear reconnect timer
-              if (chatWorkerWsReconnectTimer) {
-                  clearTimeout(chatWorkerWsReconnectTimer);
-                  chatWorkerWsReconnectTimer = null;
+              // Clear existing messages
+              const chatBox = document.getElementById('globalChatBox');
+              if (chatBox) {
+                  chatBox.innerHTML = '';
+                  messageNodeIndex.clear();
+                  globalChatSeen.clear();
               }
               
-              // Update status if chat UI is visible
-              try {
-                  setGlobalChatStatus('Connected to chat server', false);
-              } catch (_) {}
-          };
-          
-          chatWorkerWs.onmessage = (event) => {
-              try {
-                  const data = JSON.parse(event.data);
+              // Load all messages
+              messages.forEach(m => {
+                  appendGlobalChatMessage(m);
+                  lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
+                  newCount++;
+              });
+              
+              saveChatCache(messages);
+              chatHistoryBootstrapped = true;
+              suppressChatToast = false;
+              workerHistoryLoaded = true; // Mark as loaded to prevent duplicate loads
+              
+              // Calculate unread count
+              if (seenCutoff > 0) {
+                  unreadCount = messages.reduce((acc, m) => {
+                      const ts = getMessageTimestamp(m);
+                      const isMine = (m.user_id || '') === globalChatUsername;
+                      return acc + (!isMine && ts > seenCutoff ? 1 : 0);
+                  }, 0);
+              }
+              
+              if (unreadCount > 0) {
+                  globalChatUnread = unreadCount;
+                  updateChatBadge();
+              }
+              
+              setGlobalChatStatus('Chat loaded', false);
+          } else {
+              // Subsequent polls: only process new messages
+              messages.forEach(m => {
+                  const msgKey = `id:${m.id}`;
+                  const msgTs = getMessageTimestamp(m);
                   
-                  if ((data.type === 'snapshot' || data.type === 'history') && Array.isArray(data.messages)) {
-                      // ✅ HARD GUARD: Prevent history from loading twice
-                      if (workerHistoryLoaded) return;
+                  // Skip if already seen
+                  if (globalChatSeen.has(msgKey)) return;
+                  
+                  // Only show messages newer than last poll timestamp
+                  if (msgTs > lastSupabaseChatTs) {
+                      appendGlobalChatMessage(m);
+                      lastSupabaseChatTs = Math.max(lastSupabaseChatTs, msgTs);
+                      updateChatCache(m);
+                      newCount++;
                       
-                      // Received snapshot or history - update cache and display
-                      workerHistoryLoaded = true; // ✅ THIS IS KEY - Worker history is authoritative
-                      console.log(`📥 Received ${data.type} from Worker: ${data.messages.length} messages`);
-                      console.log('📦 Snapshot sample:', JSON.stringify(data.messages.slice(0, 2), null, 2)); // Log first 2 for debugging
-                      
-                      // Convert Worker format to our format if needed
-                      const convertedMessages = data.messages.map(m => {
-                          // If message is in Worker format { id, t, name, text }, convert it
-                          if (m.name && m.text && !m.user_id) {
-                              return {
-                                  id: m.id,
-                                  user_id: m.name,
-                                  content: JSON.stringify({ text: m.text, state: null }),
-                                  created_at: m.t ? new Date(m.t).toISOString() : new Date().toISOString()
-                              };
-                          }
-                          // Already in our format
-                          return m;
-                      });
-                      
-                      // Clear existing messages from Supabase fallback if Worker snapshot is available
-                      // This ensures Worker messages (authoritative) replace Supabase fallback
-                      const chatBox = document.getElementById('globalChatBox');
-                      if (chatBox) {
-                          // Clear all messages - Worker snapshot/history is authoritative
-                          chatBox.innerHTML = '';
-                          messageNodeIndex.clear(); // Clear message index
-                          globalChatSeen.clear(); // Clear seen set so messages can be re-rendered
-                          console.log('🧹 Cleared Supabase fallback messages - replacing with Worker ' + data.type);
-                      }
-                      
-                      let newCount = 0;
-                      convertedMessages.forEach(m => {
-                          appendGlobalChatMessage(m);
-                          lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
-                          newCount++;
-                      });
-                      
-                      saveChatCache(convertedMessages);
-                      console.log(`✅ Loaded ${newCount} messages from Worker ${data.type} (${convertedMessages.length} total) - REPLACED Supabase fallback`);
-                      console.log('✅ Chat Worker is WORKING! Messages loaded successfully.');
-                      
-                      // Calculate unread count based on lastGlobalChatSeenTs
-                      // Only count messages newer than when we last saw the chat
-                      const seenCutoff = lastGlobalChatSeenTs || 0;
-                      let unreadCount = 0;
+                      // Count unread
                       if (seenCutoff > 0) {
-                          unreadCount = convertedMessages.reduce((acc, m) => {
-                              const ts = getMessageTimestamp(m);
-                              const isMine = (m.user_id || '') === globalChatUsername;
-                              return acc + (!isMine && ts > seenCutoff ? 1 : 0);
-                          }, 0);
-                      }
-                      
-                      // Update unread badge only if chat is closed
-                      if (!globalChatIsOpen) {
-                          globalChatUnread = unreadCount;
-                          updateChatBadge();
-                          console.log(`📊 Calculated ${unreadCount} unread messages (seen cutoff: ${new Date(seenCutoff).toISOString()})`);
-                      } else {
-                          // Chat is open, mark as seen
-                          markChatSeen();
-                      }
-                      
-                      // ✅ REQUIRED: Enable notifications and badge after history is loaded
-                      chatHistoryBootstrapped = true;
-                      suppressChatToast = false; // ✅ Enable toasts immediately (no setTimeout needed)
-                  } else if (data.type === 'message' || data.type === 'chat') {
-                      // New message received from Worker
-                      console.log('📦 Raw Worker message data:', JSON.stringify(data, null, 2));
-                      
-                      let message = null;
-                      
-                      // Handle different Worker response formats
-                      if (data.message) {
-                          // Worker sent: { type: 'chat', message: { id, t, name, text } }
-                          const msg = data.message;
-                          message = {
-                              id: msg.id || `worker_${Date.now()}_${Math.random()}`,
-                              user_id: msg.name || msg.user_id || 'User',
-                              content: JSON.stringify({ 
-                                  text: msg.text || '', 
-                                  state: null 
-                              }),
-                              created_at: msg.t ? new Date(msg.t).toISOString() : 
-                                         msg.created_at || new Date().toISOString()
-                          };
-                      } else if (data.name || data.user_id) {
-                          // Worker sent: { type: 'chat', name: '...', text: '...' }
-                          message = {
-                              id: data.id || `worker_${Date.now()}_${Math.random()}`,
-                              user_id: data.name || data.user_id || 'User',
-                              content: JSON.stringify({ 
-                                  text: data.text || '', 
-                                  state: data.state || null 
-                              }),
-                              created_at: data.timestamp ? new Date(data.timestamp).toISOString() : 
-                                         data.t ? new Date(data.t).toISOString() :
-                                         data.created_at || new Date().toISOString()
-                          };
-                      }
-                      
-                      if (message && message.user_id && message.content) {
-                          // Skip if message is empty
-                          try {
-                              const contentObj = JSON.parse(message.content);
-                              if (!contentObj.text || contentObj.text.trim() === '') {
-                                  console.warn('⚠️ Skipping empty message from Worker');
-                                  return;
-                              }
-                          } catch (_) {
-                              // If content is not JSON, check if it's a plain string
-                              if (!message.content || message.content.trim() === '') {
-                                  console.warn('⚠️ Skipping empty message from Worker');
-                                  return;
-                              }
+                          const isMine = (m.user_id || '') === globalChatUsername;
+                          if (!isMine && msgTs > seenCutoff) {
+                              unreadCount++;
                           }
-                          
-                          console.log('📨 Received new message from Worker:', message.user_id);
-                          const msgTs = getMessageTimestamp(message);
-                          
-                          // Check if this is our own message echoing back (optimistic UI replacement)
-                          const isMyMessage = (message.user_id || '') === globalChatUsername;
-                          let replacedOptimistic = false;
-                          
-                          if (isMyMessage && message.content && globalChatBox) {
-                              try {
-                                  const contentObj = JSON.parse(message.content);
-                                  const messageText = contentObj.text || '';
-                                  
-                                  // ✅ IMPROVED: Use tracked optimistic message ID for reliable replacement
-                                  if (lastOptimisticTempId && messageText && Math.abs(Date.now() - msgTs) < 5000) {
-                                      // Check if we have a tracked optimistic message
-                                      const optimisticNode = messageNodeIndex.get(lastOptimisticTempId);
-                                      if (optimisticNode && optimisticNode.parentNode) {
-                                          // Verify it's still in the DOM and matches our message
-                                          const bubble = optimisticNode.querySelector('[data-msg-id]');
-                                          if (bubble && bubble.getAttribute('data-msg-id') === lastOptimisticTempId) {
-                                              // This is our optimistic message - replace it with real one
-                                              console.log('🔄 Removing optimistic message:', lastOptimisticTempId);
-                                              removeMessageById(lastOptimisticTempId);
-                                              replacedOptimistic = true;
-                                              // Note: We'll clear lastOptimisticTempId after cleanup in the replacement block
-                                              console.log('🔄 Replaced optimistic message with real Worker message');
-                                          } else {
-                                              console.log('⚠️ Optimistic message node found but bubble ID mismatch');
-                                          }
-                                      } else {
-                                          console.log('⚠️ Optimistic message node not found in index or DOM:', lastOptimisticTempId);
-                                      }
-                                  }
-                                  
-                                  // Fallback: If tracked ID didn't work, try finding by text match (within last 3 seconds)
-                                  if (!replacedOptimistic && messageText && Math.abs(Date.now() - msgTs) < 3000) {
-                                      const allRows = Array.from(globalChatBox.children);
-                                      for (const row of allRows) {
-                                          const bubble = row.querySelector('[data-msg-id]');
-                                          if (!bubble) continue;
-                                          
-                                          const tempId = bubble.getAttribute('data-msg-id');
-                                          if (tempId && tempId.startsWith('temp_')) {
-                                              // Check if text matches - look for the text span (not timestamp)
-                                              const userSpan = bubble.querySelector('strong');
-                                              const textSpan = userSpan?.nextSibling;
-                                              if (textSpan && textSpan.textContent && textSpan.textContent.trim() === messageText.trim()) {
-                                                  // This is our optimistic message - replace it with real one
-                                                  console.log('🔄 Removing optimistic message (fallback):', tempId);
-                                                  removeMessageById(tempId);
-                                                  replacedOptimistic = true;
-                                                  // Note: We'll handle clearing lastOptimisticTempId in the replacement block
-                                                  console.log('🔄 Replaced optimistic message with real Worker message (fallback)');
-                                                  break;
-                                              }
-                                          }
-                                      }
-                                  }
-                              } catch (_) {}
-                          }
-                          
-                          // If we replaced an optimistic message, the DOM was cleared
-                          // Now append the real message with the real ID
-                          if (replacedOptimistic) {
-                              // ✅ Save temp ID before clearing it (needed for cleanup)
-                              const tempIdToClean = lastOptimisticTempId;
-                              lastOptimisticTempId = null; // Clear after we've saved it
-                              
-                              // Clean up ALL possible temp keys from seen set
-                              // The optimistic message was added with key: id:${tempId}
-                              if (tempIdToClean) {
-                                  const tempKeyToRemove = `id:${tempIdToClean}`;
-                                  globalChatSeen.delete(tempKeyToRemove);
-                                  console.log('🧹 Cleaned up temp key from seen set:', tempKeyToRemove);
-                              }
-                              
-                              // Also try the alternative temp key format (in case it was added differently)
-                              const altTempKey = `temp:${message.user_id || ''}:${message.content || ''}:${message.created_at || ''}`;
-                              globalChatSeen.delete(altTempKey);
-                              
-                              // Clean up any temp keys that might exist (comprehensive cleanup)
-                              // Iterate through seen set and remove any temp keys for this user/content
-                              const keysToRemove = [];
-                              globalChatSeen.forEach(key => {
-                                  if (key.startsWith('id:temp_') || (key.startsWith('temp:') && key.includes(message.user_id || ''))) {
-                                      keysToRemove.push(key);
-                                  }
-                              });
-                              keysToRemove.forEach(key => globalChatSeen.delete(key));
-                              if (keysToRemove.length > 0) {
-                                  console.log('🧹 Cleaned up additional temp keys:', keysToRemove);
-                              }
-                              
-                              // ✅ IMPORTANT: Don't add real key to seen set yet - let appendGlobalChatMessage do it
-                              // This ensures the message actually gets rendered
-                              
-                              console.log('✅ Adding real message to chat, ID:', message.id);
-                              // Append the real message (it will add itself to globalChatSeen)
-                              appendGlobalChatMessage(message);
-                              lastSupabaseChatTs = Math.max(lastSupabaseChatTs, msgTs);
-                              updateChatCache(message);
-                              // ✅ Increment message counter for confirmed message (replacing optimistic)
-                              incrementMessageCounter();
-                          } else if (!chatHistoryBootstrapped || msgTs > lastSupabaseChatTs) {
-                              // Normal message (not replacing optimistic)
-                              appendGlobalChatMessage(message);
-                              lastSupabaseChatTs = Math.max(lastSupabaseChatTs, msgTs);
-                              
-                              // Update cache with new message
-                              updateChatCache(message);
-                              // ✅ Increment message counter for confirmed message
-                              incrementMessageCounter();
-                          }
-                      } else {
-                          console.warn('⚠️ Received invalid message from Worker (missing user_id or content):', JSON.stringify(data, null, 2));
                       }
-                  } else {
-                      console.log('📦 Received data from Worker:', data.type, data);
                   }
-              } catch (err) {
-                  console.warn('Chat Worker message parse error:', err);
-              }
-          };
-          
-          chatWorkerWs.onerror = (error) => {
-              console.error('❌ Chat Worker WebSocket ERROR:', error);
-              chatWorkerConnected = false;
-              try {
-                  setGlobalChatStatus('Connection error - retrying...', true);
-              } catch (_) {}
-          };
-          
-          chatWorkerWs.onclose = (event) => {
-              chatWorkerConnected = false;
-              console.warn('⚠️ Chat Worker WebSocket CLOSED');
-              console.warn('   Code:', event.code, 'Reason:', event.reason || 'none');
-              console.warn('   Reconnecting in 3s...');
+              });
               
-              try {
-                  setGlobalChatStatus('Disconnected - reconnecting...', true);
-              } catch (_) {}
-              
-              // Reconnect after delay
-              if (chatWorkerWsReconnectTimer) {
-                  clearTimeout(chatWorkerWsReconnectTimer);
+              if (newCount > 0) {
+                  console.log(`📥 Poll: ${newCount} new message(s)`);
               }
-              chatWorkerWsReconnectTimer = setTimeout(() => {
-                  console.log('🔄 Attempting to reconnect to Chat Worker...');
-                  startChatPolling();
-              }, 3000);
-          };
+              
+              if (unreadCount > 0) {
+                  globalChatUnread += unreadCount;
+                  updateChatBadge();
+              }
+          }
+          
+          // Update last polled message ID for tracking
+          if (messages.length > 0) {
+              lastPolledMessageId = messages[messages.length - 1].id;
+          }
       } catch (err) {
-          console.error('❌ Failed to connect to Chat Worker:', err);
-          chatWorkerConnected = false;
-          try {
-              setGlobalChatStatus('Failed to connect - using fallback', true);
-          } catch (_) {}
+          console.error('❌ Chat poll error:', err);
+          setGlobalChatStatus('Polling error - will retry', true);
       }
   }
+  
+  // Start polling for chat messages
+  function startChatPolling() {
+      if (chatPollingActive) return;
+      
+      chatPollingActive = true;
+      console.log('🔄 Starting chat polling (interval: ' + CHAT_POLL_INTERVAL + 'ms)');
+      
+      // Initial poll immediately
+      pollChatMessages();
+      
+      // Then poll at regular intervals
+      chatPollTimer = setInterval(() => {
+          pollChatMessages();
+      }, CHAT_POLL_INTERVAL);
+      
+      setGlobalChatStatus('Chat polling active', false);
+  }
+  
+  // Stop polling
+  function stopChatPolling() {
+      if (chatPollTimer) {
+          clearInterval(chatPollTimer);
+          chatPollTimer = null;
+      }
+      chatPollingActive = false;
+      console.log('⏸️ Chat polling stopped');
+  }
+  
+  // Debug function to check chat polling status
+  function checkChatPollingStatus() {
+      console.log('🔍 Chat Polling Status:');
+      console.log('   Active:', chatPollingActive);
+      console.log('   Interval:', CHAT_POLL_INTERVAL + 'ms');
+      console.log('   Last Polled Message ID:', lastPolledMessageId);
+      console.log('   History Bootstrapped:', chatHistoryBootstrapped);
+      
+      return {
+          active: chatPollingActive,
+          interval: CHAT_POLL_INTERVAL,
+          lastMessageId: lastPolledMessageId
+      };
+  }
+  
+  // Make it available globally for debugging
+  window.checkChatPollingStatus = checkChatPollingStatus;
   
   // Request initial chat messages (used on page load)
   async function requestServerSnapshot() {
