@@ -1,0 +1,1021 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "uh0lyeydcq");</script><meta charset="UTF-8">
+    <script>
+        // Always open this page as a full page, not inside the homepage iframe
+        (function enforceTopWindow() {
+            try {
+                if (window.top !== window) {
+                    // Allow about:blank wrappers (used for game isolation)
+                    if (window.top.location.protocol === 'about:' && window.top.location.href === 'about:blank') {
+                        return;
+                    }
+                    const ref = document.referrer ? new URL(document.referrer) : null;
+                    // Only break out if we're being framed by the same site (homepage inline loader)
+                    if (!ref || ref.hostname === window.location.hostname) {
+                        window.top.location = window.location.href;
+                    }
+                }
+            } catch (e) {
+                // If same-origin check fails, do nothing
+            }
+        })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Play SlashZ - Premium gaming experience with fullscreen gameplay, ratings, and user reviews.">
+    <meta name="keywords" content="SlashZ, online games, browser games">
+<title>SlashZ - Nebulo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../ad-block-styles.css">
+    <link rel="icon" type="image/png" href="../images/logoshs.png">
+    <style>
+        .premium-game-page {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 25%, #1a2332 50%, #2d2d2d 75%, #1a1a1a 100%);
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .premium-game-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(30, 144, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .premium-back-btn {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            z-index: 99999;
+            background: rgba(255, 215, 0, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #1a1a1a;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 215, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .premium-back-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow:
+                0 15px 40px rgba(255, 215, 0, 0.3),
+                inset 0 1px 0 rgba(255, 215, 0, 0.4);
+            background: rgba(255, 215, 0, 0.25);
+            border-color: rgba(255, 215, 0, 0.6);
+            color: #1a1a1a;
+        }
+        .premium-back-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+        /* Fix header and visitor counter on game pages - no sidebar */
+        .premium-game-page ~ * #visitorCounter,
+        body:has(.premium-game-page) #visitorCounter {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+        .premium-game-page ~ * header,
+        body:has(.premium-game-page) header {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+        .premium-game-container {
+            max-width: 1400px;
+            margin: 100px auto 0;
+            margin-left: auto;
+            margin-right: auto;
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 50px;
+            box-shadow:
+                0 25px 80px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            position: relative;
+        }
+        @media (max-width: 1600px) {
+            .premium-game-container {
+                margin-left: 20px;
+                margin-right: 20px;
+            }
+        }
+        .premium-game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg,
+                transparent,
+                rgba(255, 215, 0, 0.5),
+                transparent
+            );
+            border-radius: 30px 30px 0 0;
+        }
+        .premium-game-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .premium-random-game {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            margin-bottom: 22px;
+            font-size: 14px;
+            color: #e5e7eb;
+            box-shadow:
+                0 12px 30px rgba(15, 23, 42, 0.7),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .premium-random-label {
+            opacity: 0.9;
+        }
+        .premium-random-btn {
+            border: none;
+            outline: none;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #22c55e 100%);
+            color: #022c22;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            box-shadow:
+                0 6px 16px rgba(21, 128, 61, 0.55),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .premium-random-btn:hover {
+            transform: translateY(-1px);
+            box-shadow:
+                0 10px 24px rgba(21, 128, 61, 0.65),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+        .premium-random-btn:active {
+            transform: translateY(0);
+            box-shadow:
+                0 4px 10px rgba(21, 128, 61, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        .premium-game-title {
+            font-size: 56px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 25px;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            letter-spacing: -1px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+        .premium-rating-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 25px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+            background: rgba(26, 26, 26, 0.6);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        .premium-stars {
+            display: flex;
+            gap: 12px;
+            font-size: 36px;
+            align-items: center;
+        }
+        .premium-stars .star {
+            color: rgba(255, 215, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-size: 36px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+        .premium-stars .star.active,
+        .premium-stars .star.filled {
+            color: #ffd700;
+            text-shadow:
+                0 0 20px rgba(255, 215, 0, 0.8),
+                0 0 40px rgba(255, 215, 0, 0.4);
+            transform: scale(1.1);
+        }
+        .premium-stars .star:hover {
+            transform: scale(1.4) rotate(15deg);
+            color: #ffed4e;
+            text-shadow:
+                0 0 25px rgba(255, 237, 78, 0.9),
+                0 0 50px rgba(255, 237, 78, 0.5);
+        }
+        .premium-stars .star.active:hover {
+            color: #ffd700;
+        }
+        .premium-rating-text {
+            font-size: 26px;
+            font-weight: 700;
+            color: #ffd700;
+            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+            letter-spacing: 0.5px;
+        }
+        .premium-game-embed {
+            width: 100%;
+            height: 70vh;
+            max-height: 760px;
+            min-height: 520px;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 215, 0, 0.1);
+            margin-bottom: 40px;
+            position: relative;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .premium-game-embed::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg,
+                rgba(255, 215, 0, 0.05) 0%,
+                transparent 50%,
+                rgba(30, 144, 255, 0.05) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .premium-game-embed iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            position: relative;
+            z-index: 0;
+        }
+        .premium-fullscreen-btn {
+            width: 100%;
+            text-align: center;
+            margin: 20px 0;
+            background: rgba(255, 215, 0, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #ffd700;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            padding: 25px 50px;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 215, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            z-index: 10;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .premium-fullscreen-btn:hover {
+            transform: translateY(-3px) scale(1.08);
+            box-shadow:
+                0 15px 40px rgba(255, 215, 0, 0.3),
+                inset 0 1px 0 rgba(255, 215, 0, 0.4);
+            background: rgba(255, 215, 0, 0.3);
+            border-color: rgba(255, 215, 0, 0.6);
+        }
+        .premium-fullscreen-btn:active {
+            transform: translateY(-1px) scale(1.05);
+        }
+        .premium-game-description {
+            margin-top: 30px;
+            padding: 35px;
+            border-radius: 24px;
+            background: rgba(10, 10, 18, 0.9);
+            border: 1px solid rgba(255, 215, 0, 0.18);
+            box-shadow:
+                0 18px 40px rgba(0, 0, 0, 0.55),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            color: #f5f5fa;
+            line-height: 1.7;
+        }
+        .premium-game-description-title {
+            font-size: 30px;
+            font-weight: 800;
+            margin-bottom: 18px;
+            color: #ffd700;
+            text-shadow: 0 3px 12px rgba(255, 215, 0, 0.45);
+            letter-spacing: -0.5px;
+        }
+        .premium-game-description-body {
+            font-size: 16px;
+            color: #d7d7e4;
+            white-space: pre-line;
+        }
+        .premium-game-description-body h3 {
+            margin-top: 18px;
+            margin-bottom: 8px;
+            font-size: 18px;
+            color: #ffed4e;
+        }
+        .premium-game-description-body ul {
+            margin: 10px 0 0 18px;
+            padding: 0;
+        }
+        .premium-game-description-body li {
+            margin-bottom: 4px;
+        }
+        .premium-reviews-section {
+            margin-top: 60px;
+            padding-top: 50px;
+            border-top: 2px solid rgba(255, 215, 0, 0.2);
+        }
+        .premium-reviews-title {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 40px;
+            color: #ffd700;
+            text-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            text-align: center;
+            letter-spacing: -1px;
+        }
+        .premium-review-form {
+            background: rgba(26, 26, 26, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 45px;
+            border-radius: 25px;
+            margin-bottom: 50px;
+            box-shadow:
+                0 15px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        .premium-review-form h3 {
+            margin-bottom: 30px;
+            color: #ffd700;
+            font-size: 28px;
+            font-weight: 800;
+            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        }
+        .premium-review-stars-label {
+            font-size: 18px;
+            font-weight: 700;
+            color: rgba(255, 215, 0, 0.9);
+            margin-bottom: 15px;
+            display: block;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .premium-review-stars-container {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(26, 26, 26, 0.5);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .premium-review-input {
+            width: 100%;
+            padding: 18px 20px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 15px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            background: rgba(26, 26, 26, 0.5);
+            backdrop-filter: blur(10px);
+            color: #ffd700;
+            font-weight: 500;
+        }
+        .premium-review-input::placeholder {
+            color: rgba(255, 215, 0, 0.5);
+        }
+        .premium-review-input:focus {
+            outline: none;
+            border-color: rgba(255, 215, 0, 0.6);
+            background: rgba(26, 26, 26, 0.7);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        .premium-review-textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+        .premium-submit-btn {
+            background: rgba(255, 215, 0, 0.2);
+            backdrop-filter: blur(20px);
+            color: #ffd700;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            padding: 18px 50px;
+            border-radius: 50px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 215, 0, 0.3);
+        }
+        .premium-submit-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow:
+                0 15px 40px rgba(255, 215, 0, 0.3),
+                inset 0 1px 0 rgba(255, 215, 0, 0.4);
+            background: rgba(255, 215, 0, 0.3);
+            border-color: rgba(255, 215, 0, 0.6);
+        }
+        .premium-submit-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+        .premium-reviews-list {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .premium-review-item {
+            background: rgba(26, 26, 26, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 215, 0, 0.1);
+            border-left: 5px solid rgba(255, 215, 0, 0.6);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-bottom: 25px;
+        }
+        .premium-review-item:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow:
+                0 20px 50px rgba(255, 215, 0, 0.2),
+                inset 0 1px 0 rgba(255, 215, 0, 0.2);
+            border-left-color: rgba(255, 215, 0, 0.9);
+        }
+        .premium-review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .premium-review-author {
+            font-weight: 700;
+            font-size: 20px;
+            color: #ffd700;
+            text-shadow: 0 2px 5px rgba(255, 215, 0, 0.3);
+        }
+        .premium-review-date {
+            color: rgba(255, 215, 0, 0.6);
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .premium-review-rating {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .premium-review-rating .star {
+            color: #ffd700;
+            font-size: 20px;
+            filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.4));
+        }
+        .premium-review-rating .star.empty {
+            color: rgba(255, 215, 0, 0.2);
+        }
+        .premium-review-text {
+            color: rgba(255, 215, 0, 0.9);
+            line-height: 1.8;
+            font-size: 17px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        .premium-no-reviews {
+            text-align: center;
+            padding: 60px;
+            color: rgba(255, 215, 0, 0.6);
+            font-size: 20px;
+            font-weight: 600;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        @media (max-width: 768px) {
+            .premium-game-container {
+                padding: 30px 20px;
+                margin-top: 80px;
+                border-radius: 20px;
+            }
+            .premium-game-title {
+                font-size: 36px;
+            }
+            .premium-game-embed {
+                height: 420px;
+                border-radius: 16px;
+            }
+            .premium-back-btn {
+                top: 60px;
+                left: 10px;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            .premium-review-form {
+                padding: 30px 20px;
+            }
+            .premium-reviews-title {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="visitorCounter" class="animate-on-scroll">
+        <span id="onlineCount">0</span> Online | <span id="totalCount">0</span> Total Visitors
+        <span class="status-indicator online" style="margin-left: 12px;"></span>
+    </div>
+    <header class="glass-effect animate-on-scroll">
+        <button id="adminBtn" title="Admin Panel" class="header-icon-btn hover-lift">
+            <i class="fas fa-cog"></i>
+        </button>
+        <button id="creditsBtn" title="Credits" class="header-icon-btn hover-lift">
+            <i class="fas fa-star"></i>
+        </button>
+        <div class="headerContent">
+            <div class="header-logo-container">
+                <a href="../index.html" style="text-decoration: none;">
+                    <img src="../images/logoshs.png" alt="Nebulo Logo" class="header-logo">
+                </a>
+            </div>
+            <div class="headerText gradient-text">
+                Nebulo
+            </div>
+            <div class="header-actions">
+                <a href="../blog/blog.html" class="header-action-btn hover-lift" title="Blog">
+                    <i class="fas fa-newspaper"></i>
+                    <span>Blog</span>
+                </a>
+                <button id="youtubeWatcherBtn" title="Watch YouTube Videos Privately" class="youtube-watcher-btn hover-lift">
+                    <i class="fab fa-youtube"></i>
+                    <span class="youtube-btn-text">Watch YouTube Privately</span>
+                </button>
+            </div>
+        </div>
+        <button id="notificationBellBtn" title="Notifications" class="header-icon-btn hover-lift notification-bell-btn">
+            <i class="fas fa-bell"></i>
+            <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
+        </button>
+    </header>
+    
+    <!-- Notification Dropdown -->
+    <div id="notificationDropdown" class="notification-dropdown">
+        <div class="notification-dropdown-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <button id="clearAllNotificationsBtn" class="clear-notifications-btn" title="Clear All">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div id="notificationList" class="notification-list">
+            <div class="notification-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications</p>
+            </div>
+        </div>
+    </div>
+    <div class="premium-game-page">
+        <a href="../index.html" class="premium-back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Home</span>
+        </a>
+        <div class="premium-game-container">
+            <div class="premium-game-header">
+                <div class="premium-random-game">
+                    <span class="premium-random-label">Bored?</span>
+                    <button id="randomGameBtn" class="premium-random-btn">
+                        <i class="fas fa-random"></i>
+                        <span>Play a random game</span>
+                    </button>
+                </div>
+                <h1 class="premium-game-title" id="gameTitle">SlashZ</h1>
+                <div class="premium-rating-section">
+                    <div class="premium-stars" id="ratingStars">
+                        <i class="fas fa-star star" data-rating="1"></i>
+                        <i class="fas fa-star star" data-rating="2"></i>
+                        <i class="fas fa-star star" data-rating="3"></i>
+                        <i class="fas fa-star star" data-rating="4"></i>
+                        <i class="fas fa-star star" data-rating="5"></i>
+                    </div>
+                    <div class="premium-rating-text">
+                        <span id="averageRating">0.0</span> / 5.0
+                        (<span id="ratingCount">0</span> ratings)
+                    </div>
+                </div>
+            </div>
+            <div class="premium-game-embed">
+                <iframe id="gameEmbed" src="https://szhong.4399.com/4399swf//upload_swf/ftp39/liuxinyu/20220517/5/index.html" frameborder="0" allowfullscreen></iframe>
+            </div>
+            <button class="premium-fullscreen-btn" id="fullscreenBtn">
+                <i class="fas fa-expand"></i> Play Fullscreen
+            </button>
+            <div class="premium-game-description">
+                <h2 class="premium-game-description-title">About SlashZ</h2>
+                <div class="premium-game-description-body">
+                    Experience the ultimate action thrill in SlashZ, a game designed to test your limits and reward your perseverance. From intense battles to mind-bending puzzles, every aspect of this title is crafted to deliver maximum enjoyment. Join a community of players, share strategies, and climb the leaderboards in this addictive and rewarding gaming experience.
+                </div>
+            </div>
+            <div class="premium-reviews-section">
+                <h2 class="premium-reviews-title">
+                    <i class="fas fa-comments"></i> User Reviews
+                </h2>
+                <div class="premium-review-form">
+                    <h3><i class="fas fa-edit"></i> Write a Review</h3>
+                    <input type="text" class="premium-review-input" id="reviewAuthor" placeholder="Your Name (optional)" maxlength="50">
+                    <div class="premium-review-stars-container">
+                        <label class="premium-review-stars-label">Rate this game:</label>
+                        <div class="premium-stars" id="reviewStars" style="font-size: 28px;">
+                            <i class="fas fa-star star" data-rating="1"></i>
+                            <i class="fas fa-star star" data-rating="2"></i>
+                            <i class="fas fa-star star" data-rating="3"></i>
+                            <i class="fas fa-star star" data-rating="4"></i>
+                            <i class="fas fa-star star" data-rating="5"></i>
+                        </div>
+                        <div id="reviewRatingText" style="margin-top: 10px; color: #667eea; font-weight: 600; font-size: 14px;"></div>
+                    </div>
+                    <textarea class="premium-review-input premium-review-textarea" id="reviewText" placeholder="Share your thoughts about this game..." maxlength="1000"></textarea>
+                    <button class="premium-submit-btn" id="submitReviewBtn">
+                        <i class="fas fa-paper-plane"></i> Submit Review
+                    </button>
+                </div>
+                <div class="premium-reviews-list" id="reviewsList">
+                    <div class="premium-no-reviews">
+                        <i class="fas fa-comment-slash"></i> No reviews yet. Be the first to review!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <ul>
+                    <li><a href="../pages/privacy-policy.html" class="footer-link">Privacy Policy</a></li>
+                    <li><a href="../pages/about-us.html" class="footer-link">About Us</a></li>
+                    <li><a href="../pages/contact-us.html" class="footer-link">Contact Us</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Nebulo. All rights reserved.</p>
+        </div>
+    </footer>
+      <script src="../game-page.js"></script>
+      <script src="../adblocker.js"></script>
+    <script>
+        // Game data
+        const gameTitle = 'SlashZ';
+        const gameEmbed = 'https://szhong.4399.com/4399swf//upload_swf/ftp39/liuxinyu/20220517/5/index.html';
+        
+        // Save to recently played when game page loads
+        (function() {
+            try {
+                const recentlyPlayed = JSON.parse(localStorage.getItem('recentlyPlayedGames') || '[]');
+                // Remove if already exists
+                const filtered = recentlyPlayed.filter(g => g.embed !== gameEmbed);
+                // Add to beginning
+                filtered.unshift({
+                    title: gameTitle,
+                    embed: gameEmbed,
+                    image: '', // Will be filled if available from gameSites
+                    timestamp: Date.now()
+                });
+                // Keep only last 50 games
+                const limited = filtered.slice(0, 50);
+                localStorage.setItem('recentlyPlayedGames', JSON.stringify(limited));
+            } catch (e) {
+                console.error('Error saving to recently played:', e);
+            }
+        })();
+        // Get game key
+        function getGameKey(embed) {
+            if (!embed) return null;
+            try {
+                const url = new URL(embed);
+                const path = url.pathname + url.search;
+                let hash = 0;
+                const str = embed;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return 'game_' + Math.abs(hash).toString(36);
+            } catch (e) {
+                return 'game_' + btoa(embed).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+            }
+        }
+        const gameKey = getGameKey(gameEmbed);
+        // Use global db from script.js
+        function getDb() {
+            if (typeof db !== 'undefined' && db !== null) {
+                return db;
+            }            return null;
+        }
+        // Fullscreen functionality - target the container div, not the iframe
+        function initFullscreen() {
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const container = document.querySelector('.premium-game-embed');
+            
+            if (!fullscreenBtn || !container) return;
+            
+            fullscreenBtn.addEventListener('click', () => {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.mozRequestFullScreen) {
+                    container.mozRequestFullScreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                } else {
+                    // Fallback: try to make iframe fullscreen (may not work in all browsers)
+                    const iframe = document.getElementById('gameEmbed');
+                    if (iframe && iframe.requestFullscreen) {
+                        iframe.requestFullscreen();
+                    }
+                }
+                // Hide button when entering fullscreen
+                fullscreenBtn.style.display = 'none';
+            });
+            
+            // Show button when exiting fullscreen (ESC key or other methods)
+            function handleFullscreenChange() {
+                if (!document.fullscreenElement && 
+                    !document.webkitFullscreenElement && 
+                    !document.mozFullScreenElement && 
+                    !document.msFullscreenElement) {
+                    // Exited fullscreen, show button again
+                    fullscreenBtn.style.display = 'flex';
+                }
+            }
+            
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+        }
+        // Rating stars
+        let selectedRating = 0;
+        const ratingStars = document.querySelectorAll('#ratingStars .star');
+        ratingStars.forEach(star => {
+            star.addEventListener('click', () => {
+                const rating = parseInt(star.getAttribute('data-rating'));
+                selectedRating = rating;
+                updateRatingStars(ratingStars, rating);
+                submitRating(rating);
+            });
+        });
+        // Review stars
+        let reviewRating = 0;
+        const reviewStars = document.querySelectorAll('#reviewStars .star');
+        const reviewRatingText = document.getElementById('reviewRatingText');
+        reviewStars.forEach(star => {
+            star.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const rating = parseInt(star.getAttribute('data-rating'));
+                reviewRating = rating;
+                updateRatingStars(reviewStars, rating);
+                updateReviewRatingText(rating);
+            });
+            star.addEventListener('mouseenter', () => {
+                const rating = parseInt(star.getAttribute('data-rating'));
+                updateRatingStars(reviewStars, rating);
+                updateReviewRatingText(rating);
+            });
+        });
+        document.getElementById('reviewStars').addEventListener('mouseleave', () => {
+            updateRatingStars(reviewStars, reviewRating);
+            updateReviewRatingText(reviewRating);
+        });
+        function updateReviewRatingText(rating) {
+            if (rating > 0) {
+                const texts = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+                reviewRatingText.textContent = `${rating} out of 5 - ${texts[rating]}`;
+                reviewRatingText.style.display = 'block';
+            } else {
+                reviewRatingText.textContent = '';
+                reviewRatingText.style.display = 'none';
+            }
+        }
+        function updateRatingStars(stars, rating) {
+            stars.forEach((star, index) => {
+                const starRating = parseInt(star.getAttribute('data-rating'));
+                if (starRating <= rating) {
+                    star.classList.add('active', 'filled');
+                    star.classList.remove('empty');
+                } else {
+                    star.classList.remove('active', 'filled');
+                    star.classList.add('empty');
+                }
+            });
+        }
+        // Load and display ratings
+        function loadRatings() {
+            const db = getDb();
+            if (!db || !gameKey) return;
+            const ratingRef = db.ref(`gameRatings/${gameKey}`);
+            ratingRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.average) {
+                    const avg = data.average;
+                    const count = data.count || 0;
+                    document.getElementById('averageRating').textContent = avg.toFixed(1);
+                    document.getElementById('ratingCount').textContent = count;
+                    updateRatingStars(ratingStars, Math.round(avg));
+                }
+            });
+        }
+        // Submit rating
+        function submitRating(rating) {
+            const db = getDb();
+            if (!db || !gameKey) return;
+            let userId = localStorage.getItem('userId');
+            if (!userId) {
+                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('userId', userId);
+            }
+            const gameRatingRef = db.ref(`gameRatings/${gameKey}`);
+            gameRatingRef.transaction((current) => {
+                const ratingData = current || {
+                    embed: gameEmbed,
+                    ratings: {},
+                    total: 0,
+                    count: 0,
+                    average: 0
+                };
+                const previousRating = ratingData.ratings[userId];
+                ratingData.ratings[userId] = rating;
+                if (previousRating) {
+                    ratingData.total = ratingData.total - previousRating + rating;
+                } else {
+                    ratingData.total = (ratingData.total || 0) + rating;
+                    ratingData.count = (ratingData.count || 0) + 1;
+                }
+                const ratingCount = Object.keys(ratingData.ratings).length;
+                ratingData.average = ratingCount > 0 ? ratingData.total / ratingCount : 0;
+                ratingData.count = ratingCount;
+                return ratingData;
+            });
+        }
+        // Load reviews
+        function loadReviews() {
+            const db = getDb();
+            if (!db || !gameKey) return;
+            const reviewsRef = db.ref(`gameReviews/${gameKey}`);
+            reviewsRef.on('value', (snapshot) => {
+                const reviews = snapshot.val();
+                const reviewsList = document.getElementById('reviewsList');
+                if (!reviews || Object.keys(reviews).length === 0) {
+                    reviewsList.innerHTML = '<div class="premium-no-reviews"><i class="fas fa-comment-slash"></i> No reviews yet. Be the first to review!</div>';
+                    return;
+                }
+                const reviewsArray = Object.entries(reviews)
+                    .map(([id, review]) => ({ id, ...review }))
+                    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                reviewsList.innerHTML = reviewsArray.map(review => {
+                    const rating = review.rating || 0;
+                    const stars = Array(5).fill(0).map((_, i) =>
+                        i < rating
+                            ? '<i class="fas fa-star star"></i>'
+                            : '<i class="far fa-star star empty"></i>'
+                    ).join('');
+                    return `
+                    <div class="premium-review-item">
+                        <div class="premium-review-header">
+                            <div>
+                                <div class="premium-review-author"><i class="fas fa-user"></i> ${review.author || 'Anonymous'}</div>
+                                <div class="premium-review-date"><i class="fas fa-calendar"></i> ${new Date(review.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                            </div>
+                        </div>
+                        <div class="premium-review-rating">
+                            ${stars}
+                            <span style="margin-left: 10px; color: #667eea; font-weight: 600;">${rating}/5</span>
+                        </div>
+                        <div class="premium-review-text">${(review.text || '').replace(/\n/g, '<br>')}</div>
+                    </div>
+                `;
+                }).join('');
+            });
+        }
+        // Submit review
+        document.getElementById('submitReviewBtn').addEventListener('click', () => {
+            if (!reviewRating) {
+                alert('Please select a rating');
+                return;
+            }
+            const author = document.getElementById('reviewAuthor').value.trim() || 'Anonymous';
+            const text = document.getElementById('reviewText').value.trim();
+            if (!text) {
+                alert('Please write a review');
+                return;
+            }
+            const db = getDb();
+            if (!db || !gameKey) {
+                alert('Database not available');
+                return;
+            }
+            const review = {
+                author: author,
+                rating: reviewRating,
+                text: text,
+                timestamp: Date.now()
+            };
+            const reviewsRef = db.ref(`gameReviews/${gameKey}`);
+            reviewsRef.push(review, (error) => {
+                if (error) {
+                    alert('Error submitting review');
+                } else {
+                    document.getElementById('reviewAuthor').value = '';
+                    document.getElementById('reviewText').value = '';
+                    reviewRating = 0;
+                    updateRatingStars(reviewStars, 0);
+                    updateReviewRatingText(0);
+                    // Show success message
+                    const successMsg = document.createElement('div');
+                    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 25px; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); z-index: 10000; font-weight: 600;';
+                    successMsg.innerHTML = '<i class="fas fa-check-circle"></i> Review submitted successfully!';
+                    document.body.appendChild(successMsg);
+                    setTimeout(() => {
+                        successMsg.style.transition = 'opacity 0.3s';
+                        successMsg.style.opacity = '0';
+                        setTimeout(() => successMsg.remove(), 300);
+                    }, 3000);
+                }
+            });
+        });
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('gameTitle').textContent = gameTitle;
+            // Initialize fullscreen functionality
+            initFullscreen();
+            // Wait a bit for script.js to fully load and initialize db
+            setTimeout(() => {
+                loadRatings();
+                loadReviews();
+            }, 100);
+        });
+    </script>
+<!-- Display Ad -->
+<div style="max-width: 100%; margin: 20px auto; text-align: center; padding: 0 20px;">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
+     crossorigin="anonymous"></script>
+<!-- display ads -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-3290829368025891"
+     data-ad-slot="9717787503"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+</div>
+</body>
+</html>
+
+

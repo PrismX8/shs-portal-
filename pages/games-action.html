@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="/about-blank-wrapper.js" data-ab-wrapper="true"></script>
+<script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "uh0lyeydcq");</script><meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Action Games - Nebulo</title>
+<meta name="description" content="Play the best action games on Nebulo. Fast-paced arcade games, battles, and thrilling adventures.">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
+     crossorigin="anonymous"></script>
+<link rel="icon" type="image/png" href="../images/logoshs.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page-container">
+    <header class="page-header">
+        <a href="../index.html" class="back-home-btn">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+        <h1><i class="fas fa-crosshairs"></i> Action Games</h1>
+    </header>
+
+    <div id="gamesGridContainer" class="games-grid-container">
+        <!-- AdSense Ad -->
+        <div style="max-width: 100%; margin: 20px auto; text-align: center; padding: 0 20px;">
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
+             crossorigin="anonymous"></script>
+        <!-- display ads -->
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-3290829368025891"
+             data-ad-slot="9717787503"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+        </div>
+        <div class="games-search-container">
+            <div class="games-search-wrapper">
+                <i class="fas fa-search games-search-icon"></i>
+                <input type="text" id="gamesSearchInput" class="games-search-input" placeholder="Search action games...">
+                <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="games-categories">
+            <button class="category-btn" data-category="all">
+                <i class="fas fa-th"></i> All Games
+            </button>
+            <button class="category-btn active" data-category="action">
+                <i class="fas fa-crosshairs"></i> Action
+            </button>
+            <button class="category-btn" data-category="trending">
+                <i class="fas fa-chart-line"></i> Trending
+            </button>
+            <button class="category-btn" data-category="popular">
+                <i class="fas fa-fire"></i> Most Popular
+            </button>
+        </div>
+        <div id="gamesGrid" class="games-grid">
+            <!-- Games will be dynamically loaded here -->
+        </div>
+    </div>
+</div>
+
+<script src="../script.js"></script>
+<script>
+// Initialize games grid when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize grid first
+    if (typeof initGamesGrid === 'function') {
+        initGamesGrid();
+    }
+
+    // Wait for games to load and filter
+    function waitAndFilter() {
+        if (typeof gameSites !== 'undefined' && gameSites.length > 0) {
+            // Games are loaded, filter by action
+            if (typeof filterGamesByCategory === 'function') {
+                filterGamesByCategory('action');
+            }
+        } else {
+            // Keep waiting (max 5 seconds)
+            if (typeof waitAndFilter.counter === 'undefined') {
+                waitAndFilter.counter = 0;
+            }
+            waitAndFilter.counter++;
+            if (waitAndFilter.counter < 50) {
+                setTimeout(waitAndFilter, 100);
+            } else {
+                console.error('Games failed to load');
+                // Show all games as fallback
+                if (typeof filterGamesByCategory === 'function') {
+                    filterGamesByCategory('all');
+                }
+            }
+        }
+    }
+
+    // Start waiting after script loads
+    setTimeout(waitAndFilter, 500);
+});
+</script>
+</body>
+</html>
+

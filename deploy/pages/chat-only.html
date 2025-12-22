@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="/about-blank-wrapper.js" data-ab-wrapper="true"></script>
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "uklz62a91n");
+  </script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nebulo - Global Chat</title>
+<meta name="description" content="Nebulo Global Chat - Connect and chat with the community.">
+<meta name="keywords" content="chat, community, Nebulo">
+<meta name="author" content="Nebulo">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://shsportal.vercel.app/pages/chat-only.html">
+<meta property="og:title" content="Nebulo - Global Chat">
+<meta property="og:description" content="Connect and chat with the Nebulo community.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://shsportal.vercel.app/pages/chat-only.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Nebulo - Global Chat">
+<meta name="twitter:description" content="Connect and chat with the Nebulo community.">
+<link rel="icon" type="image/png" href="../images/logoshs.png">
+<script>
+  (function() {
+    const ua = navigator.userAgent || '';
+    const liteBlock = ua.includes('CrOS') || (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || document.documentElement.classList.contains('lite-mode');
+    if (liteBlock) {
+      console.info('Lite mode: skipping AdSense load.');
+      return;
+    }
+    const ads = document.createElement('script');
+    ads.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891";
+    ads.async = true;
+    ads.crossOrigin = "anonymous";
+    document.head.appendChild(ads);
+  })();
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  /* Lightweight page loading mask */
+  #pageLoader {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06), rgba(0,0,0,0.9)),
+                radial-gradient(circle at 80% 0%, rgba(255,255,255,0.04), rgba(0,0,0,0.9));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    color: #f5f7ff;
+    z-index: 50000;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+  }
+  #pageLoader.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  #pageLoader .spinner {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 4px solid rgba(255,255,255,0.15);
+    border-top-color: #6ee7ff;
+    animation: pageLoaderSpin 0.9s linear infinite;
+    box-shadow: 0 0 30px rgba(110,231,255,0.3);
+  }
+  #pageLoader .loading-text {
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+  }
+  @keyframes pageLoaderSpin { to { transform: rotate(360deg); } }
+
+  /* Age gate overlay */
+  #chatAgeOverlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: radial-gradient(circle at 20% 20%, rgba(124,58,237,0.08), transparent 40%),
+                radial-gradient(circle at 80% 0%, rgba(14,165,233,0.06), transparent 36%),
+                rgba(4,6,12,0.88);
+    backdrop-filter: blur(12px);
+    z-index: 60000;
+  }
+  #chatAgeOverlay.active { display: flex; }
+  .chat-age-card {
+    width: min(520px, 100%);
+    background: linear-gradient(150deg, rgba(20,22,32,0.96), rgba(13,16,26,0.94));
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    box-shadow: 0 28px 70px rgba(0,0,0,0.65), 0 0 1px rgba(255,255,255,0.2);
+    padding: 20px;
+    color: #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .chat-age-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .chat-age-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #fbbf24, #f97316);
+    color: #0b0c12;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    font-weight: 900;
+    box-shadow: 0 10px 30px rgba(249,115,22,0.35);
+  }
+  #chatAgeTitle {
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 0.4px;
+    color: #f8fafc;
+  }
+  .chat-age-subtitle {
+    font-size: 13px;
+    color: rgba(226,232,240,0.78);
+    margin-top: 2px;
+  }
+  .chat-age-rules {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(226,232,240,0.9);
+  }
+  .chat-age-rules li {
+    line-height: 1.45;
+  }
+  .chat-age-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .chat-age-actions button {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  }
+  #chatAgeAllow {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #0b1410;
+    box-shadow: 0 12px 34px rgba(34,197,94,0.35);
+  }
+  #chatAgeDeny {
+    background: rgba(248,113,113,0.12);
+    color: #fecdd3;
+    border-color: rgba(248,113,113,0.35);
+  }
+  .chat-age-actions button:hover {
+    transform: translateY(-1px);
+  }
+  .chat-age-actions button:active {
+    transform: translateY(0);
+    opacity: 0.96;
+  }
+  @media (max-width: 520px) {
+    .chat-age-card { padding: 18px; }
+    .chat-age-header { align-items: flex-start; }
+    .chat-age-icon { width: 42px; height: 42px; }
+  }
+</style>
+<script>
+// Auto-enable a lighter UI for Chromebook/low-power devices (user preference wins)
+(function() {
+  const ua = navigator.userAgent || '';
+  const isChromeOS = ua.includes('CrOS');
+  const lowMem = navigator.deviceMemory && navigator.deviceMemory <= 4;
+  const lowCpu = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
+  const prefersReduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let stored = null;
+  try { stored = localStorage.getItem('liteModePreference'); } catch (_) {}
+  if (stored === 'on') {
+    document.documentElement.classList.add('lite-mode');
+    return;
+  }
+  if (stored === 'off') {
+    document.documentElement.classList.remove('lite-mode');
+    return;
+  }
+  if (isChromeOS || lowMem || lowCpu || prefersReduce) {
+    document.documentElement.classList.add('lite-mode');
+  }
+})();
+</script>
+</head>
+<body class="with-sidebar">
+<div id="pageLoader" role="status" aria-live="polite" aria-busy="true">
+  <div class="spinner" aria-hidden="true"></div>
+  <div class="loading-text">Loading Chat...</div>
+</div>
+<div id="chatAgeOverlay" role="dialog" aria-modal="true" aria-labelledby="chatAgeTitle">
+  <div class="chat-age-card">
+    <div class="chat-age-header">
+      <div class="chat-age-icon" aria-hidden="true">⚠️</div>
+      <div>
+        <div id="chatAgeTitle">RULES ⚠️</div>
+        <div class="chat-age-subtitle">Please read before entering the chat</div>
+      </div>
+    </div>
+    <ul class="chat-age-rules">
+      <li>No harassment, bullying, or hate speech.</li>
+      <li>Never share personal info (full name, school, address, phone).</li>
+      <li>Keep conversations appropriate and report suspicious behavior.</li>
+      <li>You must be 13 years or older to use this chat.</li>
+    </ul>
+    <div class="chat-age-actions">
+      <button id="chatAgeAllow">I'm 13 or over</button>
+      <button id="chatAgeDeny">I'm younger than 13</button>
+    </div>
+  </div>
+</div>
+<div id="globalChatModal" style="display:flex; position:fixed; inset:0; background:rgba(6,8,15,0.7); backdrop-filter:blur(16px); z-index:20000; align-items:stretch; justify-content:center; padding:0;">
+  <div id="globalChatPanel" style="width:100vw; max-width:1200px; height:100vh; max-height:100vh; background:radial-gradient(circle at 20% 20%, rgba(124,58,237,0.08), transparent 35%), radial-gradient(circle at 80% 0%, rgba(99,102,241,0.08), transparent 30%), linear-gradient(150deg, rgba(18,18,28,0.96), rgba(12,14,22,0.92)); border:1px solid rgba(255,255,255,0.12); border-radius:0; box-shadow:0 30px 90px rgba(0,0,0,0.65), 0 0 1px rgba(255,255,255,0.35); padding:12px; color:#f5f5f5; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
+    <!-- AdSense Ad - Placed at top of chat panel, safe from overlap -->
+    <div style="max-width: 100%; margin: 0 auto 8px auto; text-align: center; padding: 0; position: relative; z-index: 1; min-height: 90px; visibility: visible !important; opacity: 1 !important; display: block !important; flex-shrink: 0;">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
+         crossorigin="anonymous"></script>
+    <!-- display ads -->
+    <ins class="adsbygoogle"
+         style="display:block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 1 !important; max-width: 100%; overflow: hidden; width: 100%;"
+         data-ad-client="ca-pub-3290829368025891"
+         data-ad-slot="9717787503"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <img src="../images/logoshs.png" alt="Site Logo" style="width:32px; height:32px; border-radius:10px; object-fit:cover; border:1px solid rgba(255,255,255,0.1); box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+        <div>
+          <div style="display:flex; align-items:center; gap:6px; font-weight:800; letter-spacing:0.4px; color:#e0d7ff; font-size:15px; text-transform:uppercase;">
+            Nebulo • Global Chat
+          </div>
+          <div id="globalChatLocationLabel" style="margin-top:3px; font-size:11px; color:rgba(255,255,255,0.65); display:none;">
+            Chatting from: <span id="globalChatLocationValue">Not available</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <input id="globalChatNameInput" type="text" maxlength="24" placeholder="Display name" style="width:160px; padding:8px 10px; border-radius:8px; border:1px solid rgba(124,58,237,0.4); background:rgba(255,255,255,0.06); color:#f5f5f5; font-size:12px;">
+        <button id="globalChatNameSave" style="padding:8px 12px; border:none; border-radius:8px; background:linear-gradient(135deg, #7C3AED, #9F7AEA); color:white; font-weight:700; cursor:pointer; font-size:12px;">Save</button>
+        <button id="globalChatSettingsBtn" style="padding:8px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #0ea5e9, #6366f1); color:white; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; font-size:12px;"><i class="fas fa-cog"></i> Settings</button>
+        <button id="closeGlobalChat" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:#fff; width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:16px;">&times;</button>
+      </div>
+    </div>
+    <div id="chatMaintenanceNotice" style="text-align:center; padding:16px 20px; background:linear-gradient(135deg, rgba(239,68,68,0.25), rgba(220,38,38,0.2)); border:2px solid rgba(239,68,68,0.6); border-radius:14px; margin:0 0 12px 0; box-shadow:0 4px 12px rgba(239,68,68,0.3); display:block !important; visibility:visible !important; opacity:1 !important; position:relative; z-index:99999 !important;">
+      <div style="font-weight:900; font-size:16px; color:#fee2e2; text-transform:uppercase; letter-spacing:1px; line-height:1.5; text-shadow:0 2px 4px rgba(0,0,0,0.3);">
+        ⚠️ Notice: Chat may experience some issues currently (VC still works)
+      </div>
+    </div>
+    <div id="globalChatSettingsModal" style="display:none; position:absolute; top:70px; right:24px; width:300px; max-width:92vw; background:rgba(18,18,24,0.98); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:16px; box-shadow:0 22px 60px rgba(0,0,0,0.55); z-index:10;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; color:#fff; font-weight:700;">
+        Settings
+        <button id="closeGlobalChatSettings" style="background:rgba(255,255,255,0.08); border:none; border-radius:8px; color:#fff; width:28px; height:28px; cursor:pointer;">&times;</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; color:#e5e7eb; font-size:13px;">
+        <div>
+          <div style="margin-bottom:4px;">Theme</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <button class="globalChatThemeBtn" data-theme="nebula" style="padding:6px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #7C3AED, #9F7AEA); color:#fff; cursor:pointer;">Nebula</button>
+            <button class="globalChatThemeBtn" data-theme="sunset" style="padding:6px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #F97316, #EF4444); color:#fff; cursor:pointer;">Sunset</button>
+            <button class="globalChatThemeBtn" data-theme="ocean" style="padding:6px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #06B6D4, #2563EB); color:#fff; cursor:pointer;">Ocean</button>
+            <button class="globalChatThemeBtn" data-theme="dark" style="padding:6px 10px; border:none; border-radius:8px; background:linear-gradient(135deg, #0f172a, #111827); color:#fff; cursor:pointer;">Dark</button>
+          </div>
+        </div>
+        <div>
+          <div style="margin-bottom:4px;">My bubble color</div>
+          <input id="globalChatMyBubbleColor" type="color" value="#8b5cf6" style="width:100%; height:32px; border:none; border-radius:8px; background:transparent; cursor:pointer; padding:0;">
+        </div>
+      </div>
+    </div>
+    <div id="globalChatMessageCounter" style="text-align:center; font-size:13px; color:rgba(255,255,255,0.65); padding:8px 12px; border-radius:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); margin-bottom:8px;">
+      <span style="font-weight:600;">Messages sent:</span> <span id="globalChatMessageCount" style="font-weight:800; color:#a5b4fc;">763,956</span>
+    </div>
+    <div id="globalChatBox" style="flex:1; overflow-y:auto; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:18px; padding:16px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.06); display:flex; flex-direction:column; gap:12px; backdrop-filter:blur(4px);"></div>
+    <div style="font-size:12px; color:rgba(255,255,255,0.75); padding:6px 10px; border-radius:10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);" id="globalChatStatus" aria-live="polite"></div>
+    <div style="font-size:12px; color:rgba(255,255,255,0.7); min-height:14px;" id="globalChatTyping" aria-live="polite"></div>
+    <div style="display:flex; gap:10px; align-items:center; position:relative;">
+      <button id="globalChatEmojiBtn" style="width:44px; height:44px; border:none; border-radius:14px; background:rgba(255,255,255,0.08); color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(0,0,0,0.3);"><i class="far fa-smile"></i></button>
+      <div id="globalChatEmojiPicker" style="display:none; position:absolute; bottom:56px; left:0; background:rgba(20,20,30,0.95); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:8px; box-shadow:0 12px 30px rgba(0,0,0,0.45); z-index:15; max-height:240px; width:320px; overflow-y:auto; display:grid; grid-template-columns:repeat(8, 1fr); gap:4px;"></div>
+      <input id="globalChatInput" type="text" placeholder="Type a message..." maxlength="750" style="flex:1; padding:14px 16px; border-radius:14px; border:1px solid rgba(124,58,237,0.45); background:rgba(255,255,255,0.05); color:#f5f5f5; font-size:14px;">
+      <button id="globalChatSendBtn" style="padding:14px 18px; border:none; border-radius:14px; background:linear-gradient(135deg, #8B5CF6, #6366F1); color:white; font-weight:800; cursor:pointer; min-width:110px; box-shadow:0 10px 30px rgba(99,102,241,0.35);">Send</button>
+    </div>
+  </div>
+</div>
+<script>
+  // Fade out the loader once critical assets are ready (with a timeout fallback)
+  (function() {
+    const hideLoader = () => {
+      const loader = document.getElementById('pageLoader');
+      if (!loader || loader.classList.contains('fade-out')) return;
+      loader.classList.add('fade-out');
+      setTimeout(() => loader.remove(), 650);
+    };
+    const domReady = () => requestAnimationFrame(hideLoader);
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      domReady();
+    } else {
+      document.addEventListener('DOMContentLoaded', domReady, { once: true });
+    }
+    window.addEventListener('load', hideLoader);
+    setTimeout(hideLoader, 5000);
+  })();
+</script>
+<!-- Custom backend client for chat -->
+<script>
+  (function loadHeavyLibs() {
+    const lite = document.documentElement.classList.contains('lite-mode');
+    const libs = [
+      { src: "https://cdn.socket.io/4.7.5/socket.io.min.js", allowInLite: false },
+      { src: "../backend-api-client.js", allowInLite: false },
+      { src: "../firebase-shim.js", allowInLite: true },
+      // Keep Supabase for chat even in lite mode
+      { src: "https://unpkg.com/@supabase/supabase-js", allowInLite: true }
+    ];
+    const skipped = [];
+    libs.forEach(({ src, allowInLite }) => {
+      if (lite && !allowInLite) {
+        skipped.push(src);
+        return;
+      }
+      const s = document.createElement('script');
+      s.defer = true;
+      s.src = src;
+      s.crossOrigin = "anonymous";
+      document.head.appendChild(s);
+    });
+    if (lite) {
+      console.info('Lite mode: skipped heavy realtime libs', skipped);
+    } else {
+      // Configure backend endpoints for the custom API/socket
+      window.BACKEND_API_URL = window.BACKEND_API_URL || 'https://shs-portal-backend.vercel.app/api';
+      window.BACKEND_WS_URL = window.BACKEND_WS_URL || 'https://shs-portal-backend.vercel.app';
+    }
+  })();
+</script>
+<script>
+  // Cloudflare Voice Discovery (participants + join/leave + peer discovery)
+  window.__VOICE_DISCOVERY_WS_URL__ = "wss://shs-voice-discovery.ethan-owsiany.workers.dev/voice";
+</script>
+<script defer src="../script.js"></script>
+<script defer src="../adblocker.js"></script>
+<script>
+  (() => {
+    let chatOnlyStarted = false;
+
+    function startChatOnlyPage() {
+      if (chatOnlyStarted) return;
+      chatOnlyStarted = true;
+
+      if (typeof bootstrapChatExperienceForPage === 'function') {
+        bootstrapChatExperienceForPage();
+      } else {
+        if (typeof ensureChatBadge === 'function') ensureChatBadge();
+        if (typeof updateChatBadge === 'function') updateChatBadge();
+        if (typeof initGlobalChatClient === 'function') initGlobalChatClient();
+      }
+
+      if (typeof applyChatTheme === 'function') applyChatTheme(localStorage.getItem('globalChatTheme') || 'dark');
+      if (typeof autoDetectState === 'function') autoDetectState();
+      if (typeof scrollGlobalChatToBottom === 'function') {
+        scrollGlobalChatToBottom();
+        setTimeout(scrollGlobalChatToBottom, 200);
+      }
+      const statusEl = document.getElementById('globalChatStatus');
+      if (statusEl) statusEl.textContent = 'Loading chat...';
+      window.globalChatIsOpen = true;
+
+      const closeBtn = document.getElementById('closeGlobalChat');
+      if (closeBtn && !closeBtn.dataset.chatCloseHooked) {
+        closeBtn.dataset.chatCloseHooked = 'true';
+        closeBtn.addEventListener('click', () => {
+          try {
+            window.parent?.postMessage({ type: 'close-chat-tab' }, '*');
+          } catch (_) {}
+          window.close();
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const overlay = document.getElementById('chatAgeOverlay');
+      const allowBtn = document.getElementById('chatAgeAllow');
+      const denyBtn = document.getElementById('chatAgeDeny');
+      const ageKey = window.CHAT_AGE_KEY || 'chatAgeGateStatus';
+
+      const showOverlay = () => overlay?.classList.add('active');
+      const hideOverlay = () => overlay?.classList.remove('active');
+
+      const proceed = () => {
+        hideOverlay();
+        if (typeof setChatAgeStatus === 'function') {
+          setChatAgeStatus('over13');
+        } else {
+          try { localStorage.setItem(ageKey, 'over13'); } catch (_) {}
+        }
+        startChatOnlyPage();
+      };
+
+      const isVerified = typeof isChatAgeVerified === 'function'
+        ? isChatAgeVerified()
+        : (() => {
+            try { return localStorage.getItem(ageKey) === 'over13'; }
+            catch (_) { return false; }
+          })();
+
+      if (isVerified) {
+        proceed();
+      } else {
+        showOverlay();
+      }
+
+      allowBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        proceed();
+      });
+
+      denyBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof setChatAgeStatus === 'function') {
+          setChatAgeStatus('under13');
+        } else {
+          try { localStorage.setItem(ageKey, 'under13'); } catch (_) {}
+        }
+        hideOverlay();
+        try {
+          window.parent?.postMessage({ type: 'close-chat-tab' }, '*');
+        } catch (_) {}
+        window.close();
+        setTimeout(() => {
+          window.location.href = 'about:blank';
+        }, 150);
+      });
+    });
+  })();
+</script>
+</body>
+</html>

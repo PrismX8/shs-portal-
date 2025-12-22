@@ -1,0 +1,358 @@
+const fs = require('fs');
+const path = require('path');
+// Read the template
+const template = fs.readFileSync(path.join(__dirname, 'games', 'game-template.html'), 'utf8');
+// Optional detailed metadata (including descriptions)
+const gamesJsonPath = path.join(__dirname, 'data', 'games.json');
+let gamesMeta = [];
+if (fs.existsSync(gamesJsonPath)) {
+    try {
+        const raw = fs.readFileSync(gamesJsonPath, 'utf8');
+        const cleaned = raw.replace(/^\uFEFF/, '');
+        gamesMeta = JSON.parse(cleaned);
+    } catch (err) {
+        console.error('Failed to read data/games.json:', err);
+        gamesMeta = [];
+    }
+}
+function normalizeEmbed(url) {
+    return (url || '').replace(/\/+$/, '');
+}
+const metaByEmbed = new Map();
+const metaByTitle = new Map();
+if (Array.isArray(gamesMeta)) {
+    gamesMeta.forEach(meta => {
+        if (meta && typeof meta === 'object') {
+            if (meta.embed) {
+                metaByEmbed.set(normalizeEmbed(meta.embed), meta);
+            }
+            if (meta.title) {
+                metaByTitle.set(String(meta.title).toLowerCase(), meta);
+            }
+        }
+    });
+}
+function getMetaForGame(game) {
+    if (!game) return null;
+    const byEmbed = metaByEmbed.get(normalizeEmbed(game.embed));
+    if (byEmbed) return byEmbed;
+    if (game.title) {
+        return metaByTitle.get(String(game.title).toLowerCase()) || null;
+    }
+    return null;
+}
+function escapeHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+// Games array from script.js (first 243 games)
+const games = [
+    { title: 'Chess FreezeNova', embed: 'https://cloud.onlinegames.io/games/2025/unity3/chess/index-og.html' },
+    { title: 'Davo', embed: 'https://cloud.onlinegames.io/games/2025/construct/302/davo/index-og.html' },
+    { title: 'Fast Food Manager', embed: 'https://cloud.onlinegames.io/games/2025/unity4/fast-food-manager/index-og.html' },
+    { title: 'Block Builder Survival', embed: 'https://cloud.onlinegames.io/games/2025/unity4/cubecraft-survival/index-og.html' },
+    { title: 'Love Tester', embed: 'https://www.onlinegames.io/games/2021/3/love-tester/index.html' },
+    { title: 'Drift King', embed: 'https://www.onlinegames.io/games/2024/unity/drift-king/index.html' },
+    { title: 'Highway Traffic', embed: 'https://www.onlinegames.io/games/2022/unity/highway-traffic/index.html' },
+    { title: 'Stack Fire Ball', embed: 'https://www.onlinegames.io/games/2021/unity/stack-fire-ball/index.html' },
+    { title: 'Masked Special Forces', embed: 'https://www.onlinegames.io/games/2022/unity2/masked-special-forces/index.html' },
+    { title: 'City Simulator', embed: 'https://www.onlinegames.io/games/2023/unity2/gta-simulator/index.html' },
+    { title: 'Real Flight Simulator', embed: 'https://cloud.onlinegames.io/games/2023/unity2/real-flight-simulator/index.html' },
+    { title: 'Stickman City Adventure', embed: 'https://cloud.onlinegames.io/games/2024/unity3/stickman-gta-city/index-og.html' },
+    { title: 'Drift Hunters Pro', embed: 'https://www.onlinegames.io/games/2023/unity/drift-hunters-pro/index.html' },
+    { title: 'Stickman Parkour', embed: 'https://cloud.onlinegames.io/games/2024/construct/219/stickman-parkour/index-og.html' },
+    { title: 'Fast Food Rush', embed: 'https://cloud.onlinegames.io/games/2025/unity/fast-food-rush/index-og.html' },
+    { title: 'Get On Top', embed: 'https://www.onlinegames.io/games/2024/code/6/get-on-top/index.html' },
+    { title: 'Edys Car Simulator', embed: 'https://www.onlinegames.io/games/2022/unity/edys-car-simulator/index.html' },
+    { title: 'Crown Defense', embed: 'https://cloud.onlinegames.io/games/2025/construct/337/crown-defense/index-og.html' },
+    { title: 'Escape Car', embed: 'https://cloud.onlinegames.io/games/2025/unity2/escape-car/index-og.html' },
+    { title: 'Madalin Stunt Cars Pro', embed: 'https://www.onlinegames.io/games/2023/unity/madalin-stunt-cars-pro/index.html' },
+    { title: 'Guerrillas io', embed: 'https://www.onlinegames.io/games/2023/unity2/guerrillas-io/index.html' },
+    { title: 'Drift Rider', embed: 'https://www.onlinegames.io/games/2023/unity3/drift-rider/index.html' },
+    { title: 'Basket Hoop', embed: 'https://cloud.onlinegames.io/games/2024/construct/311/basket-hoop/index-og.html' },
+    { title: 'Stickman Destruction', embed: 'https://www.onlinegames.io/games/2021/unity3/stickman-destruction/index.html' },
+    { title: 'Tactical Shooter Online', embed: 'https://www.onlinegames.io/games/2023/unity2/cs-online/index.html' },
+    { title: 'Burnout City', embed: 'https://cloud.onlinegames.io/games/2024/unity/burnout-city/index-og.html' },
+    { title: 'Love Tester Story', embed: 'https://cloud.onlinegames.io/games/2024/construct/225/love-tester-story/index-og.html' },
+    { title: 'Police Chase Drifter', embed: 'https://www.onlinegames.io/games/2021/3/police-chase-drifter/index.html' },
+    { title: 'Super Car Driving', embed: 'https://cloud.onlinegames.io/games/2024/unity2/super-car-driving/index-og.html' },
+    { title: 'WarStrike', embed: 'https://cloud.onlinegames.io/games/2024/unity3/warstrike/index-og.html' },
+    { title: 'Legendary Sniper', embed: 'https://www.onlinegames.io/games/2021/unity3/legendary-sniper/index.html' },
+    { title: 'Motorbike Stunt Simulator', embed: 'https://cloud.onlinegames.io/games/2021/unity/motorbike-stunt-simulator/index-og.html' },
+    { title: 'Capybara Clicker Pro', embed: 'https://www.onlinegames.io/games/2023/q2/capybara-clicker-pro/index.html' },
+    { title: 'Block Blast', embed: 'https://cloud.onlinegames.io/games/2024/unity3/block-blast/index-og.html' },
+    { title: 'Subway Idle 3D', embed: 'https://www.onlinegames.io/games/2022/unity4/subway-idle-3d/index.html' },
+    { title: 'Highway Racer Pro', embed: 'https://www.onlinegames.io/games/2024/unity/highway-racer-pro/index.html' },
+    { title: 'Basketball io', embed: 'https://www.onlinegames.io/games/2022/unity3/basketball-io/index.html' },
+    { title: 'Mob City', embed: 'https://www.onlinegames.io/games/2021/unity3/mob-city/index.html' },
+    { title: 'Crazy Drifter', embed: 'https://www.onlinegames.io/games/2022/unity3/crazy-drifter/index.html' },
+    { title: 'Archer Hero', embed: 'https://www.onlinegames.io/games/2023/unity/archer-hero/index.html' },
+    { title: 'F1 Drift Racer', embed: 'https://www.onlinegames.io/games/2022/construct/134/f1-drift-racer/index.html' },
+    { title: 'Cat Simulator', embed: 'https://www.onlinegames.io/games/2022/unity4/cat-simulator/index.html' },
+    { title: 'Highway Cars', embed: 'https://www.onlinegames.io/games/2023/construct/211/highway-cars/index.html' },
+    { title: 'Car Football', embed: 'https://www.onlinegames.io/games/2023/construct/198/car-football/index.html' },
+    { title: 'ArmedForces.io', embed: 'https://www.onlinegames.io/games/2021/unity3/armedforces-io/index.html' },
+    { title: 'Kick The Dummy', embed: 'https://www.onlinegames.io/games/2022/construct/153/kick-the-dummy/index.html' },
+    { title: 'Cake Match Puzzle', embed: 'https://cloud.onlinegames.io/games/2024/unity3/cake-match-puzzle/index-og.html' },
+    { title: 'FPS Strike', embed: 'https://cloud.onlinegames.io/games/2024/unity2/fps-strike/index-og.html' },
+    { title: 'Drift Fury', embed: 'https://www.onlinegames.io/games/2023/unity/drift-fury/index.html' },
+    { title: 'Rooftop Duel', embed: 'https://cloud.onlinegames.io/games/2025/construct/213/rooftop-duel/index-og.html' },
+    { title: 'Mini Cars Racing', embed: 'https://cloud.onlinegames.io/games/2021/unity/mini-cars-racing/index-og.html' },
+    { title: 'Geometry Dasher FreezeNova', embed: 'https://www.onlinegames.io/games/2023/q2/geometry-dash-freezenova/index.html' },
+    { title: 'Head Soccer 2022', embed: 'https://www.onlinegames.io/games/2023/construct/280/head-soccer-2022/index.html' },
+    { title: '8 Ball Pool Billiard', embed: 'https://www.onlinegames.io/games/2022/unity3/8-ball-pool-billiard/index.html' },
+    { title: 'Click Master Pro', embed: 'https://cloud.onlinegames.io/games/2025/unity/cookie-clicker-pro/index-og.html' },
+    { title: 'Secret Sniper Agent', embed: 'https://www.onlinegames.io/games/2022/construct/129/secret-sniper-agent/index.html' },
+    { title: 'Basketball King', embed: 'https://cloud.onlinegames.io/games/2024/construct/316/basketball-king/index-og.html' },
+    { title: 'Nuts and Bolts Puzzle', embed: 'https://cloud.onlinegames.io/games/2025/unity/nuts-and-bolts-puzzle/index-og.html' },
+    { title: 'Monster Survivors', embed: 'https://cloud.onlinegames.io/games/2025/unity/monster-survivors/index-og.html' },
+    { title: 'Fort Drifter', embed: 'https://www.onlinegames.io/games/2022/unity3/fort-drifter/index.html' },
+    { title: 'Supercars Drift', embed: 'https://www.onlinegames.io/games/2023/unity3/supercars-drift/index.html' },
+    { title: 'Deer Hunter', embed: 'https://www.onlinegames.io/games/2021/1/deer-hunter/index.html' },
+    { title: 'Crazy Parking Fury', embed: 'https://www.onlinegames.io/games/2022/unity3/crazy-parking-fury/index.html' },
+    { title: 'Wasteland Shooters', embed: 'https://www.onlinegames.io/games/2021/unity2/wasteland-shooters/index.html' },
+    { title: 'Motorbike Traffic', embed: 'https://www.onlinegames.io/games/2021/unity/motorbike-traffic/index.html' },
+    { title: 'Rome Simulator', embed: 'https://www.onlinegames.io/games/2021/unity/rome-simulator/index.html' },
+    { title: 'Taxi Simulator', embed: 'https://www.onlinegames.io/games/2022/unity/taxi-simulator/index.html' },
+    { title: 'Block World', embed: 'https://cloud.onlinegames.io/games/2025/unity/voxel-world/index-og.html' },
+    { title: 'Crazy Car Arena', embed: 'https://www.onlinegames.io/games/2022/unity3/crazy-car-arena/index.html' },
+    { title: 'ATV Highway Traffic', embed: 'https://www.onlinegames.io/games/2021/unity/atv-highway-traffic/index.html' },
+    { title: 'Poop Clicker', embed: 'https://www.onlinegames.io/games/2024/construct/292/poop-clicker/index.html' },
+    { title: 'Police Traffic', embed: 'https://www.onlinegames.io/games/2021/unity/police-traffic/index.html' },
+    { title: 'Burnout Drift Hunter', embed: 'https://www.onlinegames.io/games/2022/unity4/burnout-drift-hunter/index.html' },
+    { title: 'Jeep Driver', embed: 'https://cloud.onlinegames.io/games/2021/1/jeep-driver/index-og.html' },
+    { title: 'Airplane Racer', embed: 'https://www.onlinegames.io/games/2022/unity/airplane-racer/index.html' },
+    { title: 'Solitaire', embed: 'https://cloud.onlinegames.io/games/2025/html/solitaire/index-og.html' },
+    { title: '2 Player Crazy Racer', embed: 'https://www.onlinegames.io/games/2022/unity3/2-player-crazy-racer/index.html' },
+    { title: 'Masked Forces Zombie Survival', embed: 'https://www.onlinegames.io/games/2021/unity3/masked-forces-zombie-survival/index.html' },
+    { title: 'Highway Racer 2', embed: 'https://www.onlinegames.io/games/2022/unity2/highway-racer-2/index.html' },
+    { title: 'Hero Rush Tower Defense', embed: 'https://www.onlinegames.io/games/2023/unity/hero-rush-tower-defense/index.html' },
+    { title: 'Kick the Alien', embed: 'https://cloud.onlinegames.io/games/2021/4/kick-the-alien/index-og.html' },
+    { title: 'Alien Sky Invasion', embed: 'https://www.onlinegames.io/games/2021/unity3/alien-sky-invasion/index.html' },
+    { title: 'Kingdom Attack', embed: 'https://www.onlinegames.io/games/2021/unity3/kingdom-attack/index.html' },
+    { title: 'Fun Party Makeup', embed: 'https://www.onlinegames.io/games/2021/4/fun-party-makeup/index.html' },
+    { title: 'Wedding Beauty Salon', embed: 'https://www.onlinegames.io/games/2021/2/wedding-beauty-salon/index.html' },
+    { title: 'Survival Karts', embed: 'https://cloud.onlinegames.io/games/2024/unity3/survival-karts/index-og.html' },
+    { title: 'Super Mini Racing', embed: 'https://www.onlinegames.io/games/2022/unity4/super-mini-racing/index.html' },
+    { title: 'Survival Craft', embed: 'https://www.onlinegames.io/games/2022/unity/survival-craft/index.html' },
+    { title: 'Bus Subway Runner', embed: 'https://www.onlinegames.io/games/2022/unity/bus-subway-runner/index.html' },
+    { title: 'City Stunts', embed: 'https://www.onlinegames.io/games/2023/unity3/city-stunts/index.html' },
+    { title: 'Snake Football', embed: 'https://www.onlinegames.io/games/2023/construct/200/snake-football/index.html' },
+    { title: 'Nova Clicker', embed: 'https://cloud.onlinegames.io/games/2024/construct/314/nova-clicker/index-og.html' },
+    { title: 'Farming Island', embed: 'https://cloud.onlinegames.io/games/2025/unity/farming-island/index-og.html' },
+    { title: 'Urban Sniper', embed: 'https://www.onlinegames.io/games/2022/unity2/urban-sniper/index.html' },
+    { title: 'Draw the Car Path', embed: 'https://cloud.onlinegames.io/games/2021/4/draw-the-car-path/index-og.html' },
+    { title: 'Troll Level', embed: 'https://cloud.onlinegames.io/games/2024/unity2/troll-level/index-og.html' },
+    { title: 'SpartaHoppers', embed: 'https://cloud.onlinegames.io/games/2025/construct/227/spartahoppers/index-og.html' },
+    { title: 'Army Combat', embed: 'https://www.onlinegames.io/games/2021/unity/army-combat/index.html' },
+    { title: 'Crazy Karts', embed: 'https://www.onlinegames.io/games/2024/unity/crazy-karts/index.html' },
+    { title: 'Tank Arena', embed: 'https://cloud.onlinegames.io/games/2025/construct/293/tank-arena/index-og.html' },
+    { title: 'Julie Beauty Salon', embed: 'https://cloud.onlinegames.io/games/2021/1/julie-beauty-salon/index-og.html' },
+    { title: 'Egg Car Racing', embed: 'https://cloud.onlinegames.io/games/2024/construct/289/egg-car-racing/index-og.html' },
+    { title: 'Moto Trials', embed: 'https://www.onlinegames.io/games/2021/unity/moto-trials/index.html' },
+    { title: 'Pixel Driver', embed: 'https://cloud.onlinegames.io/games/2021/unity3/pixel-driver/index-og.html' },
+    { title: 'Night Shift Security', embed: 'https://cloud.onlinegames.io/games/2025/unity2/five-nights-at-poppy/index-og.html' },
+    { title: 'Offroad Rally', embed: 'https://www.onlinegames.io/games/2023/unity2/offroad-rally/index.html' },
+    { title: 'Skibidi Toilet io', embed: 'https://www.onlinegames.io/games/2023/construct/242/skibidi-toilet-io/index.html' },
+    { title: 'Survival Island', embed: 'https://cloud.onlinegames.io/games/2024/unity2/survival-island/index-og.html' },
+    { title: 'State io Wars', embed: 'https://www.onlinegames.io/games/2024/construct/233/state-io-wars/index.html' },
+    { title: 'Hero Dragon Power', embed: 'https://www.onlinegames.io/games/2023/unity/hero-dragon-power/index.html' },
+    { title: 'Battle Royale Simulator', embed: 'https://www.onlinegames.io/games/2022/unity3/battle-royale-simulator/index.html' },
+    { title: 'Monster Truck City Parking', embed: 'https://www.onlinegames.io/games/2021/unity/monster-truck-city-parking/index.html' },
+    { title: 'Geometry Dasher Escape', embed: 'https://cloud.onlinegames.io/games/2024/construct/299/geometry-escape/index-og.html' },
+    { title: 'Dark Ninja Hanjo', embed: 'https://www.onlinegames.io/games/2023/unity/dark-ninja-hanjo/index.html' },
+    { title: 'Princess Influencer Salon', embed: 'https://www.onlinegames.io/games/2021/3/princess-influencer-salon/index.html' },
+    { title: 'Four Colors', embed: 'https://www.onlinegames.io/games/2023/code/four-colors/index.html' },
+    { title: 'Precision Sniper', embed: 'https://www.onlinegames.io/games/2021/1/sniper-elite/index.html' },
+    { title: 'Tile Match', embed: 'https://cloud.onlinegames.io/games/2025/unity/tile-match/index-og.html' },
+    { title: 'Bandits Multiplayer PvP', embed: 'https://www.onlinegames.io/games/2021/unity2/bandits-multiplayer-pvp/index.html' },
+    { title: 'Agent Smith', embed: 'https://www.onlinegames.io/games/2021/unity/agent-smith/index.html' },
+    { title: 'Stick Guys Defense', embed: 'https://www.onlinegames.io/games/2022/unity3/stick-guys-defense/index.html' },
+    { title: 'CobraZ.io Classic', embed: 'https://www.onlinegames.io/games/2022/unity/cobraz-io-classic/index.html' },
+    { title: 'Shortcut Race', embed: 'https://www.onlinegames.io/games/2023/construct/237/shortcut-race/index.html' },
+    { title: 'Monster Truck Mountain Climb', embed: 'https://cloud.onlinegames.io/games/2021/2/monster-truck-mountain-climb/index-og.html' },
+    { title: 'Basketball Slam Dunk', embed: 'https://www.onlinegames.io/games/2021/unity2/basketball-slam-dunk/index.html' },
+    { title: 'Snake', embed: 'https://cloud.onlinegames.io/games/2024/phaser/snake/index-og.html' },
+    { title: 'Powerslide Kart Simulator', embed: 'https://www.onlinegames.io/games/2022/unity3/powerslide-kart-simulator/index.html' },
+    { title: 'Stunt Simulator 2', embed: 'https://www.onlinegames.io/games/2021/unity3/stunt-simulator-2/index.html' },
+    { title: 'Blocky Parkour Ninja', embed: 'https://www.onlinegames.io/games/2022/construct/156/blocky-parkour-ninja/index.html' },
+    { title: 'Football King', embed: 'https://www.onlinegames.io/games/2024/construct/226/football-king/index.html' },
+    { title: 'American Touchdown', embed: 'https://www.onlinegames.io/games/2021/unity3/american-touchdown/index.html' },
+    { title: 'Hover Racer', embed: 'https://www.onlinegames.io/games/2021/unity3/hover-racer/index.html ' },
+    { title: 'Nova Craft', embed: 'https://cloud.onlinegames.io/games/2024/more2/nova-craft/index.html' },
+    { title: 'Futuristic Racer', embed: 'https://cloud.onlinegames.io/games/2021/2/futuristic-racer/index-og.html' },
+    { title: 'Music Battle 3D', embed: 'https://www.onlinegames.io/games/2022/unity/fnf-funk-3d/index.html' },
+    { title: 'Tractor Farming Simulator', embed: 'https://www.onlinegames.io/games/2022/unity/tractor-farming-simulator/index.html' },
+    { title: 'Dinosaur Game', embed: 'https://www.onlinegames.io/games/2023/q2/dinosaur-game/index.html' },
+    { title: 'Jeep Racing', embed: 'https://www.onlinegames.io/games/2023/freezenova.com/jeep-racing/index.html' },
+    { title: 'Mahjong', embed: 'https://cloud.onlinegames.io/games/2025/unity/mahjong/index-og.html' },
+    { title: 'Fire and Water', embed: 'https://www.onlinegames.io/games/2023/construct/179/fire-and-water/index.html' },
+    { title: 'Mech Shooter', embed: 'https://www.onlinegames.io/games/2022/unity/mech-shooter/index.html' },
+    { title: 'Kick the Zombie', embed: 'https://www.onlinegames.io/games/2021/2/kick-the-zombie/index.html' },
+    { title: 'Jacks Village', embed: 'https://www.onlinegames.io/games/2021/unity/jacks-village/index.html' },
+    { title: 'Crazy Stickman Physics', embed: 'https://www.onlinegames.io/games/2023/construct/185/crazy-stickman-physics/index.html' },
+    { title: 'Galactic Sniper', embed: 'https://www.onlinegames.io/games/2021/2/galactic-sniper/index.html' },
+    { title: 'Evil Santa', embed: 'https://www.onlinegames.io/games/2021/1/evil-santa/index.html' },
+    { title: 'Kingdom Battle 3D', embed: 'https://cloud.onlinegames.io/games/2025/unity2/kingdom-battle-3d/index-og.html' },
+    { title: 'Limousine Simulator', embed: 'https://www.onlinegames.io/games/2021/4/limousine-simulator/index.html' },
+    { title: 'Car Wash', embed: 'https://www.onlinegames.io/games/2023/unity2/car-wash/index.html' },
+    { title: 'Perfect First Date', embed: 'https://www.onlinegames.io/games/2021/3/perfect-first-date/index.html' },
+    { title: 'Witch Beauty Salon', embed: 'https://www.onlinegames.io/games/2021/2/witch-beauty-salon/index.html' },
+    { title: 'Paw Clicker', embed: 'https://cloud.onlinegames.io/games/2025/construct/331/paw-clicker/index-og.html' },
+    { title: 'Head Basketball', embed: 'https://www.onlinegames.io/games/2022/unity/head-basketball/index.html' },
+    { title: 'Find It', embed: 'https://cloud.onlinegames.io/games/2025/unity/find-it/index-og.html' },
+    { title: 'Crazy Moto Racing', embed: 'https://cloud.onlinegames.io/games/2022/unity3/crazy-moto-racing/index-og.html' },
+    { title: 'Zombie Sniper', embed: 'https://www.onlinegames.io/games/2022/construct/116/zombie-sniper/index.html' },
+    { title: 'Storm City Mafia', embed: 'https://www.onlinegames.io/games/2022/unity/storm-city-mafia/index.html' },
+    { title: 'Holiday Clicker', embed: 'https://www.onlinegames.io/games/2023/construct/288/xmas-cookie-clicker/index.html' },
+    { title: 'Dont Fall io', embed: 'https://www.onlinegames.io/games/2021/unity/dont-fall-io/index.html' },
+    { title: 'Hover Racer Pro', embed: 'https://www.onlinegames.io/games/2021/unity/hover-racer-pro/index.html' },
+    { title: 'Soul Essence Adventure', embed: 'https://www.onlinegames.io/games/2022/unity2/soul-essence-adventure/index.html' },
+    { title: 'Mini Shooters', embed: 'https://www.onlinegames.io/games/2021/5/mini-shooters/index.html' },
+    { title: 'Idle Dev Startup', embed: 'https://www.onlinegames.io/games/2023/unity3/idle-dev-startup/index.html' },
+    { title: 'Formula 1 Driver', embed: 'https://www.onlinegames.io/games/2022/construct/133/formula-1-driver/index.html' },
+    { title: 'Pinball Simulator', embed: 'https://www.onlinegames.io/games/2021/unity2/pinball-simulator/index.html' },
+    { title: 'Tiny Crash Fighters', embed: 'https://www.onlinegames.io/games/2023/construct/285/tiny-crash-fighters/index.html' },
+    { title: 'Hook Wars', embed: 'https://www.onlinegames.io/games/2023/unity3/hook-wars/index.html' },
+    { title: 'Romantic Secret Kiss', embed: 'https://www.onlinegames.io/games/2021/3/romantic-secret-kiss/index.html' },
+    { title: 'Kings io', embed: 'https://cloud.onlinegames.io/games/2025/construct/208/kings-io/index-og.html' },
+    { title: 'War of Ships io', embed: 'https://www.onlinegames.io/games/2022/unity3/war-of-ships-io/index.html' },
+    { title: 'Baby Beauty Salon', embed: 'https://www.onlinegames.io/games/2021/2/baby-beauty-salon/index.html' },
+    { title: 'Solitaire Adventure', embed: 'https://www.onlinegames.io/games/2022/unity4/solitaire-adventure/index.html' },
+    { title: 'Kawaii Shooter', embed: 'https://cloud.onlinegames.io/games/2024/unity/kawaii-shooter/index-og.html' },
+    { title: 'Draw The Bridge', embed: 'https://www.onlinegames.io/games/2021/4/draw-the-bridge/index.html' },
+    { title: 'Mad Doctor', embed: 'https://www.onlinegames.io/games/2021/4/mad-doctor/index.html' },
+    { title: 'Pets Beauty Salon', embed: 'https://www.onlinegames.io/games/2021/2/pets-beauty-salon/index.html' },
+    { title: 'Speed Drift Racing', embed: 'https://www.onlinegames.io/games/2022/construct/124/speed-drift-racing/index.html' },
+    { title: 'Princesses Prom Night', embed: 'https://www.onlinegames.io/games/2021/3/princesses-prom-night/index.html' },
+    { title: 'Zombie War Defense', embed: 'https://www.onlinegames.io/games/2022/unity/zombie-war-defense/index.html' },
+    { title: 'Princess Beauty Salon', embed: 'https://www.onlinegames.io/games/2021/1/princess-beauty-salon/index.html' },
+    { title: 'Skateboard Marathon', embed: 'https://www.onlinegames.io/games/2022/unity3/skateboard-marathon/index.html' },
+    { title: 'Head Soccer Football', embed: 'https://www.onlinegames.io/games/2022/unity/head-soccer-football/index.html' },
+    { title: 'First Day of School', embed: 'https://www.onlinegames.io/games/2021/3/first-day-of-school/index.html' },
+    { title: 'Army Driver', embed: 'https://www.onlinegames.io/games/2022/construct/63/army-driver/index.html' },
+    { title: 'Unicorn Beauty Salon', embed: 'https://www.onlinegames.io/games/2021/1/unicorn-beauty-salon/index.html' },
+    { title: 'War Simulator', embed: 'https://www.onlinegames.io/games/2021/unity2/war-simulator/index.html' },
+    { title: 'Apocalypse Truck', embed: 'https://cloud.onlinegames.io/games/2021/1/apocalypse-truck/index-og.html' },
+    { title: 'Cross the Road', embed: 'https://www.onlinegames.io/games/2023/unity/cross-the-road/index.html' },
+    { title: 'Draw Here', embed: 'https://www.onlinegames.io/games/2021/unity2/draw-here/index.html' },
+    { title: 'Highway Moto', embed: 'https://cloud.onlinegames.io/games/2024/unity/highway-moto/index-og.html' },
+    { title: 'Train Racing', embed: 'https://www.onlinegames.io/games/2022/construct/120/train-racing/index.html' },
+    { title: 'Draw the Truck Bridge', embed: 'https://www.onlinegames.io/games/2022/construct/149/draw-the-truck-bridge/index.html' },
+    { title: 'Blocky Blast', embed: 'https://www.onlinegames.io/games/2022/unity3/blocky-blast/index.html' },
+    { title: 'Trains io', embed: 'https://www.onlinegames.io/games/2023/construct/235/trains-io/index.html' },
+    { title: 'Monster Truck Race Arena', embed: 'https://cloud.onlinegames.io/games/2021/3/monster-truck-race-arena/index-og.html' },
+    { title: 'Idle Restaurant', embed: 'https://www.onlinegames.io/games/2023/unity2/idle-restaurant/index.html' },
+    { title: 'Nova Billiard', embed: 'https://www.onlinegames.io/games/2021/unity2/nova-billiard/index.html' },
+    { title: 'Dockyard Tank Parking', embed: 'https://www.onlinegames.io/games/2021/unity/dockyard-tank-parking/index.html' },
+    { title: 'Pyramid Solitaire', embed: 'https://cloud.onlinegames.io/games/2025/html/solitaire/index-og.html#pyramid' },
+    { title: 'The Farmer', embed: 'https://www.onlinegames.io/games/2022/unity/the-farmer/index.html' },
+    { title: 'Owl and Rabbit Fashion', embed: 'https://www.onlinegames.io/games/2021/2/owl-and-rabbit-fashion/index.html' },
+    { title: 'Snake Wars', embed: 'https://www.onlinegames.io/games/2024/unity/snake-wars/index.html' },
+    { title: 'Zombie Road', embed: 'https://www.onlinegames.io/games/2021/unity2/zombie-road/index.html' },
+    { title: 'ToonZ io', embed: 'https://www.onlinegames.io/games/2021/unity3/toonz-io/index.html' },
+    { title: 'Paradise Girls', embed: 'https://www.onlinegames.io/games/2021/4/paradise-girls/index.html' },
+    { title: 'Darkness Survivors', embed: 'https://www.onlinegames.io/games/2024/q2/darkness-survivors/index.html' },
+    { title: 'Monster Truck Booster', embed: 'https://cloud.onlinegames.io/games/2024/construct/223/monster-truck-booster/index-og.html' },
+    { title: 'Jul Moto Racing ', embed: 'https://cloud.onlinegames.io/games/2022/construct/122/jul-moto-racing/index-og.html' },
+    { title: 'Funny Shooter Bro', embed: 'https://www.onlinegames.io/games/2024/unity/funny-shooter-bro/index.html' },
+    { title: 'Tank Racing', embed: 'https://www.onlinegames.io/games/2022/construct/151/tank-racing/index.html' },
+    { title: 'Squid Race Simulator', embed: 'https://www.onlinegames.io/games/2021/unity3/squid-race-simulator/index.html' },
+    { title: 'Mafia Getaway Cars', embed: 'https://cloud.onlinegames.io/games/2025/construct/298/mafia-getaway-cars/index-og.html' },
+    { title: 'Rescue Helicopter', embed: 'https://www.onlinegames.io/games/2021/2/rescue-helicopter/index.html' },
+    { title: 'Racing Cars', embed: 'https://www.onlinegames.io/games/2021/1/racing-cars/index.html' },
+    { title: 'Monster Truck Racing', embed: 'https://www.onlinegames.io/games/2021/1/monster-truck-racing/index.html' },
+    { title: 'Space Crew Mystery', embed: 'https://www.onlinegames.io/games/2023/construct/234/among-impostor/index.html' },
+    { title: 'Speedrun Parkour', embed: 'https://www.onlinegames.io/games/2022/construct/145/speedrun-parkour/index.html' },
+    { title: 'Truck Racing', embed: 'https://www.onlinegames.io/games/2022/construct/144/truck-racing/index.html' },
+    { title: 'Crazy Ball Adventures', embed: 'https://www.onlinegames.io/games/2021/unity2/crazy-ball-adventures/index.html' },
+    { title: 'Beat Rush', embed: 'https://www.onlinegames.io/games/2023/construct/279/geometry-rash/index.html' },
+    { title: 'Legends Arena', embed: 'https://www.onlinegames.io/games/2023/unity2/legends-arena/index.html' },
+    { title: 'Sweet Sugar Match', embed: 'https://www.onlinegames.io/games/2022/unity/sweet-sugar-match/index.html' },
+    { title: 'Racing Cars 2', embed: 'https://www.onlinegames.io/games/2021/4/racing-cars-2/index.html' },
+    { title: 'Draw the Bird Path', embed: 'https://www.onlinegames.io/games/2022/construct/147/draw-the-bird-path/index.html' },
+    { title: 'Egg Helix', embed: 'https://www.onlinegames.io/games/2022/unity2/egg-helix/index.html' },
+    { title: 'Mr Space Bullet', embed: 'https://www.onlinegames.io/games/2021/4/mr-space-bullet/index.html' },
+    { title: 'Crazy Hill Climb', embed: 'https://www.onlinegames.io/games/2023/construct/209/crazy-hill-climb/index.html' },
+    { title: 'Treasure Hunter', embed: 'https://www.onlinegames.io/games/2022/construct/164/treasure-hunter/index.html' },
+    { title: 'Dino Chaos Idle', embed: 'https://www.onlinegames.io/games/2023/unity3/dino-chaos-idle/index.html' },
+    { title: 'Kick the Pirate', embed: 'https://cloud.onlinegames.io/games/2022/construct/92/kick-the-pirate/index-og.html' },
+    { title: 'Hill Climb Cars', embed: 'https://www.onlinegames.io/games/2021/3/hill-climb-cars/index.html' },
+    { title: 'Run 3 Space', embed: 'https://www.onlinegames.io/games/2023/construct/192/run-3-space/index.html' },
+    { title: 'Descent Runner', embed: 'https://game.azgame.io/slope-rider/' },
+    { title: 'Wacky Flip', embed: 'https://game.azgame.io/wacky-flip/' },
+    { title: 'Steal Brainrots', embed: 'https://gamea.azgame.io/steal-brainrots/' },
+    { title: 'Escape Road', embed: 'https://azgames.io/escape-road.embed' },
+    { title: 'Curve Rush', embed: 'https://game.azgame.io/curve-rush/' },
+    { title: 'Traffic Road', embed: 'https://azgames.io/traffic-road.embed' },
+    { title: 'Italian Brainrot Clicker 2', embed: 'https://game.azgame.io/italian-brainrot-clicker-2/' },
+    { title: 'Undead Corridor', embed: 'https://gamea.azgame.io/undead-corridor/' },
+    { title: 'Golf Hit', embed: 'https://game.azgame.io/golf-hit/' },
+    { title: 'Geometry Dasher Lite', embed: 'https://files.rocketgames.io/uploads/games/g/geometry-dash-lite/files/f76f8e/index.html' }
+];
+
+// Function to convert title to filename
+function titleToFilename(title) {
+    return title.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
+// Build unified game list from curated list + games.json
+const allGamesMap = new Map();
+function addGame(title, embed) {
+    if (!title || !embed) return;
+    const slug = titleToFilename(title);
+    if (!slug) return;
+    if (!allGamesMap.has(slug)) {
+        allGamesMap.set(slug, { title, embed });
+    }
+}
+games.forEach(game => addGame(game.title, game.embed));
+if (Array.isArray(gamesMeta)) {
+    gamesMeta.forEach(meta => {
+        if (!meta || typeof meta !== 'object') return;
+        addGame(meta.title, meta.embed);
+    });
+}
+  const allGames = Array.from(allGamesMap.values());
+  
+  // Generate all game pages
+  allGames.forEach(game => {
+    const filename = `game-${titleToFilename(game.title)}.html`;
+    const filepath = path.join(__dirname, 'games', filename);
+    const meta = getMetaForGame(game);
+    const descriptionSource = meta && meta.description
+        ? meta.description
+        : `Play ${game.title} in fullscreen and enjoy a smooth experience right here on Nebulo.`;
+    const safeDescription = escapeHtml(descriptionSource);
+
+    // Replace placeholders
+    let content = template
+        .replace(/\{\{GAME_TITLE\}\}/g, game.title)
+        .replace(/\{\{GAME_EMBED\}\}/g, game.embed)
+        .replace(/\{\{GAME_DESCRIPTION\}\}/g, safeDescription);
+
+    // Write file
+      fs.writeFileSync(filepath, content, 'utf8');
+      console.log(`Generated: ${filename}`);
+  });
+  
+  // Also write a lightweight list of slugs for use on game detail pages
+  try {
+      const slugsPath = path.join(__dirname, 'data', 'game-slugs.json');
+      const slugList = allGames.map(game => ({
+          title: game.title,
+          slug: titleToFilename(game.title),
+      }));
+      fs.writeFileSync(slugsPath, JSON.stringify(slugList, null, 2), 'utf8');
+      console.log(`\nWrote ${slugList.length} entries to data/game-slugs.json`);
+  } catch (err) {
+      console.error('Failed to write data/game-slugs.json:', err);
+  }
+  
+  console.log(`\nGenerated ${allGames.length} game pages!`);
