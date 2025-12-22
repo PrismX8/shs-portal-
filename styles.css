@@ -13406,7 +13406,42 @@ body {
     background: radial-gradient(circle at top, #0a0f23, #050812 70%);
 }
 
-/* AdSense Ad Styling - Prevent overlap and ensure visibility */
+/* ========================================
+   AdSense Ad Container System
+   Prevents overlap and ensures proper placement
+   ======================================== */
+
+/* Standardized ad container - use this class for all ads */
+.ad-container {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 20px auto !important;
+    padding: 15px 20px !important;
+    text-align: center !important;
+    background: transparent !important;
+    z-index: 1 !important; /* Low z-index to stay behind modals/overlays */
+    min-height: 100px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    clear: both !important; /* Prevent float overlap */
+}
+
+/* Ad container with vertical spacing */
+.ad-container-spaced {
+    margin: 30px auto !important;
+}
+
+/* Ad container in chat panel */
+#globalChatPanel .ad-container {
+    margin: 0 auto 12px auto !important;
+    padding: 10px 0 !important;
+    flex-shrink: 0 !important;
+    min-height: 90px !important;
+}
+
+/* AdSense ad element styling */
 .adsbygoogle,
 ins.adsbygoogle {
     display: block !important;
@@ -13415,13 +13450,17 @@ ins.adsbygoogle {
     position: relative !important;
     z-index: 1 !important;
     max-width: 100% !important;
+    width: 100% !important;
     overflow: hidden !important;
     margin: 0 auto !important;
+    box-sizing: border-box !important;
 }
 
 /* Ensure ad containers don't disappear on scroll */
 div:has(> .adsbygoogle),
-div:has(> ins.adsbygoogle) {
+div:has(> ins.adsbygoogle),
+div.ad-container:has(> .adsbygoogle),
+div.ad-container:has(> ins.adsbygoogle) {
     position: relative !important;
     z-index: 1 !important;
     visibility: visible !important;
@@ -13430,25 +13469,63 @@ div:has(> ins.adsbygoogle) {
     min-height: 90px !important;
 }
 
-/* Prevent ads from overlapping fixed elements (like chat modals) */
-.adsbygoogle {
-    z-index: 1 !important;
+/* Prevent ads from overlapping fixed elements (modals, sidebars, etc.) */
+/* Fixed elements should have z-index > 1000 */
+.ad-container {
+    z-index: 1 !important; /* Low z-index to stay behind modals */
 }
 
-/* On chat page, ensure ad doesn't overlap chat content */
-#globalChatPanel .adsbygoogle,
-#globalChatPanel ins.adsbygoogle {
-    z-index: 1 !important;
-    position: relative !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
+/* Ensure ads don't overlap content in flex containers */
+.flex-container .ad-container,
+#globalChatPanel .ad-container {
+    flex-shrink: 0 !important;
 }
 
 /* Responsive ad sizing */
 @media (max-width: 768px) {
+    .ad-container {
+        padding: 10px 15px !important;
+        margin: 15px auto !important;
+        min-height: 90px !important;
+    }
+    
     .adsbygoogle,
     ins.adsbygoogle {
         max-width: 100% !important;
         width: 100% !important;
     }
+}
+
+/* Prevent ads from overlapping on small screens */
+@media (max-width: 480px) {
+    .ad-container {
+        padding: 10px !important;
+        margin: 10px auto !important;
+    }
+}
+
+/* Ensure ads don't interfere with page content */
+.ad-container + * {
+    clear: both !important;
+}
+
+/* Game pages - ensure ads don't overlap game iframe */
+.premium-game-embed + .ad-container,
+.game-embed + .ad-container {
+    margin-top: 30px !important;
+}
+
+/* Prevent ads from overlapping sidebar */
+.with-sidebar .ad-container {
+    max-width: calc(100% - 20px) !important;
+}
+
+/* Ensure ads are visible but don't cover important UI */
+.ad-container {
+    pointer-events: auto !important;
+}
+
+/* Hide empty ad containers to prevent layout issues */
+.ad-container:empty {
+    display: none !important;
 }

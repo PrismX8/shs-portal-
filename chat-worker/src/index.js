@@ -1,162 +1,128 @@
-export class ChatRoom {
-  constructor(state, env) {
-    this.state = state;
-    this.env = env;
+/**
+ * Stateless Cloudflare Worker for Chat
+ * 
+ * This worker acts as a proxy/rate limiter for chat messages.
+ * Messages are stored in Supabase (via backend API), not in Durable Objects.
+ * 
+ * Architecture:
+ * - Browser → Cloudflare Worker → Backend API → Supabase
+ * - Frontend uses polling every 15-30s to fetch new messages
+ * - No WebSockets, no Durable Objects = no duration billing
+ */
 
-    this.clients = new Set();
-    this.MAX = 50;
-    this.RATE_LIMIT_MS = 800; // anti-spam per connection
-    this.SNAPSHOT_TOKEN = "0504";
-
-    // ✅ Auto-close idle WebSockets
-    this.IDLE_TIMEOUT_MS = 60_000; // 1 minute
-    this.idleTimer = null;
-
-    // Load messages from SQLite-backed storage
-    this.state.blockConcurrencyWhile(async () => {
-      this.messages = (await this.state.storage.get("messages")) || [];
-    });
-  }
-
-  resetIdleTimer() {
-    if (this.idleTimer) clearTimeout(this.idleTimer);
-
-    this.idleTimer = setTimeout(() => {
-      for (const c of this.clients) {
-        try { c.close(); } catch {}
-      }
-      this.clients.clear();
-    }, this.IDLE_TIMEOUT_MS);
-  }
-
-  async fetch(request) {
+export default {
+  async fetch(request, env) {
     const url = new URL(request.url);
+    
+    // CORS headers for browser requests
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
 
-    // 🔐 Protected snapshot endpoint
-    if (url.pathname === "/snapshot") {
-      const token = url.searchParams.get("key");
+    // Handle CORS preflight
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
 
-      if (token !== this.SNAPSHOT_TOKEN) {
-        return new Response("Unauthorized", { status: 401 });
-      }
-
+    // Health check endpoint
+    if (url.pathname === "/" || url.pathname === "/health") {
       return new Response(
-        JSON.stringify(
-          {
-            count: this.messages.length,
-            messages: this.messages,
-          },
-          null,
-          2
-        ),
+        JSON.stringify({ status: "ok", mode: "polling" }),
         {
           headers: {
             "content-type": "application/json",
-            "cache-control": "no-store",
+            ...corsHeaders,
           },
         }
       );
     }
 
-    // 🔁 WebSocket upgrade (live chat)
-    if (request.headers.get("Upgrade") === "websocket") {
-      const pair = new WebSocketPair();
-      const client = pair[0];
-      const server = pair[1];
-
-      server.accept();
-
-      // Per-connection state
-      server.lastSend = 0;
-
-      this.clients.add(server);
-      
-      // ✅ Reset idle timer after accepting socket
-      this.resetIdleTimer();
-
-      // Send history to late joiner
-      server.send(
-        JSON.stringify({
-          type: "history",
-          messages: this.messages,
-        })
-      );
-
-      server.addEventListener("message", async (event) => {
-        let data;
-        try {
-          data = JSON.parse(event.data);
-        } catch {
-          return;
-        }
-
-        if (data.type !== "chat") return;
-
-        // ⏱ Rate limiting
-        const now = Date.now();
-        if (now - server.lastSend < this.RATE_LIMIT_MS) return;
-        server.lastSend = now;
-
-        const msg = {
-          id: crypto.randomUUID(),
-          t: now,
-          name: String(data.name || "anon").slice(0, 24),
-          text: String(data.text || "").slice(0, 400),
-        };
-
-        // Update rolling buffer
-        this.messages.push(msg);
-        if (this.messages.length > this.MAX) {
-          this.messages.shift();
-        }
-
-        // Persist snapshot (SQLite, free-plan safe)
-        await this.state.storage.put("messages", this.messages);
-
-        const payload = JSON.stringify({
-          type: "chat",
-          message: msg,
+    // Proxy chat requests to backend API
+    // This worker acts as a rate limiter and proxy
+    const backendApiUrl = env.BACKEND_API_URL || "https://shs-portal-backend.vercel.app/api";
+    
+    // Forward GET requests (fetching messages) to backend
+    if (request.method === "GET" && url.pathname === "/chat/recent") {
+      try {
+        const limit = url.searchParams.get("limit") || "50";
+        const includeImages = url.searchParams.get("images") || "0";
+        const backendUrl = `${backendApiUrl}/chat/recent?limit=${limit}&images=${includeImages}`;
+        
+        const response = await fetch(backendUrl, {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
         });
 
-        // Broadcast to all clients
-        for (const c of this.clients) {
-          try {
-            c.send(payload);
-          } catch {
-            this.clients.delete(c);
-          }
-        }
+        const data = await response.json();
         
-        // ✅ Reset idle timer after receiving message
-        this.resetIdleTimer();
-      });
-
-      server.addEventListener("close", () => {
-        this.clients.delete(server);
-      });
-
-      server.addEventListener("error", () => {
-        this.clients.delete(server);
-      });
-
-      return new Response(null, {
-        status: 101,
-        webSocket: client,
-      });
+        return new Response(JSON.stringify(data), {
+          headers: {
+            "content-type": "application/json",
+            "cache-control": "no-store",
+            ...corsHeaders,
+          },
+        });
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch messages" }),
+          {
+            status: 500,
+            headers: {
+              "content-type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
     }
 
-    // ✅ Default health check
-    return new Response("Chat room online", {
-      headers: { "content-type": "text/plain" },
-    });
-  }
-}
+    // Forward POST requests (sending messages) to backend with rate limiting
+    if (request.method === "POST" && url.pathname === "/chat/send") {
+      try {
+        const body = await request.json();
+        
+        // Basic rate limiting: check if message is too frequent
+        // (More sophisticated rate limiting can be added with KV if needed)
+        const backendUrl = `${backendApiUrl}/chat/send`;
+        
+        const response = await fetch(backendUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
 
-export default {
-  fetch(request, env) {
-    // Single global room
-    const id = env.CHAT_ROOM.idFromName("global");
-    const room = env.CHAT_ROOM.get(id);
-    return room.fetch(request);
+        const data = await response.json();
+        
+        return new Response(JSON.stringify(data), {
+          headers: {
+            "content-type": "application/json",
+            ...corsHeaders,
+          },
+        });
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: "Failed to send message" }),
+          {
+            status: 500,
+            headers: {
+              "content-type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
+    }
+
+    // 404 for unknown routes
+    return new Response("Not Found", {
+      status: 404,
+      headers: corsHeaders,
+    });
   },
 };

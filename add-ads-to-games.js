@@ -2,12 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 const adCode = `<!-- Display Ad -->
-<div style="max-width: 100%; margin: 20px auto; text-align: center; padding: 0 20px;">
+<div class="ad-container">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
      crossorigin="anonymous"></script>
 <!-- display ads -->
 <ins class="adsbygoogle"
-     style="display:block"
      data-ad-client="ca-pub-3290829368025891"
      data-ad-slot="9717787503"
      data-ad-format="auto"

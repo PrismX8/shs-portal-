@@ -2,20 +2,13 @@
   "name": "chat-worker",
   "main": "src/index.js",
   "compatibility_date": "2024-01-01",
-
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "CHAT_ROOM",
-        "class_name": "ChatRoom"
-      }
-    ]
-  },
-
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["ChatRoom"]
-    }
-  ]
+  
+  "vars": {
+    "BACKEND_API_URL": "https://shs-portal-backend.vercel.app/api"
+  }
+  
+  // ✅ NO DURABLE OBJECTS - This is a stateless worker
+  // Messages are stored in Supabase via backend API
+  // Frontend uses polling (15-30s intervals) instead of WebSockets
+  // No WebSocket upgrades, no duration billing - safe for free tier
 }

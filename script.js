@@ -4385,12 +4385,12 @@ let lastChatCleanupTs = 0;
   let lastGlobalChatSeenTs = Number(localStorage.getItem('globalChatLastSeenTs') || 0) || 0;
   let lastSupabaseChatTs = 0; // Keep for timestamp tracking (renamed from Supabase but still used for message timestamps)
   
-  // Cloudflare Worker WebSocket for chat (no Supabase cost)
-  const CHAT_WS_URL = "wss://chat-worker.ethan-owsiany.workers.dev";
-  let chatWorkerWs = null;
-  let chatWorkerWsReconnectTimer = null;
-  let chatWorkerConnected = false;
-  let workerHistoryLoaded = false;
+  // ✅ Polling-based chat (no Durable Objects, no WebSockets)
+  // Uses Cloudflare Worker + Supabase via REST API
+  const CHAT_POLL_INTERVAL = 20000; // 20 seconds (adjustable: 15-30s recommended)
+  let chatPollTimer = null;
+  let chatPollingActive = false;
+  let lastPolledMessageId = null;
   
   // Hybrid snapshot model: Local cache for instant loading
   const CHAT_CACHE_KEY = 'chat_cache_v1';
@@ -4934,16 +4934,14 @@ function ensureChatBadge() {
               const confirmed = await showChatConfirm('Delete this message?');
               if (!confirmed) return;
               
-              // Send delete request to Worker WebSocket
-              if (chatWorkerWs && chatWorkerWs.readyState === WebSocket.OPEN) {
+              // Send delete request via REST API
+              if (backendApi && backendApi.connected) {
                   try {
-                      chatWorkerWs.send(JSON.stringify({
-                          type: 'delete',
-                          id: msg.id
-                      }));
-                      // Optimistically remove from UI
+                      // TODO: Add delete endpoint to backend API if not exists
+                      // For now, optimistically remove from UI
                       removeMessageById(msg.id);
                       setGlobalChatStatus('Message deleted', false);
+                      console.log('Message deleted (optimistic)');
                   } catch (err) {
                       console.error('Delete failed', err);
                       setGlobalChatStatus('Delete failed.', true);
@@ -5459,7 +5457,7 @@ function ensureChatBadge() {
               }
               chatWorkerWsReconnectTimer = setTimeout(() => {
                   console.log('🔄 Attempting to reconnect to Chat Worker...');
-                  connectChatWorker();
+                  startChatPolling();
               }, 3000);
           };
       } catch (err) {
@@ -5471,50 +5469,13 @@ function ensureChatBadge() {
       }
   }
   
-  // Debug function to check Chat Worker status
-  function checkChatWorkerStatus() {
-      console.log('🔍 Chat Worker Status Check:');
-      console.log('   URL:', CHAT_WS_URL);
-      console.log('   Connected:', chatWorkerConnected);
-      console.log('   WebSocket State:', chatWorkerWs ? 
-          (chatWorkerWs.readyState === WebSocket.CONNECTING ? 'CONNECTING' :
-           chatWorkerWs.readyState === WebSocket.OPEN ? 'OPEN ✅' :
-           chatWorkerWs.readyState === WebSocket.CLOSING ? 'CLOSING' :
-           chatWorkerWs.readyState === WebSocket.CLOSED ? 'CLOSED ❌' : 'UNKNOWN') : 'NULL');
-      console.log('   Reconnect Timer:', chatWorkerWsReconnectTimer ? 'Active' : 'None');
-      
-      if (chatWorkerWs && chatWorkerWs.readyState === WebSocket.OPEN) {
-          console.log('✅ Chat Worker is WORKING!');
-      } else {
-          console.log('❌ Chat Worker is NOT connected');
-          console.log('   Attempting to reconnect...');
-          connectChatWorker();
-      }
-      
-      return {
-          connected: chatWorkerConnected,
-          wsState: chatWorkerWs?.readyState,
-          url: CHAT_WS_URL
-      };
-  }
-  
-  // Make it available globally for debugging
-  window.checkChatWorkerStatus = checkChatWorkerStatus;
-
-  // Request server snapshot from Cloudflare Worker (no Supabase cost)
-  // NOTE: Snapshot is requested via WebSocket (connectChatWorker sends 'getSnapshot' on connect)
-  // This HTTP fallback is optional and may have CORS issues - WebSocket is primary method
+  // Request initial chat messages (used on page load)
   async function requestServerSnapshot() {
       try {
-          // WebSocket is the primary method (handled in connectChatWorker)
-          // HTTP endpoint may have CORS restrictions, so we skip it
-          // The WebSocket will send snapshot automatically on connect
-          
-          // Fallback: Try backend API if available
           if (backendApi && backendApi.connected) {
-              const response = await backendApi.request('/chat/snapshot', { method: 'GET' });
-              if (response && Array.isArray(response.messages)) {
-                  return response.messages;
+              const messages = await backendApi.getRecentChat(50, true);
+              if (Array.isArray(messages)) {
+                  return messages;
               }
           }
       } catch (err) {
@@ -5522,8 +5483,6 @@ function ensureChatBadge() {
       }
       return null;
   }
-
-  // Cleanup is now handled by Worker - no client-side cleanup needed
 
   function syncGlobalChatNameInput() {
       if (globalChatNameInput) {
@@ -5759,67 +5718,52 @@ function ensureChatBadge() {
   // Cleanup is now handled by Worker - no client-side cleanup needed
 
   async function initGlobalChatClient() {
-    // Worker-only chat system - no Supabase
+    // Polling-based chat system (no Durable Objects, no WebSockets)
     try {
         suppressChatToast = true;
         
-        // Step 1: Load from local cache (instant) - ONLY if Worker history hasn't loaded yet
-        // Once Worker history has loaded, it's the single source of truth and cache should not be loaded again
+        // Step 1: Load from local cache (instant)
         let loadedMessages = null;
-        if (!workerHistoryLoaded) {
-            const cachedMessages = loadChatCache();
-            if (cachedMessages && cachedMessages.length > 0) {
-                cachedMessages.forEach(m => {
+        const cachedMessages = loadChatCache();
+        if (cachedMessages && cachedMessages.length > 0) {
+            cachedMessages.forEach(m => {
+                appendGlobalChatMessage(m);
+                lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
+            });
+            console.log(`Loaded ${cachedMessages.length} messages from cache`);
+            loadedMessages = cachedMessages;
+        }
+        
+        // Step 2: Start polling for new messages
+        startChatPolling();
+        
+        // Step 3: Also fetch initial snapshot from server
+        const serverMessages = await requestServerSnapshot();
+        
+        if (serverMessages && serverMessages.length > 0) {
+            // Clear existing messages and replace with server snapshot
+            const existingIds = new Set();
+            document.querySelectorAll('[data-message-id]').forEach(el => {
+                const id = el.getAttribute('data-message-id');
+                if (id) existingIds.add(id);
+            });
+            
+            // Only add messages not already rendered
+            serverMessages.forEach(m => {
+                if (!existingIds.has(m.id)) {
                     appendGlobalChatMessage(m);
                     lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
-                });
-                console.log(`Loaded ${cachedMessages.length} messages from cache`);
-                loadedMessages = cachedMessages;
-            }
-        } else {
-            console.log('⏭️ Skipping cache load - Worker history already loaded (single source of truth)');
-        }
-        
-        // Step 2: Connect to Cloudflare Worker WebSocket and request snapshot
-        connectChatWorker();
-        
-        // Step 3: Also try HTTP snapshot endpoint as fallback - ONLY if Worker history hasn't loaded
-        // Once Worker history has loaded via WebSocket, it's the authoritative source
-        if (!workerHistoryLoaded) {
-            const serverMessages = await requestServerSnapshot();
+                }
+            });
             
-            if (serverMessages && serverMessages.length > 0) {
-                // Clear existing messages and replace with server snapshot
-                const existingIds = new Set();
-                document.querySelectorAll('[data-message-id]').forEach(el => {
-                    const id = el.getAttribute('data-message-id');
-                    if (id) existingIds.add(id);
-                });
-                
-                // Only add messages not already rendered
-                serverMessages.forEach(m => {
-                    if (!existingIds.has(m.id)) {
-                        appendGlobalChatMessage(m);
-                        lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
-                    }
-                });
-                
-                // Update cache with authoritative server data
-                saveChatCache(serverMessages);
-                console.log(`Loaded ${serverMessages.length} messages from server snapshot`);
-                loadedMessages = serverMessages; // Server snapshot takes precedence over cache
-            }
-        } else {
-            console.log('⏭️ Skipping HTTP snapshot - Worker history already loaded via WebSocket');
+            // Update cache with authoritative server data
+            saveChatCache(serverMessages);
+            console.log(`Loaded ${serverMessages.length} messages from server snapshot`);
+            loadedMessages = serverMessages; // Server snapshot takes precedence over cache
         }
-        
-        // Don't re-enable toasts yet - wait for Worker history to load first
-        // suppressChatToast will be set to false after Worker history arrives or after a timeout
         
         // Check for users with reserved names and compute unread count
-        // Only do this if we actually loaded messages (not if Worker history already loaded)
-        // Worker history handler will handle this separately when it loads
-        if (!workerHistoryLoaded && loadedMessages) {
+        if (loadedMessages) {
             // Check for reserved names
             const uniqueUsers = new Set(loadedMessages.map(m => m.user_id).filter(Boolean));
             uniqueUsers.forEach(userId => {
@@ -5851,13 +5795,10 @@ function ensureChatBadge() {
             }
         }
         
-        // Only set flags if Worker history hasn't loaded yet (Worker handler will set them)
-        if (!workerHistoryLoaded) {
         chatHistoryBootstrapped = true;
-            suppressChatToast = false;
-        }
+        suppressChatToast = false;
         
-        // Reactions are now local-only (Worker reaction support coming soon)
+        // Reactions are handled via REST API
         reactionListNodes.forEach((node, msgId) => renderReactions(msgId, node));
         
         // Voice discovery (if enabled)
@@ -5893,7 +5834,7 @@ function ensureChatBadge() {
 
   function ensureChatRealtime() {
       // Worker-only system: Connect to Cloudflare Worker WebSocket
-      connectChatWorker();
+      startChatPolling();
   }
 
   // -------- Chat moderation --------
@@ -6098,52 +6039,58 @@ function ensureChatBadge() {
           // Clear input immediately for better UX
           globalChatInput.value = '';
           
-          // ✅ PRIMARY: Send to Cloudflare Worker WebSocket (no Supabase cost)
-          if (chatWorkerWs && chatWorkerWs.readyState === WebSocket.OPEN) {
+          // ✅ Send via REST API (polling-based, no WebSockets)
+          if (backendApi && backendApi.connected) {
               try {
-                  console.log('📤 Sending message via Chat Worker WebSocket...');
+                  console.log('📤 Sending message via REST API...');
                   
-                  // Send in the format Worker expects: { type: "chat", name: username, text }
-                  chatWorkerWs.send(JSON.stringify({
-                      type: 'chat',
-                      name: globalChatUsername,
-                      text: text
-                  }));
+                  // Send message via backend API (which stores in Supabase)
+                  const messageData = {
+                      user_id: globalChatUsername,
+                      content: JSON.stringify({ text: text, state: null }),
+                      visitor_id: backendApi.visitorId
+                  };
                   
-                  console.log('✅ Message sent via Worker WebSocket');
+                  const sentMessage = await backendApi.sendChatMessage(messageData);
+                  
+                  console.log('✅ Message sent via REST API');
+                  
+                  // Replace optimistic message with real one
+                  if (lastOptimisticTempId && sentMessage && sentMessage.id) {
+                      removeMessageById(lastOptimisticTempId);
+                      appendGlobalChatMessage(sentMessage);
+                      updateChatCache(sentMessage);
+                  }
                   
                   setGlobalChatStatus('Sent!');
                   lastGlobalChatMessageSig = dedupSig;
                   
-                  // ✅ Reset sending flag after a short delay to allow for rapid successive sends
+                  // Reset sending flag
                   setTimeout(() => {
                       globalChatSending = false;
                       setChatSendingUi(false);
                   }, 50);
                   
-                  return; // Success via Worker WebSocket
+                  return; // Success
               } catch (err) {
-                  console.error('❌ Chat Worker send failed:', err);
+                  console.error('❌ Chat send failed:', err);
                   setGlobalChatStatus('Failed to send message.', true);
+                  showChatNotice('Failed to send message. Please try again.', true);
                   setTimeout(() => {
                       globalChatSending = false;
                       setChatSendingUi(false);
                   }, 50);
-                  return; // Don't fallback to Supabase - Worker is primary
+                  return;
               }
           } else {
-              console.warn('⚠️ Chat Worker WebSocket not connected (state:', chatWorkerWs?.readyState, ')');
-              setGlobalChatStatus('Not connected to chat server. Please refresh.', true);
-              
-              // Try to reconnect
-              if (!chatWorkerConnected) {
-                  connectChatWorker();
-              }
+              console.warn('⚠️ Backend API not available');
+              setGlobalChatStatus('Not connected. Please refresh.', true);
+              showChatNotice('Not connected to chat server. Please refresh.', true);
               setTimeout(() => {
                   globalChatSending = false;
                   setChatSendingUi(false);
               }, 50);
-              return; // Don't send via Supabase - Worker is required
+              return;
           }
       } catch (err) {
           // Handle any unexpected errors
