@@ -1647,7 +1647,24 @@
     }
   })();
 </script>
-<!-- script.js loads AFTER Firebase is initialized -->
+
+<!-- ✅ CHAT API Configuration: Set Cloudflare Worker URL before script.js loads -->
+<script>
+  // Configure chat to use Cloudflare Worker (NOT Vercel backend)
+  // Chat Worker: chat-worker.ethan-owsiany.workers.dev
+  // Used for: chat history, snapshot endpoint, chat polling
+  // ⚠️ IMPORTANT: Chat uses ONLY polling (no WebSockets)
+  // WebSockets are disabled by default to prevent Durable Objects billing
+  window.CHAT_API_BASE = "https://chat-worker.ethan-owsiany.workers.dev";
+  
+  // For local development with wrangler dev:
+  // window.CHAT_API_BASE = "http://localhost:8787";
+  
+  console.log('✅ CHAT_API_BASE configured:', window.CHAT_API_BASE);
+  console.log('✅ Chat mode: POLLING ONLY (WebSockets disabled)');
+</script>
+
+<!-- script.js loads AFTER Firebase is initialized and CHAT_API_BASE is set -->
 <script src="script.js"></script>
 <script defer src="adblocker.js"></script>
 <script>

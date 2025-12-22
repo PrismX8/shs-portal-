@@ -1,4 +1,14 @@
   console.time('scriptExecution');
+  
+  // ✅ REQUIRED FINAL SAFETY STEP: Disable WebSockets by default to prevent Durable Objects burn
+  // Set these flags ONCE at app startup - guards all WebSocket initializations
+  if (typeof window.ENABLE_VOICE_WS === 'undefined') {
+      window.ENABLE_VOICE_WS = false; // Disable voice WebSocket (prevents DO burn)
+  }
+  if (typeof window.ENABLE_CHAT_WORKER_WS === 'undefined') {
+      window.ENABLE_CHAT_WORKER_WS = false; // Disable chat worker WebSocket (prevents DO burn)
+  }
+  
   // Check if this is the chat-only page to avoid loading heavy features
   const IS_CHAT_ONLY = window.location.pathname.includes('chat-only.html');
   const CHAT_AGE_KEY = 'chatAgeGateStatus';
@@ -139,21 +149,41 @@
   };
   const IS_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
+  // ✅ CHAT API: Explicit Cloudflare Worker URL (NO fallback to Vercel)
+  // Set window.CHAT_API_BASE before script.js loads to override
+  // Example: window.CHAT_API_BASE = "https://your-worker.your-subdomain.workers.dev";
+  const CHAT_API_BASE = window.CHAT_API_BASE || (IS_LOCAL
+    ? "http://localhost:8787"  // Local Cloudflare Worker (if using wrangler dev)
+    : null);  // ⚠️ MUST be set - no default fallback to prevent accidental Vercel usage
+
+  if (!CHAT_API_BASE) {
+      console.error('❌ CHAT_API_BASE not configured! Set window.CHAT_API_BASE before script.js loads.');
+      console.error('   Example: window.CHAT_API_BASE = "https://your-worker.your-subdomain.workers.dev";');
+  }
+
+  // Legacy backend URLs (kept for non-chat features only - DO NOT USE FOR CHAT)
   const BACKEND_API_URL =
-    window.BACKEND_API_URL ||
-    (IS_LOCAL
-      ? "http://localhost:3000/api"
-      : "https://shs-portal-backend.vercel.app/api");
+    window.BACKEND_API_URL !== undefined
+      ? window.BACKEND_API_URL
+      : (IS_LOCAL
+          ? "http://localhost:3000/api"
+          : "https://shs-portal-backend.vercel.app/api");
 
   const BACKEND_WS_URL =
-    window.BACKEND_WS_URL ||
-    (IS_LOCAL
-      ? "ws://localhost:3000"
-      : "wss://shs-portal-backend.vercel.app");
+    window.BACKEND_WS_URL !== undefined
+      ? window.BACKEND_WS_URL
+      : (IS_LOCAL
+          ? "ws://localhost:3000"
+          : "wss://shs-portal-backend.vercel.app");
 
   const SOCIAL_FEATURES_ENABLED = false; // Friends/profile/leaderboard backend disabled
-  const backendApiAvailable = typeof BackendAPI !== 'undefined' && SOCIAL_FEATURES_ENABLED;
+  // Backend API is needed for chat (polling), even if social features are disabled
+  const backendApiAvailable = typeof BackendAPI !== 'undefined';
   let backendApi = backendApiAvailable ? new BackendAPI({ apiUrl: BACKEND_API_URL, wsUrl: BACKEND_WS_URL }) : null;
+  // Connect immediately for polling mode (no WebSocket needed)
+  if (backendApi) {
+      backendApi.connect().catch(() => {}); // Connect sets connected = true immediately
+  }
   if (!backendApi && typeof window.markBackendReady === 'function') {
     window.markBackendReady();
   }
@@ -711,6 +741,12 @@
           reason: String(opts?.reason || ''),
           ts: Date.now()
       };
+      // ✅ GUARD: Check if chat worker WebSocket is enabled
+      if (!window.ENABLE_CHAT_WORKER_WS) {
+          console.warn('Chat worker WebSocket disabled (free-tier safe mode)');
+          return false;
+      }
+      
       // Send via Worker WebSocket
       if (chatWorkerWs && chatWorkerWs.readyState === WebSocket.OPEN) {
           try {
@@ -1254,13 +1290,15 @@
       if (voiceDiscoveryConnectPromise) return voiceDiscoveryWs;
       voiceDiscoveryConnectPromise = Promise.resolve().then(() => {
           // ✅ Free-tier safe: Disable WebSockets to prevent Durable Objects burn
+          // ⚠️ NOTE: This WebSocket is for VOICE DISCOVERY only, NOT chat
+          // Chat uses polling only (no WebSockets) - see CHAT_API_BASE configuration
           if (!window.ENABLE_VOICE_WS) {
               console.warn("Voice WebSocket disabled (free-tier safe mode)");
               return;
           }
           
           const url = buildVoiceDiscoveryUrl();
-          const ws = new WebSocket(url);
+          const ws = new WebSocket(url); // ⚠️ VOICE ONLY - Chat does NOT use WebSockets
           voiceDiscoveryWs = ws;
 
           ws.onopen = () => {
@@ -4369,7 +4407,8 @@ let lastChatCleanupTs = 0;
   let chatToastEl = null;
   let chatToastStyleInjected = false;
   // ===== Free-tier safe defaults =====
-  window.ENABLE_VOICE_WS = false; // Disable WebSockets to prevent Durable Objects burn
+  // ✅ Flags already set at top of script - do not override here
+  // window.ENABLE_VOICE_WS and window.ENABLE_CHAT_WORKER_WS are set once at startup
   let workerHistoryLoaded = false; // Track if worker history loaded (legacy flag, kept for compatibility)
   
   let suppressChatToast = true; // prevent toasts during history bootstrap
@@ -4745,6 +4784,13 @@ function ensureChatBadge() {
           if (typeof parsed.text === 'string') displayText = parsed.text;
           if (typeof parsed.state === 'string') stateText = parsed.state;
       }
+      // ✅ FIX: Ensure message has a stable ID for deduplication
+      if (!msg.id) {
+          // Generate a stable ID if missing (shouldn't happen for server messages)
+          console.warn('⚠️ Message missing ID, generating one:', msg);
+          msg.id = crypto.randomUUID ? crypto.randomUUID() : `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+      
       const row = document.createElement('div');
       row.style.display = 'flex';
       row.style.justifyContent = 'flex-start';
@@ -4752,6 +4798,8 @@ function ensureChatBadge() {
       row.style.userSelect = 'text';
       row.style.webkitUserSelect = 'text';
       row.style.MozUserSelect = 'text';
+      // ✅ Set data-message-id on row for tracking
+      row.dataset.messageId = msg.id;
       // Add golden ring for %Owner% messages
       const isOwner = (msg.user_id === '%Owner%');
       if (isOwner) {
@@ -5146,41 +5194,178 @@ function ensureChatBadge() {
           console.warn('Failed to update chat cache:', err);
       }
   }
+  
+  // ✅ Clear all chat messages locally (only for this user)
+  function clearChatMessages() {
+      try {
+          // Clear chat box
+          if (globalChatBox) {
+              globalChatBox.innerHTML = '';
+              console.log('🧹 Cleared chat box');
+          }
+          
+          // Clear message tracking
+          globalChatSeen.clear();
+          messageNodeIndex.clear();
+          
+          // Clear cache
+          localStorage.removeItem(CHAT_CACHE_KEY);
+          console.log('🧹 Cleared chat cache');
+          
+          // Reset flags
+          chatHistoryBootstrapped = false;
+          workerHistoryLoaded = false;
+          lastSupabaseChatTs = 0;
+          
+          // Set a flag to prevent reloading old messages
+          localStorage.setItem('chat_cleared_manually', 'true');
+          
+          console.log('✅ Chat messages cleared locally - state reset');
+          return true;
+      } catch (err) {
+          console.error('❌ Failed to clear chat messages:', err);
+          return false;
+      }
+  }
+  
+  // ✅ Clear all chat messages for EVERYONE (requires admin token)
+  async function clearChatForEveryone(adminToken = '0504') {
+      try {
+          if (!CHAT_API_BASE) {
+              console.error('❌ CHAT_API_BASE not configured');
+              return false;
+          }
+          
+          const response = await fetch(`${CHAT_API_BASE}/chat/clear?key=${adminToken}`, {
+              method: 'POST',
+              headers: { 
+                  'Content-Type': 'application/json',
+              },
+              mode: 'cors'
+          });
+          
+          if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          console.log('✅ Chat cleared for everyone:', result);
+          
+          // Also clear locally
+          clearChatMessages();
+          
+          return true;
+      } catch (err) {
+          console.error('❌ Failed to clear chat for everyone:', err);
+          return false;
+      }
+  }
+  
+  // Expose globally for console access
+  window.clearChatMessages = clearChatMessages; // Local only
+  window.clearChatForEveryone = clearChatForEveryone; // Clears for everyone (requires token)
 
-  // ✅ Polling-based chat (no Durable Objects, no WebSockets)
+  // ✅ Polling-based chat using Cloudflare Worker (NOT Vercel backend)
+  // ✅ Helper function to convert Worker message format to frontend format
+  function convertWorkerMessageToFrontendFormat(msg) {
+      // Worker format: { id, t, name, text }
+      // Frontend format: { id, user_id, content, created_at }
+      if (msg.name && msg.text && !msg.user_id) {
+          return {
+              id: msg.id,
+              user_id: msg.name,
+              content: JSON.stringify({ text: msg.text, state: null }),
+              created_at: msg.t ? new Date(msg.t).toISOString() : new Date().toISOString()
+          };
+      }
+      // Already in frontend format
+      return msg;
+  }
+
   async function pollChatMessages() {
-      if (!backendApi || !backendApi.connected) {
-          console.warn('⚠️ Backend API not available for polling');
+      // ✅ GUARD: Ensure Cloudflare Worker URL is configured
+      if (!CHAT_API_BASE) {
+          console.error('❌ pollChatMessages: CHAT_API_BASE not configured - skipping poll');
+          setGlobalChatStatus('Chat backend not configured', true);
           return;
       }
       
       try {
-          // Fetch recent messages from backend API (which queries Supabase)
-          const messages = await backendApi.getRecentChat(50, true);
+          // ✅ Fetch recent messages from Cloudflare Worker (NOT Vercel backend)
+          const response = await fetch(`${CHAT_API_BASE}/chat/recent?limit=50&images=1`, {
+              method: 'GET',
+              headers: { 
+                  'Content-Type': 'application/json',
+                  // Note: Worker must return CORS headers: Access-Control-Allow-Origin, etc.
+              },
+              cache: 'no-store',
+              mode: 'cors' // Explicitly request CORS
+          });
           
-          if (!Array.isArray(messages)) {
+          if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const rawMessages = await response.json();
+          
+          if (!Array.isArray(rawMessages)) {
               console.warn('⚠️ Invalid messages format from API');
               return;
           }
+          
+          // ✅ Convert Worker format to frontend format
+          const messages = rawMessages.map(convertWorkerMessageToFrontendFormat);
           
           // Process new messages (only ones we haven't seen)
           let newCount = 0;
           const seenCutoff = lastGlobalChatSeenTs || 0;
           let unreadCount = 0;
           
-          // If this is the first poll, load all messages
+          // ✅ FIX: Don't clear/reload if Worker history already loaded (prevents flicker)
+          if (workerHistoryLoaded) {
+              // Worker already loaded history, just process new messages incrementally
+              messages.forEach(m => {
+                  const msgKey = `id:${m.id}`;
+                  const msgTs = getMessageTimestamp(m);
+                  
+                  // Skip if already seen
+                  if (globalChatSeen.has(msgKey)) return;
+                  
+                  // Only show messages newer than last poll timestamp
+                  if (msgTs > lastSupabaseChatTs) {
+                      appendGlobalChatMessage(m);
+                      lastSupabaseChatTs = Math.max(lastSupabaseChatTs, msgTs);
+                      updateChatCache(m);
+                      newCount++;
+                      
+                      // Count unread
+                      if (seenCutoff > 0) {
+                          const isMine = (m.user_id || '') === globalChatUsername;
+                          if (!isMine && msgTs > seenCutoff) {
+                              unreadCount++;
+                          }
+                      }
+                  }
+              });
+              
+              if (newCount > 0) {
+                  console.log(`📥 Poll (after Worker load): ${newCount} new message(s)`);
+              }
+              
+              if (unreadCount > 0) {
+                  globalChatUnread += unreadCount;
+                  updateChatBadge();
+              }
+              return; // Exit early - don't bootstrap again
+          }
+          
+          // ✅ FIX: Polling should NEVER clear chat - only append new messages
+          // If this is the first poll and history hasn't been loaded yet, load all messages
           if (!chatHistoryBootstrapped) {
               console.log(`📥 Initial chat poll: ${messages.length} messages`);
               
-              // Clear existing messages
-              const chatBox = document.getElementById('globalChatBox');
-              if (chatBox) {
-                  chatBox.innerHTML = '';
-                  messageNodeIndex.clear();
-                  globalChatSeen.clear();
-              }
-              
-              // Load all messages
+              // ✅ DO NOT CLEAR CHAT BOX - only append messages that aren't already rendered
+              // Load all messages (deduplication in appendGlobalChatMessage will prevent duplicates)
               messages.forEach(m => {
                   appendGlobalChatMessage(m);
                   lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
@@ -5208,27 +5393,25 @@ function ensureChatBadge() {
               
               setGlobalChatStatus('Chat loaded', false);
           } else {
-              // Subsequent polls: only process new messages
+              // ✅ Subsequent polls: only append new messages (never clear)
               messages.forEach(m => {
                   const msgKey = `id:${m.id}`;
                   const msgTs = getMessageTimestamp(m);
                   
-                  // Skip if already seen
+                  // Skip if already seen/rendered (deduplication)
                   if (globalChatSeen.has(msgKey)) return;
                   
-                  // Only show messages newer than last poll timestamp
-                  if (msgTs > lastSupabaseChatTs) {
-                      appendGlobalChatMessage(m);
-                      lastSupabaseChatTs = Math.max(lastSupabaseChatTs, msgTs);
-                      updateChatCache(m);
-                      newCount++;
-                      
-                      // Count unread
-                      if (seenCutoff > 0) {
-                          const isMine = (m.user_id || '') === globalChatUsername;
-                          if (!isMine && msgTs > seenCutoff) {
-                              unreadCount++;
-                          }
+                  // Append new messages (deduplication will prevent duplicates)
+                  appendGlobalChatMessage(m);
+                  lastSupabaseChatTs = Math.max(lastSupabaseChatTs, msgTs);
+                  updateChatCache(m);
+                  newCount++;
+                  
+                  // Count unread
+                  if (seenCutoff > 0) {
+                      const isMine = (m.user_id || '') === globalChatUsername;
+                      if (!isMine && msgTs > seenCutoff) {
+                          unreadCount++;
                       }
                   }
               });
@@ -5248,8 +5431,23 @@ function ensureChatBadge() {
               lastPolledMessageId = messages[messages.length - 1].id;
           }
       } catch (err) {
-          console.error('❌ Chat poll error:', err);
-          setGlobalChatStatus('Polling error - will retry', true);
+          // ✅ IMPROVED: Handle API errors gracefully (500, network errors, etc.)
+          const errorMsg = err?.message || String(err || '');
+          const isServerError = errorMsg.includes('500') || errorMsg.includes('Internal Server Error') || errorMsg.includes('HTTP error! status: 500');
+          const isNetworkError = errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError') || errorMsg.includes('ERR_NETWORK');
+          
+          if (isServerError) {
+              console.warn('⚠️ Backend server error (500) - will retry on next poll');
+              setGlobalChatStatus('Server temporarily unavailable - retrying...', true);
+          } else if (isNetworkError) {
+              console.warn('⚠️ Network error - will retry on next poll');
+              setGlobalChatStatus('Network error - retrying...', true);
+          } else {
+              console.error('❌ Chat poll error:', err);
+              setGlobalChatStatus('Polling error - will retry', true);
+          }
+          
+          // Don't throw - let polling continue on next interval (silent retry)
       }
   }
   
@@ -5257,15 +5455,31 @@ function ensureChatBadge() {
   function startChatPolling() {
       if (chatPollingActive) return;
       
+      // Ensure backendApi is available before starting
+      if (!backendApi && typeof BackendAPI !== 'undefined') {
+          try {
+              backendApi = new BackendAPI({ apiUrl: BACKEND_API_URL, wsUrl: BACKEND_WS_URL });
+              backendApi.connect(); // This sets connected = true immediately
+          } catch (err) {
+              // Silently fail - will retry on next poll
+              chatPollingActive = true;
+              return;
+          }
+      }
+      
       chatPollingActive = true;
       console.log('🔄 Starting chat polling (interval: ' + CHAT_POLL_INTERVAL + 'ms)');
       
-      // Initial poll immediately
-      pollChatMessages();
+      // Initial poll immediately (async, won't block)
+      pollChatMessages().catch(err => {
+          console.warn('⚠️ Initial chat poll failed:', err);
+      });
       
       // Then poll at regular intervals
       chatPollTimer = setInterval(() => {
-          pollChatMessages();
+          pollChatMessages().catch(err => {
+              console.warn('⚠️ Chat poll error:', err);
+          });
       }, CHAT_POLL_INTERVAL);
       
       setGlobalChatStatus('Chat polling active', false);
@@ -5299,17 +5513,36 @@ function ensureChatBadge() {
   // Make it available globally for debugging
   window.checkChatPollingStatus = checkChatPollingStatus;
   
-  // Request initial chat messages (used on page load)
+  // ✅ Request initial chat messages from Cloudflare Worker (NOT Vercel backend)
   async function requestServerSnapshot() {
       try {
-          if (backendApi && backendApi.connected) {
-              const messages = await backendApi.getRecentChat(50, true);
-              if (Array.isArray(messages)) {
-                  return messages;
-              }
+          if (!CHAT_API_BASE) {
+              console.warn('⚠️ CHAT_API_BASE not configured - cannot fetch server snapshot');
+              return null;
+          }
+          
+          const response = await fetch(`${CHAT_API_BASE}/chat/recent?limit=50&images=1`, {
+              method: 'GET',
+              headers: { 
+                  'Content-Type': 'application/json',
+                  // Note: Worker must return CORS headers: Access-Control-Allow-Origin, etc.
+              },
+              cache: 'no-store',
+              mode: 'cors' // Explicitly request CORS
+          });
+          
+          if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const rawMessages = await response.json();
+          if (Array.isArray(rawMessages)) {
+              // ✅ Convert Worker format to frontend format
+              return rawMessages.map(convertWorkerMessageToFrontendFormat);
           }
       } catch (err) {
-          console.debug('Server snapshot not available:', err.message);
+          console.error('❌ Server snapshot failed (Cloudflare Worker):', err.message);
+          // NO fallback to Vercel - fail visibly
       }
       return null;
   }
@@ -5548,49 +5781,74 @@ function ensureChatBadge() {
   // Cleanup is now handled by Worker - no client-side cleanup needed
 
   async function initGlobalChatClient() {
-    // Polling-based chat system (no Durable Objects, no WebSockets)
+    // ✅ Polling-based chat system using Cloudflare Worker (NOT Vercel backend)
+    
+    // Log which backend is active (for debugging)
+    if (CHAT_API_BASE) {
+        console.log(`✅ Chat initialized with Cloudflare Worker: ${CHAT_API_BASE}`);
+    } else {
+        console.error('❌ Chat initialization FAILED - CHAT_API_BASE not configured');
+        setGlobalChatStatus('Chat backend not configured. Please set CHAT_API_BASE.', true);
+        return false;
+    }
+    
     try {
         suppressChatToast = true;
         
-        // Step 1: Load from local cache (instant)
+        // ✅ FIX: Only clear chat state on FIRST initialization (when chatHistoryBootstrapped is false)
+        // After initial load, never clear - only append new messages via deduplication
         let loadedMessages = null;
-        const cachedMessages = loadChatCache();
-        if (cachedMessages && cachedMessages.length > 0) {
-            cachedMessages.forEach(m => {
-                appendGlobalChatMessage(m);
-                lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
-            });
-            console.log(`Loaded ${cachedMessages.length} messages from cache`);
-            loadedMessages = cachedMessages;
+        
+        if (!chatHistoryBootstrapped) {
+            // First time initialization - clear chat box and state
+            if (globalChatBox) {
+                globalChatBox.innerHTML = '';
+                console.log('🧹 Initial load: Cleared chat box');
+            }
+            globalChatSeen.clear();
+            messageNodeIndex.clear();
+            workerHistoryLoaded = false;
+        } else {
+            // Chat already initialized - don't clear, just ensure state is ready
+            console.log('🔄 Reopening chat: Keeping existing messages, will append new ones');
         }
         
-        // Step 2: Start polling for new messages
-        startChatPolling();
-        
-        // Step 3: Also fetch initial snapshot from server
-        const serverMessages = await requestServerSnapshot();
-        
-        if (serverMessages && serverMessages.length > 0) {
-            // Clear existing messages and replace with server snapshot
-            const existingIds = new Set();
-            document.querySelectorAll('[data-message-id]').forEach(el => {
-                const id = el.getAttribute('data-message-id');
-                if (id) existingIds.add(id);
-            });
+        // Step 1: Fetch initial snapshot from server (only if not already loaded)
+        if (!workerHistoryLoaded && !chatHistoryBootstrapped) {
+            const serverMessages = await requestServerSnapshot();
             
-            // Only add messages not already rendered
-            serverMessages.forEach(m => {
-                if (!existingIds.has(m.id)) {
+            if (serverMessages && serverMessages.length > 0) {
+                // ✅ Load all messages from server snapshot (deduplication prevents duplicates)
+                serverMessages.forEach(m => {
                     appendGlobalChatMessage(m);
                     lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
-                }
-            });
-            
-            // Update cache with authoritative server data
-            saveChatCache(serverMessages);
-            console.log(`Loaded ${serverMessages.length} messages from server snapshot`);
-            loadedMessages = serverMessages; // Server snapshot takes precedence over cache
+                });
+                
+                // Update cache with authoritative server data
+                saveChatCache(serverMessages);
+                console.log(`✅ Loaded ${serverMessages.length} messages from server snapshot`);
+                loadedMessages = serverMessages;
+                workerHistoryLoaded = true; // Mark as loaded to prevent polling from bootstrapping again
+            }
+        } else if (chatHistoryBootstrapped) {
+            console.log('⏭️ Chat already initialized - skipping server snapshot');
         }
+        
+        // Step 2: If server snapshot didn't load and this is first init, try cache as fallback
+        if (!loadedMessages && !chatHistoryBootstrapped) {
+            const cachedMessages = loadChatCache();
+            if (cachedMessages && cachedMessages.length > 0) {
+                cachedMessages.forEach(m => {
+                    appendGlobalChatMessage(m);
+                    lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
+                });
+                console.log(`Loaded ${cachedMessages.length} messages from cache (fallback)`);
+                loadedMessages = cachedMessages;
+            }
+        }
+        
+        // Step 3: Start polling for new messages (will only process new messages if history already loaded)
+        startChatPolling();
         
         // Check for users with reserved names and compute unread count
         if (loadedMessages) {
@@ -5663,9 +5921,87 @@ function ensureChatBadge() {
 }
 
   function ensureChatRealtime() {
+      // ✅ GUARD: Check if chat worker WebSocket is enabled
+      if (!window.ENABLE_CHAT_WORKER_WS) {
+          // If Worker WS is disabled, use polling only (no WebSocket connection)
+          startChatPolling();
+          return;
+      }
+      
       // Worker-only system: Connect to Cloudflare Worker WebSocket
-      startChatPolling();
+      // TODO: Add Worker WebSocket initialization here when ENABLE_CHAT_WORKER_WS is true
+      startChatPolling(); // Fallback to polling even if Worker WS is enabled (until WS is implemented)
   }
+
+  // ✅ FIX: Worker WebSocket history handler (call this when Worker delivers history snapshot)
+  // This function should be called from your Worker WebSocket onmessage handler when type === 'history' or 'snapshot'
+  function handleWorkerChatHistory(messages) {
+      // ✅ GUARD: Check if chat worker WebSocket is enabled
+      if (!window.ENABLE_CHAT_WORKER_WS) {
+          console.warn('Chat worker WebSocket disabled - ignoring history');
+          return;
+      }
+      
+      if (!Array.isArray(messages) || messages.length === 0) return;
+      
+      // Prevent duplicate loads
+      if (workerHistoryLoaded) {
+          console.log('⏭️ Worker history already loaded, skipping duplicate');
+          return;
+      }
+      
+      console.log(`📥 Worker history loaded: ${messages.length} messages`);
+      
+      // Clear existing messages and load Worker history
+      const chatBox = document.getElementById('globalChatBox');
+      if (chatBox) {
+          chatBox.innerHTML = '';
+          messageNodeIndex.clear();
+          globalChatSeen.clear();
+      }
+      
+      // Load all messages from Worker
+      const seenCutoff = lastGlobalChatSeenTs || 0;
+      let unreadCount = 0;
+      
+      messages.forEach(m => {
+          appendGlobalChatMessage(m);
+          lastSupabaseChatTs = Math.max(lastSupabaseChatTs, getMessageTimestamp(m));
+          
+          // Calculate unread count
+          if (seenCutoff > 0) {
+              const ts = getMessageTimestamp(m);
+              const isMine = (m.user_id || '') === globalChatUsername;
+              if (!isMine && ts > seenCutoff) {
+                  unreadCount++;
+              }
+          }
+      });
+      
+      // Update cache
+      saveChatCache(messages);
+      
+      // ✅ CRITICAL: Set flags so toast/badge work and polling doesn't clear again
+      workerHistoryLoaded = true;
+      chatHistoryBootstrapped = true;
+      suppressChatToast = false; // Enable toasts now that history is loaded
+      
+      // Update unread badge
+      if (unreadCount > 0) {
+          globalChatUnread = unreadCount;
+          updateChatBadge();
+      }
+      
+      setGlobalChatStatus('Chat loaded', false);
+      console.log('✅ Worker history loaded, flags set, toasts enabled');
+  }
+  
+  // ✅ Expose handler globally so Worker WebSocket can call it
+  // Usage in Worker WebSocket onmessage:
+  //   if (data.type === 'history' || data.type === 'snapshot') {
+  //       handleWorkerChatHistory(data.messages || []);
+  //   }
+  window.handleWorkerChatHistory = handleWorkerChatHistory;
 
   // -------- Chat moderation --------
   function normalizeChatText(raw) {
@@ -5844,8 +6180,9 @@ function ensureChatBadge() {
           }
           setGlobalChatStatus('Sending...');
           
-          // Generate temporary ID for optimistic message (will be replaced by Worker's real ID)
-          const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          // ✅ FIX: Generate stable UUID for optimistic message (will be replaced by Worker's real ID)
+          // Using crypto.randomUUID() for proper message identity
+          const tempId = crypto.randomUUID ? crypto.randomUUID() : `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           const now = new Date().toISOString();
           
           // Create optimistic message object
@@ -5869,28 +6206,54 @@ function ensureChatBadge() {
           // Clear input immediately for better UX
           globalChatInput.value = '';
           
-          // ✅ Send via REST API (polling-based, no WebSockets)
-          if (backendApi && backendApi.connected) {
-              try {
-                  console.log('📤 Sending message via REST API...');
+          // ✅ Send via Cloudflare Worker (NOT Vercel backend)
+          if (!CHAT_API_BASE) {
+              throw new Error('CHAT_API_BASE not configured - cannot send message');
+          }
+          
+          try {
+              console.log('📤 Sending message via Cloudflare Worker...');
+              
+              // ✅ FIX: Send correct payload format (name + text, not user_id + content)
+              const messageData = {
+                  name: globalChatUsername,
+                  text: text
+              };
+              
+              const response = await fetch(`${CHAT_API_BASE}/chat/send`, {
+                  method: 'POST',
+                  headers: { 
+                      'Content-Type': 'application/json',
+                      // Note: Worker must return CORS headers: Access-Control-Allow-Origin, etc.
+                  },
+                  body: JSON.stringify(messageData),
+                  mode: 'cors' // Explicitly request CORS
+              });
+              
+              if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              
+              const responseData = await response.json();
+              
+              console.log('✅ Message sent via Cloudflare Worker');
+              
+              // ✅ FIX: Convert Worker response format { ok: true, message: { id, t, name, text } }
+              // to frontend format { id, user_id, content, created_at }
+              let sentMessage = null;
+              if (responseData.message) {
+                  sentMessage = convertWorkerMessageToFrontendFormat(responseData.message);
+              } else if (responseData.id) {
+                  // Already in frontend format (fallback)
+                  sentMessage = convertWorkerMessageToFrontendFormat(responseData);
+              }
                   
-                  // Send message via backend API (which stores in Supabase)
-                  const messageData = {
-                      user_id: globalChatUsername,
-                      content: JSON.stringify({ text: text, state: null }),
-                      visitor_id: backendApi.visitorId
-                  };
-                  
-                  const sentMessage = await backendApi.sendChatMessage(messageData);
-                  
-                  console.log('✅ Message sent via REST API');
-                  
-                  // Replace optimistic message with real one
-                  if (lastOptimisticTempId && sentMessage && sentMessage.id) {
-                      removeMessageById(lastOptimisticTempId);
-                      appendGlobalChatMessage(sentMessage);
-                      updateChatCache(sentMessage);
-                  }
+              // Replace optimistic message with real one
+              if (lastOptimisticTempId && sentMessage && sentMessage.id) {
+                  removeMessageById(lastOptimisticTempId);
+                  appendGlobalChatMessage(sentMessage);
+                  updateChatCache(sentMessage);
+              }
                   
                   setGlobalChatStatus('Sent!');
                   lastGlobalChatMessageSig = dedupSig;
@@ -5903,7 +6266,7 @@ function ensureChatBadge() {
                   
                   return; // Success
               } catch (err) {
-                  console.error('❌ Chat send failed:', err);
+                  console.error('❌ Chat send failed (Cloudflare Worker):', err);
                   setGlobalChatStatus('Failed to send message.', true);
                   showChatNotice('Failed to send message. Please try again.', true);
                   setTimeout(() => {
@@ -5912,16 +6275,6 @@ function ensureChatBadge() {
                   }, 50);
                   return;
               }
-          } else {
-              console.warn('⚠️ Backend API not available');
-              setGlobalChatStatus('Not connected. Please refresh.', true);
-              showChatNotice('Not connected to chat server. Please refresh.', true);
-              setTimeout(() => {
-                  globalChatSending = false;
-                  setChatSendingUi(false);
-              }, 50);
-              return;
-          }
       } catch (err) {
           // Handle any unexpected errors
           console.error('Unexpected error in sendGlobalChatMessage:', err);
@@ -6243,22 +6596,39 @@ function ensureChatBadge() {
   if (!window.globalChatInitialized) {
       window.globalChatInitialized = true;
       
-  closeGlobalChat?.addEventListener('click', () => {
-      if (globalChatPanel) globalChatPanel.style.display = 'none';
-      if (globalChatModal) globalChatModal.style.display = 'none';
-       globalChatIsOpen = false;
-      setGlobalChatStatus('');
-      // Mark as seen when closing an open chat
-      markChatSeen();
-  });
-  globalChatSendBtn?.addEventListener('click', sendGlobalChatMessage);
-  globalChatInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-              e.preventDefault(); // ✅ REQUIRED: Prevent form submission
-          sendGlobalChatMessage();
-      }
-  });
+      closeGlobalChat?.addEventListener('click', () => {
+          if (globalChatPanel) globalChatPanel.style.display = 'none';
+          if (globalChatModal) globalChatModal.style.display = 'none';
+          globalChatIsOpen = false;
+          setGlobalChatStatus('');
+          // Mark as seen when closing an open chat
+          markChatSeen();
+      });
       
+      // ✅ FIX: Prevent double-send by using a single handler that guards against duplicates
+      // Store handler on window to prevent re-binding if this code runs multiple times
+      if (!window._chatSendHandler) {
+          window._chatSendHandler = (e) => {
+              // If triggered by keydown, prevent default form submission
+              if (e && e.type === 'keydown') {
+                  if (e.key === 'Enter') {
+                      e.preventDefault();
+                  } else {
+                      return; // Only handle Enter key
+                  }
+              }
+              // ✅ CRITICAL: Guard against duplicate calls (both click and keydown can fire)
+              if (globalChatSending) {
+                  console.log('⚠️ Send blocked - already sending');
+                  return;
+              }
+              sendGlobalChatMessage();
+          };
+          globalChatSendBtn?.addEventListener('click', window._chatSendHandler);
+          globalChatInput?.addEventListener('keydown', window._chatSendHandler);
+      }
+  }
+  
   // Prevent closing by clicking outside; only the X closes
   globalChatModal?.addEventListener('click', (e) => {
       if (e.target === globalChatModal) {
@@ -6273,7 +6643,6 @@ function ensureChatBadge() {
   closeGlobalChatSettings?.addEventListener('click', () => {
       if (globalChatSettingsModal) globalChatSettingsModal.style.display = 'none';
   });
-  }
 
   document.addEventListener('click', (e) => {
       if (globalChatEmojiPicker && !globalChatEmojiPicker.contains(e.target) && !globalChatEmojiBtn?.contains(e.target)) {

@@ -1,128 +1,138 @@
-/**
- * Stateless Cloudflare Worker for Chat
- * 
- * This worker acts as a proxy/rate limiter for chat messages.
- * Messages are stored in Supabase (via backend API), not in Durable Objects.
- * 
- * Architecture:
- * - Browser → Cloudflare Worker → Backend API → Supabase
- * - Frontend uses polling every 15-30s to fetch new messages
- * - No WebSockets, no Durable Objects = no duration billing
- */
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
+const MAX = 50;
+const SNAPSHOT_TOKEN = "0504";
+const KV_KEY = "global_chat_messages_v2";
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    
-    // CORS headers for browser requests
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    };
 
-    // Handle CORS preflight
+    // ===== CORS PREFLIGHT =====
     if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
+      return new Response(null, {
+        status: 204,
+        headers: CORS_HEADERS,
+      });
     }
 
-    // Health check endpoint
-    if (url.pathname === "/" || url.pathname === "/health") {
+    // Load messages from KV
+    let messages =
+      (await env.CHAT_KV.get(KV_KEY, { type: "json" })) || [];
+
+    // ===== SNAPSHOT (ADMIN) =====
+    if (url.pathname === "/snapshot") {
+      if (url.searchParams.get("key") !== SNAPSHOT_TOKEN) {
+        return new Response("Unauthorized", {
+          status: 401,
+          headers: CORS_HEADERS,
+        });
+      }
+
       return new Response(
-        JSON.stringify({ status: "ok", mode: "polling" }),
+        JSON.stringify({
+          count: messages.length,
+          messages,
+        }),
         {
           headers: {
+            ...CORS_HEADERS,
             "content-type": "application/json",
-            ...corsHeaders,
+            "cache-control": "no-store",
           },
         }
       );
     }
 
-    // Proxy chat requests to backend API
-    // This worker acts as a rate limiter and proxy
-    const backendApiUrl = env.BACKEND_API_URL || "https://shs-portal-backend.vercel.app/api";
-    
-    // Forward GET requests (fetching messages) to backend
-    if (request.method === "GET" && url.pathname === "/chat/recent") {
-      try {
-        const limit = url.searchParams.get("limit") || "50";
-        const includeImages = url.searchParams.get("images") || "0";
-        const backendUrl = `${backendApiUrl}/chat/recent?limit=${limit}&images=${includeImages}`;
-        
-        const response = await fetch(backendUrl, {
-          method: "GET",
-          headers: {
-            "Cache-Control": "no-cache",
-          },
+    // ===== CLEAR CHAT (ADMIN) =====
+    if (url.pathname === "/chat/clear" && request.method === "POST") {
+      const token = url.searchParams.get("key");
+      if (token !== SNAPSHOT_TOKEN) {
+        return new Response("Unauthorized", {
+          status: 401,
+          headers: CORS_HEADERS,
         });
+      }
 
-        const data = await response.json();
-        
-        return new Response(JSON.stringify(data), {
+      // Clear all messages from KV
+      await env.CHAT_KV.delete(KV_KEY);
+
+      return new Response(
+        JSON.stringify({ ok: true, message: "Chat cleared" }),
+        {
           headers: {
+            ...CORS_HEADERS,
+            "content-type": "application/json",
+          },
+        }
+      );
+    }
+
+    // ===== GET CHAT =====
+    if (url.pathname === "/chat/recent" && request.method === "GET") {
+      const limit = Math.min(
+        Number(url.searchParams.get("limit")) || MAX,
+        MAX
+      );
+
+      return new Response(
+        JSON.stringify(messages.slice(-limit)),
+        {
+          headers: {
+            ...CORS_HEADERS,
             "content-type": "application/json",
             "cache-control": "no-store",
-            ...corsHeaders,
           },
-        });
-      } catch (error) {
-        return new Response(
-          JSON.stringify({ error: "Failed to fetch messages" }),
-          {
-            status: 500,
-            headers: {
-              "content-type": "application/json",
-              ...corsHeaders,
-            },
-          }
-        );
-      }
+        }
+      );
     }
 
-    // Forward POST requests (sending messages) to backend with rate limiting
-    if (request.method === "POST" && url.pathname === "/chat/send") {
+    // ===== SEND CHAT =====
+    if (url.pathname === "/chat/send" && request.method === "POST") {
+      let data;
       try {
-        const body = await request.json();
-        
-        // Basic rate limiting: check if message is too frequent
-        // (More sophisticated rate limiting can be added with KV if needed)
-        const backendUrl = `${backendApiUrl}/chat/send`;
-        
-        const response = await fetch(backendUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
+        data = await request.json();
+      } catch {
+        return new Response("Bad JSON", {
+          status: 400,
+          headers: CORS_HEADERS,
         });
-
-        const data = await response.json();
-        
-        return new Response(JSON.stringify(data), {
-          headers: {
-            "content-type": "application/json",
-            ...corsHeaders,
-          },
-        });
-      } catch (error) {
-        return new Response(
-          JSON.stringify({ error: "Failed to send message" }),
-          {
-            status: 500,
-            headers: {
-              "content-type": "application/json",
-              ...corsHeaders,
-            },
-          }
-        );
       }
+
+      const msg = {
+        id: crypto.randomUUID(),
+        t: Date.now(),
+        name: String(data.name || "anon").slice(0, 24),
+        text: String(data.text || "").slice(0, 400),
+      };
+
+      messages.push(msg);
+      if (messages.length > MAX) messages.shift();
+
+      await env.CHAT_KV.put(KV_KEY, JSON.stringify(messages));
+
+      return new Response(
+        JSON.stringify({ ok: true, message: msg }),
+        {
+          headers: {
+            ...CORS_HEADERS,
+            "content-type": "application/json",
+          },
+        }
+      );
     }
 
-    // 404 for unknown routes
-    return new Response("Not Found", {
-      status: 404,
-      headers: corsHeaders,
+    // ===== FALLBACK =====
+    return new Response("Chat worker online", {
+      headers: {
+        ...CORS_HEADERS,
+        "content-type": "text/plain",
+      },
     });
   },
 };
