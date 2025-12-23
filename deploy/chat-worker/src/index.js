@@ -1,56 +1,47 @@
-export class ChatRoom {
-  constructor(state, env) {
-    this.state = state;
-    this.env = env;
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
 
-    this.clients = new Set();
-    this.MAX = 50;
-    this.RATE_LIMIT_MS = 800; // anti-spam per connection
-    this.SNAPSHOT_TOKEN = "0504";
-    
-    // ✅ Auto-close idle WebSockets
-    this.IDLE_TIMEOUT_MS = 60_000; // 1 minute
-    this.idleTimer = null;
+const MAX = 50;
+const SNAPSHOT_TOKEN = "0504";
+const KV_KEY = "global_chat_messages_v2";
 
-    // Load messages from SQLite-backed storage
-    this.state.blockConcurrencyWhile(async () => {
-      this.messages = (await this.state.storage.get("messages")) || [];
-    });
-  }
-
-  resetIdleTimer() {
-    if (this.idleTimer) clearTimeout(this.idleTimer);
-
-    this.idleTimer = setTimeout(() => {
-      for (const c of this.clients) {
-        try { c.close(); } catch {}
-      }
-      this.clients.clear();
-    }, this.IDLE_TIMEOUT_MS);
-  }
-
-  async fetch(request) {
+export default {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
-    // 🔐 Protected snapshot endpoint
-    if (url.pathname === "/snapshot") {
-      const token = url.searchParams.get("key");
+    // ===== CORS PREFLIGHT =====
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: CORS_HEADERS,
+      });
+    }
 
-      if (token !== this.SNAPSHOT_TOKEN) {
-        return new Response("Unauthorized", { status: 401 });
+    // Load messages from KV
+    let messages =
+      (await env.CHAT_KV.get(KV_KEY, { type: "json" })) || [];
+
+    // ===== SNAPSHOT (ADMIN) =====
+    if (url.pathname === "/snapshot") {
+      if (url.searchParams.get("key") !== SNAPSHOT_TOKEN) {
+        return new Response("Unauthorized", {
+          status: 401,
+          headers: CORS_HEADERS,
+        });
       }
 
       return new Response(
-        JSON.stringify(
-          {
-            count: this.messages.length,
-            messages: this.messages,
-          },
-          null,
-          2
-        ),
+        JSON.stringify({
+          count: messages.length,
+          messages,
+        }),
         {
           headers: {
+            ...CORS_HEADERS,
             "content-type": "application/json",
             "cache-control": "no-store",
           },
@@ -58,105 +49,90 @@ export class ChatRoom {
       );
     }
 
-    // 🔁 WebSocket upgrade (live chat)
-    if (request.headers.get("Upgrade") === "websocket") {
-      const pair = new WebSocketPair();
-      const client = pair[0];
-      const server = pair[1];
-
-      server.accept();
-
-      // Per-connection state
-      server.lastSend = 0;
-
-      this.clients.add(server);
-      
-      // ✅ Reset idle timer after accepting socket
-      this.resetIdleTimer();
-
-      // Send history to late joiner
-      server.send(
-        JSON.stringify({
-          type: "history",
-          messages: this.messages,
-        })
-      );
-
-      server.addEventListener("message", async (event) => {
-        let data;
-        try {
-          data = JSON.parse(event.data);
-        } catch {
-          return;
-        }
-
-        if (data.type !== "chat") return;
-
-        // ⏱ Rate limiting
-        const now = Date.now();
-        if (now - server.lastSend < this.RATE_LIMIT_MS) return;
-        server.lastSend = now;
-
-        const msg = {
-          id: crypto.randomUUID(),
-          t: now,
-          name: String(data.name || "anon").slice(0, 24),
-          text: String(data.text || "").slice(0, 400),
-        };
-
-        // Update rolling buffer
-        this.messages.push(msg);
-        if (this.messages.length > this.MAX) {
-          this.messages.shift();
-        }
-
-        // Persist snapshot (SQLite, free-plan safe)
-        await this.state.storage.put("messages", this.messages);
-
-        const payload = JSON.stringify({
-          type: "chat",
-          message: msg,
+    // ===== CLEAR CHAT (ADMIN) =====
+    if (url.pathname === "/chat/clear" && request.method === "POST") {
+      const token = url.searchParams.get("key");
+      if (token !== SNAPSHOT_TOKEN) {
+        return new Response("Unauthorized", {
+          status: 401,
+          headers: CORS_HEADERS,
         });
+      }
 
-        // Broadcast to all clients
-        for (const c of this.clients) {
-          try {
-            c.send(payload);
-          } catch {
-            this.clients.delete(c);
-          }
+      // Clear all messages from KV
+      await env.CHAT_KV.delete(KV_KEY);
+
+      return new Response(
+        JSON.stringify({ ok: true, message: "Chat cleared" }),
+        {
+          headers: {
+            ...CORS_HEADERS,
+            "content-type": "application/json",
+          },
         }
-        
-        // ✅ Reset idle timer after receiving message
-        this.resetIdleTimer();
-      });
-
-      server.addEventListener("close", () => {
-        this.clients.delete(server);
-      });
-
-      server.addEventListener("error", () => {
-        this.clients.delete(server);
-      });
-
-      return new Response(null, {
-        status: 101,
-        webSocket: client,
-      });
+      );
     }
 
-    // ✅ Default health check
-    return new Response("Chat room online", {
-      headers: { "content-type": "text/plain" },
-    });
-  }
-}
+    // ===== GET CHAT =====
+    if (url.pathname === "/chat/recent" && request.method === "GET") {
+      const limit = Math.min(
+        Number(url.searchParams.get("limit")) || MAX,
+        MAX
+      );
 
-export default {
-  fetch(request, env) {
-    // Single global room
-    const id = env.CHAT_ROOM.idFromName("global");
-    const room = env.CHAT_ROOM.get(id);
-    return room.fetch(request);
+      return new Response(
+        JSON.stringify(messages.slice(-limit)),
+        {
+          headers: {
+            ...CORS_HEADERS,
+            "content-type": "application/json",
+            "cache-control": "no-store",
+          },
+        }
+      );
+    }
+
+    // ===== SEND CHAT =====
+    if (url.pathname === "/chat/send" && request.method === "POST") {
+      let data;
+      try {
+        data = await request.json();
+      } catch {
+        return new Response("Bad JSON", {
+          status: 400,
+          headers: CORS_HEADERS,
+        });
+      }
+
+      const msg = {
+        id: crypto.randomUUID(),
+        t: Date.now(),
+        name: String(data.name || "anon").slice(0, 24),
+        text: String(data.text || "").slice(0, 400),
+      };
+
+      messages.push(msg);
+      if (messages.length > MAX) messages.shift();
+
+      await env.CHAT_KV.put(KV_KEY, JSON.stringify(messages));
+
+      return new Response(
+        JSON.stringify({ ok: true, message: msg }),
+        {
+          headers: {
+            ...CORS_HEADERS,
+            "content-type": "application/json",
+          },
+        }
+      );
+    }
+
+    // ===== FALLBACK =====
+    return new Response("Chat worker online", {
+      headers: {
+        ...CORS_HEADERS,
+        "content-type": "text/plain",
+      },
+    });
   },
 };

@@ -25,21 +25,6 @@
 <meta name="twitter:title" content="Nebulo - Global Chat">
 <meta name="twitter:description" content="Connect and chat with the Nebulo community.">
 <link rel="icon" type="image/png" href="../images/logoshs.png">
-<script>
-  (function() {
-    const ua = navigator.userAgent || '';
-    const liteBlock = ua.includes('CrOS') || (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || document.documentElement.classList.contains('lite-mode');
-    if (liteBlock) {
-      console.info('Lite mode: skipping AdSense load.');
-      return;
-    }
-    const ads = document.createElement('script');
-    ads.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891";
-    ads.async = true;
-    ads.crossOrigin = "anonymous";
-    document.head.appendChild(ads);
-  })();
-</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="../styles.css">
 <style>
@@ -235,19 +220,20 @@
 </div>
 <div id="globalChatModal" style="display:flex; position:fixed; inset:0; background:rgba(6,8,15,0.7); backdrop-filter:blur(16px); z-index:20000; align-items:stretch; justify-content:center; padding:0;">
   <div id="globalChatPanel" style="width:100vw; max-width:1200px; height:100vh; max-height:100vh; background:radial-gradient(circle at 20% 20%, rgba(124,58,237,0.08), transparent 35%), radial-gradient(circle at 80% 0%, rgba(99,102,241,0.08), transparent 30%), linear-gradient(150deg, rgba(18,18,28,0.96), rgba(12,14,22,0.92)); border:1px solid rgba(255,255,255,0.12); border-radius:0; box-shadow:0 30px 90px rgba(0,0,0,0.65), 0 0 1px rgba(255,255,255,0.35); padding:12px; color:#f5f5f5; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
-    <!-- AdSense Ad - Placed at top of chat panel, safe from overlap -->
-    <div class="ad-container">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
-         crossorigin="anonymous"></script>
-    <!-- display ads -->
-    <ins class="adsbygoogle"
-         data-ad-client="ca-pub-3290829368025891"
-         data-ad-slot="9717787503"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-    <script>
-         (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
+    <!-- Horizontal Banner Ad (fixed height, no vertical expansion) -->
+    <div class="ad-container" style="max-width: 100%; margin: 0 auto 8px auto; text-align: center; padding: 0; position: relative; z-index: 1; height: 90px; overflow: hidden; flex-shrink: 0;">
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3290829368025891"
+           crossorigin="anonymous"></script>
+      <!-- Horizontal banner ad - fixed height -->
+      <ins class="adsbygoogle"
+           style="display:block; height: 90px; max-height: 90px; overflow: hidden;"
+           data-ad-client="ca-pub-3290829368025891"
+           data-ad-slot="9717787503"
+           data-ad-format="horizontal"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
     </div>
     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
       <div style="display:flex; align-items:center; gap:10px;">

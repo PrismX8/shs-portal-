@@ -442,19 +442,13 @@
       ensureVoiceUi();
 
       // Ensure observer channel is active to see participants before joining
+      // ✅ Voice chat page - only initialize voice discovery, NOT chat
       if (typeof VOICE_DISCOVERY_ENABLED !== 'undefined' && VOICE_DISCOVERY_ENABLED) {
         if (typeof ensureVoiceDiscoveryObserver === 'function') {
           try { ensureVoiceDiscoveryObserver(); } catch (_) {}
         }
-      } else {
-        if (typeof initGlobalChatClient === 'function') {
-          initGlobalChatClient().then((client) => {
-            if (typeof ensureVoiceObserverChannel === 'function') {
-              try { ensureVoiceObserverChannel(client); } catch (_) {}
-            }
-          });
-        }
       }
+      // Note: Chat is NOT initialized on voice chat page - this page is for voice only
 
       // Connect voice meter from this page to the voice UI
       const voiceMeterCanvas = document.getElementById('voiceMeter');

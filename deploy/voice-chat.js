@@ -4,12 +4,21 @@
 
   // -------- Voice Chat (PeerJS + Supabase Realtime Presence) --------
   // NOTE: Voice traffic is peer-to-peer (WebRTC). Supabase is used only for presence + moderation/report events.
-  const VOICE_ROOM_ID = 'global';
-  const VOICE_REPORT_TYPE = 'voice_report';
-  const VOICE_MOD_TYPE = 'voice_mod';
+  // ✅ FIX: Check if already declared to prevent duplicate declaration error
+  if (typeof VOICE_ROOM_ID === 'undefined') {
+    var VOICE_ROOM_ID = 'global';
+  }
+  if (typeof VOICE_REPORT_TYPE === 'undefined') {
+    var VOICE_REPORT_TYPE = 'voice_report';
+  }
+  if (typeof VOICE_MOD_TYPE === 'undefined') {
+    var VOICE_MOD_TYPE = 'voice_mod';
+  }
+  if (typeof VOICE_MOD_STATE_KEY === 'undefined') {
+    var VOICE_MOD_STATE_KEY = 'voice_mod_state_v1';
+  }
 
   // Voice moderation state (client-enforced, driven by %Owner% events)
-  const VOICE_MOD_STATE_KEY = 'voice_mod_state_v1';
   function loadVoiceModState() {
       try {
           const raw = localStorage.getItem(VOICE_MOD_STATE_KEY);
@@ -47,8 +56,12 @@
   }
 
   // Report UI (works even when you're not in voice)
-  let voiceReportModalEl = null;
-  let voiceReportsInboxEl = null;
+  if (typeof voiceReportModalEl === 'undefined') {
+    var voiceReportModalEl = null;
+  }
+  if (typeof voiceReportsInboxEl === 'undefined') {
+    var voiceReportsInboxEl = null;
+  }
 
   function ensureVoiceReportModal() {
       if (voiceReportModalEl) return voiceReportModalEl;
@@ -377,7 +390,9 @@
   }
 
   // Owner-only Reports button (lets you ban/timeout directly from incoming reports)
-  let ownerReportsBtnEl = null;
+  if (typeof ownerReportsBtnEl === 'undefined') {
+    var ownerReportsBtnEl = null;
+  }
   function ensureOwnerReportsButton() {
       if (ownerReportsBtnEl) return ownerReportsBtnEl;
       if (!globalChatSettingsBtn || !globalChatSettingsBtn.parentElement) return null;
@@ -411,27 +426,67 @@
   // -------- Voice runtime (full) --------
   // PeerJS docs: https://peerjs.com/
   // Level/speaking sync now uses PeerJS data channels (P2P), not Supabase broadcasts.
-  const VOICE_SPEAKING_RMS_THRESHOLD = 0.008;
-  const VOICE_SPEAKING_LEVEL_THRESHOLD = 0.02;
-  const VOICE_SPEAKING_HOLD_MS = 260;
-  const VOICE_LEVEL_SEND_INTERVAL_MS = 120;
-  let peerJsLoadPromise = null;
-  let voicePeer = null;
-  let voicePeerId = '';
-  let voiceJoined = false;
-  let voiceLocalStream = null;
-  let voiceScreenStream = null;
-  let voiceScreenSharing = false;
-  let voiceMuted = false;
-  let voiceRtChannel = null;
-  let voiceRtSubscribed = false;
+  if (typeof VOICE_SPEAKING_RMS_THRESHOLD === 'undefined') {
+    var VOICE_SPEAKING_RMS_THRESHOLD = 0.008;
+  }
+  if (typeof VOICE_SPEAKING_LEVEL_THRESHOLD === 'undefined') {
+    var VOICE_SPEAKING_LEVEL_THRESHOLD = 0.02;
+  }
+  if (typeof VOICE_SPEAKING_HOLD_MS === 'undefined') {
+    var VOICE_SPEAKING_HOLD_MS = 260;
+  }
+  if (typeof VOICE_LEVEL_SEND_INTERVAL_MS === 'undefined') {
+    var VOICE_LEVEL_SEND_INTERVAL_MS = 120;
+  }
+  if (typeof peerJsLoadPromise === 'undefined') {
+    var peerJsLoadPromise = null;
+  }
+  if (typeof voicePeer === 'undefined') {
+    var voicePeer = null;
+  }
+  if (typeof voicePeerId === 'undefined') {
+    var voicePeerId = '';
+  }
+  if (typeof voiceJoined === 'undefined') {
+    var voiceJoined = false;
+  }
+  if (typeof voiceLocalStream === 'undefined') {
+    var voiceLocalStream = null;
+  }
+  if (typeof voiceScreenStream === 'undefined') {
+    var voiceScreenStream = null;
+  }
+  if (typeof voiceScreenSharing === 'undefined') {
+    var voiceScreenSharing = false;
+  }
+  if (typeof voiceMuted === 'undefined') {
+    var voiceMuted = false;
+  }
+  if (typeof voiceRtChannel === 'undefined') {
+    var voiceRtChannel = null;
+  }
+  if (typeof voiceRtSubscribed === 'undefined') {
+    var voiceRtSubscribed = false;
+  }
   // Observer channel: lets users see current voice participants before joining
-  let voiceObserverChannel = null;
-  let voiceObserverKey = '';
-  const voiceCalls = new Map(); // peerId -> call
-  const voiceDataConns = new Map(); // peerId -> PeerJS DataConnection
-  const voiceParticipants = new Map(); // peerId -> { userId, lastSeen, lastSpokeTs, speaking, connected, lastBroadcastTs, level, lastLevelTs, muted }
-  let voiceParticipantsLoading = false;
+  if (typeof voiceObserverChannel === 'undefined') {
+    var voiceObserverChannel = null;
+  }
+  if (typeof voiceObserverKey === 'undefined') {
+    var voiceObserverKey = '';
+  }
+  if (typeof voiceCalls === 'undefined') {
+    var voiceCalls = new Map(); // peerId -> call
+  }
+  if (typeof voiceDataConns === 'undefined') {
+    var voiceDataConns = new Map(); // peerId -> PeerJS DataConnection
+  }
+  if (typeof voiceParticipants === 'undefined') {
+    var voiceParticipants = new Map(); // peerId -> { userId, lastSeen, lastSpokeTs, speaking, connected, lastBroadcastTs, level, lastLevelTs, muted }
+  }
+  if (typeof voiceParticipantsLoading === 'undefined') {
+    var voiceParticipantsLoading = false;
+  }
 
   function cleanupVoiceDataConn(peerId) {
       const dc = voiceDataConns.get(peerId);
@@ -516,13 +571,27 @@
   // This replaces Supabase Realtime for voice presence + join/leave banners when configured.
   // Set in HTML (recommended):
   //   window.__VOICE_DISCOVERY_WS_URL__ = "wss://<your-worker>.workers.dev/voice";
-  const VOICE_DISCOVERY_WS_URL = String(window.__VOICE_DISCOVERY_WS_URL__ || '').trim();
-  const VOICE_DISCOVERY_ENABLED = !!VOICE_DISCOVERY_WS_URL;
-  let voiceDiscoveryWs = null;
-  let voiceDiscoveryMode = 'off'; // 'observer' | 'joined' | 'off'
-  let voiceDiscoveryConnectPromise = null;
-  let voiceDiscoveryPingTimer = null;
-  let voiceDiscoveryReconnectTimer = null;
+  if (typeof VOICE_DISCOVERY_WS_URL === 'undefined') {
+    var VOICE_DISCOVERY_WS_URL = String(window.__VOICE_DISCOVERY_WS_URL__ || '').trim();
+  }
+  if (typeof VOICE_DISCOVERY_ENABLED === 'undefined') {
+    var VOICE_DISCOVERY_ENABLED = !!VOICE_DISCOVERY_WS_URL;
+  }
+  if (typeof voiceDiscoveryWs === 'undefined') {
+    var voiceDiscoveryWs = null;
+  }
+  if (typeof voiceDiscoveryMode === 'undefined') {
+    var voiceDiscoveryMode = 'off'; // 'observer' | 'joined' | 'off'
+  }
+  if (typeof voiceDiscoveryConnectPromise === 'undefined') {
+    var voiceDiscoveryConnectPromise = null;
+  }
+  if (typeof voiceDiscoveryPingTimer === 'undefined') {
+    var voiceDiscoveryPingTimer = null;
+  }
+  if (typeof voiceDiscoveryReconnectTimer === 'undefined') {
+    var voiceDiscoveryReconnectTimer = null;
+  }
 
   function buildVoiceDiscoveryUrl() {
       try {
@@ -728,38 +797,84 @@
   }
 
   // Local mic meter (Web Audio analyser)
-  let voiceAudioCtx = null;
-  let voiceAnalyser = null;
-  let voiceMeterRaf = null;
-  let voiceLocalSpeaking = false;
-  let voiceLocalLastSpeakingSendTs = 0;
-  let voiceLocalLastLevelSendTs = 0;
-  let voiceNoiseFloor = 0;
-  let voiceNoiseFloorInitTs = 0;
+  if (typeof voiceAudioCtx === 'undefined') {
+    var voiceAudioCtx = null;
+  }
+  if (typeof voiceAnalyser === 'undefined') {
+    var voiceAnalyser = null;
+  }
+  if (typeof voiceMeterRaf === 'undefined') {
+    var voiceMeterRaf = null;
+  }
+  if (typeof voiceLocalSpeaking === 'undefined') {
+    var voiceLocalSpeaking = false;
+  }
+  if (typeof voiceLocalLastSpeakingSendTs === 'undefined') {
+    var voiceLocalLastSpeakingSendTs = 0;
+  }
+  if (typeof voiceLocalLastLevelSendTs === 'undefined') {
+    var voiceLocalLastLevelSendTs = 0;
+  }
+  if (typeof voiceNoiseFloor === 'undefined') {
+    var voiceNoiseFloor = 0;
+  }
+  if (typeof voiceNoiseFloorInitTs === 'undefined') {
+    var voiceNoiseFloorInitTs = 0;
+  }
 
   // Remote speaking detection (fallback, if broadcast packets are missed)
-  let voiceRemoteAudioCtx = null;
-  const voiceRemoteAnalysers = new Map(); // peerId -> { analyser, data }
-  let voiceRemoteMeterRaf = null;
+  if (typeof voiceRemoteAudioCtx === 'undefined') {
+    var voiceRemoteAudioCtx = null;
+  }
+  if (typeof voiceRemoteAnalysers === 'undefined') {
+    var voiceRemoteAnalysers = new Map(); // peerId -> { analyser, data }
+  }
+  if (typeof voiceRemoteMeterRaf === 'undefined') {
+    var voiceRemoteMeterRaf = null;
+  }
 
   // Local-only mutes (you can't hear specific peers; doesn't affect others)
-  const VOICE_LOCAL_MUTES_KEY = 'voice_local_mutes_v1';
-  let voiceLocallyMutedPeers = new Set();
+  if (typeof VOICE_LOCAL_MUTES_KEY === 'undefined') {
+    var VOICE_LOCAL_MUTES_KEY = 'voice_local_mutes_v1';
+  }
+  if (typeof voiceLocallyMutedPeers === 'undefined') {
+    var voiceLocallyMutedPeers = new Set();
+  }
 
   // Age gate / terms consent (localStorage-enforced UI gate)
-  const VOICE_GATE_KEY = 'voice_gate_v1';
+  if (typeof VOICE_GATE_KEY === 'undefined') {
+    var VOICE_GATE_KEY = 'voice_gate_v1';
+  }
   // values: 'adult_accepted' | 'under18_declined'
-  let voiceGateModalEl = null;
+  if (typeof voiceGateModalEl === 'undefined') {
+    var voiceGateModalEl = null;
+  }
 
   // Join/leave notifications for everyone on chat pages
-  const VOICE_BROADCAST_ACTIVITY_EVENT = 'activity';
-  let voiceActivityEl = null;
-  let voiceActivityTimer = null;
-  let voiceActivityChannel = null;
-  const voiceActivityLastTsByUser = new Map();
-  const VOICE_ACTIVITY_HEARTBEAT_MS = 12000;
-  const VOICE_ACTIVITY_STALE_MS = 28000;
-  let voiceActivityHeartbeatTimer = null;
+  if (typeof VOICE_BROADCAST_ACTIVITY_EVENT === 'undefined') {
+    var VOICE_BROADCAST_ACTIVITY_EVENT = 'activity';
+  }
+  if (typeof voiceActivityEl === 'undefined') {
+    var voiceActivityEl = null;
+  }
+  if (typeof voiceActivityTimer === 'undefined') {
+    var voiceActivityTimer = null;
+  }
+  if (typeof voiceActivityChannel === 'undefined') {
+    var voiceActivityChannel = null;
+  }
+  if (typeof voiceActivityLastTsByUser === 'undefined') {
+    var voiceActivityLastTsByUser = new Map();
+  }
+  if (typeof VOICE_ACTIVITY_HEARTBEAT_MS === 'undefined') {
+    var VOICE_ACTIVITY_HEARTBEAT_MS = 12000;
+  }
+  if (typeof VOICE_ACTIVITY_STALE_MS === 'undefined') {
+    var VOICE_ACTIVITY_STALE_MS = 28000;
+  }
+  if (typeof voiceActivityHeartbeatTimer === 'undefined') {
+    var voiceActivityHeartbeatTimer = null;
+  }
 
   function stopVoiceActivityHeartbeats() {
       if (voiceActivityHeartbeatTimer) {
@@ -949,19 +1064,21 @@
       return voiceActivityChannel;
   }
 
-  let voiceUi = {
-      built: false,
-      toggleBtn: null,
-      panel: null,
-      joinBtn: null,
-      leaveBtn: null,
-      muteBtn: null,
-      statusEl: null,
-      listEl: null,
-      audioBucket: null,
-      meterCanvas: null,
-      reportsBtn: null
-  };
+  if (typeof voiceUi === 'undefined') {
+    var voiceUi = {
+        built: false,
+        toggleBtn: null,
+        panel: null,
+        joinBtn: null,
+        leaveBtn: null,
+        muteBtn: null,
+        statusEl: null,
+        listEl: null,
+        audioBucket: null,
+        meterCanvas: null,
+        reportsBtn: null
+    };
+  }
 
   async function ensurePeerJs() {
       if (window.Peer) return window.Peer;
@@ -1164,8 +1281,12 @@
   }
 
   // -------- "New edition" one-time popup --------
-  const NEW_EDITION_POPUP_KEY = 'new_edition_voicechat_popup_v1';
-  let newEditionPopupEl = null;
+  if (typeof NEW_EDITION_POPUP_KEY === 'undefined') {
+    var NEW_EDITION_POPUP_KEY = 'new_edition_voicechat_popup_v1';
+  }
+  if (typeof newEditionPopupEl === 'undefined') {
+    var newEditionPopupEl = null;
+  }
 
   function ensureNewEditionPopup() {
       if (newEditionPopupEl) return newEditionPopupEl;

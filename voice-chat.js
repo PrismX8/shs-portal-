@@ -4,12 +4,10 @@
 
   // -------- Voice Chat (PeerJS + Supabase Realtime Presence) --------
   // NOTE: Voice traffic is peer-to-peer (WebRTC). Supabase is used only for presence + moderation/report events.
-  const VOICE_ROOM_ID = 'global';
-  const VOICE_REPORT_TYPE = 'voice_report';
-  const VOICE_MOD_TYPE = 'voice_mod';
+  // NOTE: VOICE_ROOM_ID, VOICE_REPORT_TYPE, VOICE_MOD_TYPE, and VOICE_MOD_STATE_KEY are declared in script.js
+  // These constants are already available in the global scope, no need to redeclare them here.
 
   // Voice moderation state (client-enforced, driven by %Owner% events)
-  const VOICE_MOD_STATE_KEY = 'voice_mod_state_v1';
   function loadVoiceModState() {
       try {
           const raw = localStorage.getItem(VOICE_MOD_STATE_KEY);
@@ -47,8 +45,7 @@
   }
 
   // Report UI (works even when you're not in voice)
-  let voiceReportModalEl = null;
-  let voiceReportsInboxEl = null;
+  // NOTE: voiceReportModalEl and voiceReportsInboxEl are declared in script.js
 
   function ensureVoiceReportModal() {
       if (voiceReportModalEl) return voiceReportModalEl;
@@ -377,7 +374,7 @@
   }
 
   // Owner-only Reports button (lets you ban/timeout directly from incoming reports)
-  let ownerReportsBtnEl = null;
+  // NOTE: ownerReportsBtnEl is declared in script.js
   function ensureOwnerReportsButton() {
       if (ownerReportsBtnEl) return ownerReportsBtnEl;
       if (!globalChatSettingsBtn || !globalChatSettingsBtn.parentElement) return null;
@@ -411,27 +408,16 @@
   // -------- Voice runtime (full) --------
   // PeerJS docs: https://peerjs.com/
   // Level/speaking sync now uses PeerJS data channels (P2P), not Supabase broadcasts.
-  const VOICE_SPEAKING_RMS_THRESHOLD = 0.008;
-  const VOICE_SPEAKING_LEVEL_THRESHOLD = 0.02;
-  const VOICE_SPEAKING_HOLD_MS = 260;
-  const VOICE_LEVEL_SEND_INTERVAL_MS = 120;
-  let peerJsLoadPromise = null;
-  let voicePeer = null;
-  let voicePeerId = '';
-  let voiceJoined = false;
-  let voiceLocalStream = null;
-  let voiceScreenStream = null;
-  let voiceScreenSharing = false;
-  let voiceMuted = false;
-  let voiceRtChannel = null;
-  let voiceRtSubscribed = false;
+  // NOTE: All voice-related constants and variables are declared in script.js
+  // voiceScreenStream and voiceScreenSharing are declared here since they're not in script.js
+  if (typeof voiceScreenStream === 'undefined') {
+    var voiceScreenStream = null;
+  }
+  if (typeof voiceScreenSharing === 'undefined') {
+    var voiceScreenSharing = false;
+  }
   // Observer channel: lets users see current voice participants before joining
-  let voiceObserverChannel = null;
-  let voiceObserverKey = '';
-  const voiceCalls = new Map(); // peerId -> call
-  const voiceDataConns = new Map(); // peerId -> PeerJS DataConnection
-  const voiceParticipants = new Map(); // peerId -> { userId, lastSeen, lastSpokeTs, speaking, connected, lastBroadcastTs, level, lastLevelTs, muted }
-  let voiceParticipantsLoading = false;
+  // NOTE: voiceObserverChannel, voiceObserverKey, voiceCalls, voiceDataConns, voiceParticipants, and voiceParticipantsLoading are declared in script.js
 
   function cleanupVoiceDataConn(peerId) {
       const dc = voiceDataConns.get(peerId);
@@ -516,13 +502,8 @@
   // This replaces Supabase Realtime for voice presence + join/leave banners when configured.
   // Set in HTML (recommended):
   //   window.__VOICE_DISCOVERY_WS_URL__ = "wss://<your-worker>.workers.dev/voice";
-  const VOICE_DISCOVERY_WS_URL = String(window.__VOICE_DISCOVERY_WS_URL__ || '').trim();
-  const VOICE_DISCOVERY_ENABLED = !!VOICE_DISCOVERY_WS_URL;
-  let voiceDiscoveryWs = null;
-  let voiceDiscoveryMode = 'off'; // 'observer' | 'joined' | 'off'
-  let voiceDiscoveryConnectPromise = null;
-  let voiceDiscoveryPingTimer = null;
-  let voiceDiscoveryReconnectTimer = null;
+  // NOTE: VOICE_DISCOVERY_WS_URL, VOICE_DISCOVERY_ENABLED, voiceDiscoveryWs, voiceDiscoveryMode,
+  // voiceDiscoveryConnectPromise, voiceDiscoveryPingTimer, and voiceDiscoveryReconnectTimer are declared in script.js
 
   function buildVoiceDiscoveryUrl() {
       try {
@@ -728,38 +709,12 @@
   }
 
   // Local mic meter (Web Audio analyser)
-  let voiceAudioCtx = null;
-  let voiceAnalyser = null;
-  let voiceMeterRaf = null;
-  let voiceLocalSpeaking = false;
-  let voiceLocalLastSpeakingSendTs = 0;
-  let voiceLocalLastLevelSendTs = 0;
-  let voiceNoiseFloor = 0;
-  let voiceNoiseFloorInitTs = 0;
-
-  // Remote speaking detection (fallback, if broadcast packets are missed)
-  let voiceRemoteAudioCtx = null;
-  const voiceRemoteAnalysers = new Map(); // peerId -> { analyser, data }
-  let voiceRemoteMeterRaf = null;
-
-  // Local-only mutes (you can't hear specific peers; doesn't affect others)
-  const VOICE_LOCAL_MUTES_KEY = 'voice_local_mutes_v1';
-  let voiceLocallyMutedPeers = new Set();
-
-  // Age gate / terms consent (localStorage-enforced UI gate)
-  const VOICE_GATE_KEY = 'voice_gate_v1';
-  // values: 'adult_accepted' | 'under18_declined'
-  let voiceGateModalEl = null;
-
-  // Join/leave notifications for everyone on chat pages
-  const VOICE_BROADCAST_ACTIVITY_EVENT = 'activity';
-  let voiceActivityEl = null;
-  let voiceActivityTimer = null;
-  let voiceActivityChannel = null;
-  const voiceActivityLastTsByUser = new Map();
-  const VOICE_ACTIVITY_HEARTBEAT_MS = 12000;
-  const VOICE_ACTIVITY_STALE_MS = 28000;
-  let voiceActivityHeartbeatTimer = null;
+  // NOTE: All voice audio-related variables (voiceAudioCtx, voiceAnalyser, voiceMeterRaf, voiceLocalSpeaking,
+  // voiceLocalLastSpeakingSendTs, voiceLocalLastLevelSendTs, voiceNoiseFloor, voiceNoiseFloorInitTs,
+  // voiceRemoteAudioCtx, voiceRemoteAnalysers, voiceRemoteMeterRaf, VOICE_LOCAL_MUTES_KEY, voiceLocallyMutedPeers,
+  // VOICE_GATE_KEY, voiceGateModalEl, VOICE_BROADCAST_ACTIVITY_EVENT, voiceActivityEl, voiceActivityTimer,
+  // voiceActivityChannel, voiceActivityLastTsByUser, VOICE_ACTIVITY_HEARTBEAT_MS, VOICE_ACTIVITY_STALE_MS,
+  // and voiceActivityHeartbeatTimer are declared in script.js
 
   function stopVoiceActivityHeartbeats() {
       if (voiceActivityHeartbeatTimer) {
@@ -949,19 +904,7 @@
       return voiceActivityChannel;
   }
 
-  let voiceUi = {
-      built: false,
-      toggleBtn: null,
-      panel: null,
-      joinBtn: null,
-      leaveBtn: null,
-      muteBtn: null,
-      statusEl: null,
-      listEl: null,
-      audioBucket: null,
-      meterCanvas: null,
-      reportsBtn: null
-  };
+  // NOTE: voiceUi is declared in script.js
 
   async function ensurePeerJs() {
       if (window.Peer) return window.Peer;
@@ -1164,8 +1107,7 @@
   }
 
   // -------- "New edition" one-time popup --------
-  const NEW_EDITION_POPUP_KEY = 'new_edition_voicechat_popup_v1';
-  let newEditionPopupEl = null;
+  // NOTE: NEW_EDITION_POPUP_KEY and newEditionPopupEl are declared in script.js
 
   function ensureNewEditionPopup() {
       if (newEditionPopupEl) return newEditionPopupEl;

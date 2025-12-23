@@ -281,42 +281,31 @@ class BackendAPI {
     });
   }
 
-  // Visitors
+  // ✅ STUBBED: Visitors/Presence APIs (removed - no longer using Vercel backend)
+  // These methods are stubbed to prevent calls to shs-portal-backend.vercel.app
   async getTotalVisitors() {
-    return this.request('/visitors/total');
+    console.debug('⚠️ getTotalVisitors() stubbed - visitor counter disabled');
+    return Promise.resolve({ totalVisitors: 0 });
   }
 
   async incrementVisitors() {
-    return this.request('/visitors/increment', { method: 'POST' });
+    console.debug('⚠️ incrementVisitors() stubbed - visitor counter disabled');
+    return Promise.resolve({ totalVisitors: 0 });
   }
 
   async getOnlineUsers() {
-    return this.request('/visitors/online');
+    console.debug('⚠️ getOnlineUsers() stubbed - online presence disabled');
+    return Promise.resolve([]);
   }
 
   async setOnline(visitorId, username) {
-    return this.request('/visitors/online/ping', {
-      method: 'POST',
-      body: { visitorId, username }
-    });
+    // Stubbed - no-op to prevent Vercel backend calls
+    return Promise.resolve();
   }
 
   async setOffline(visitorId) {
-    // Gracefully handle offline - backend should tolerate empty/unload requests
-    if (!visitorId) {
-      // Skip if no visitorId (prevents errors on unload)
-      return Promise.resolve();
-    }
-    try {
-      return await this.request('/visitors/online/offline', {
-        method: 'POST',
-        body: { visitorId }
-      });
-    } catch (err) {
-      // Silently fail on offline - backend should be tolerant
-      console.debug('Offline request failed (expected on unload):', err);
-      return Promise.resolve();
-    }
+    // Stubbed - no-op to prevent Vercel backend calls
+    return Promise.resolve();
   }
 
   // Moderation
