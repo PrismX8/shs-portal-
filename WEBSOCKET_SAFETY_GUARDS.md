@@ -186,3 +186,5 @@ console.log({
 - Flags are checked with `!window.ENABLE_*_WS` for clarity (false = disabled)
 - Voice discovery WebSocket guard was already present - no changes needed there
 
+
+

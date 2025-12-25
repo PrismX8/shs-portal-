@@ -165,3 +165,5 @@ After updating your Worker:
 
 Once the Worker returns proper CORS headers, the chat will work correctly.
 
+
+

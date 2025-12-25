@@ -4,19 +4,8 @@
 
   // -------- Voice Chat (PeerJS + Supabase Realtime Presence) --------
   // NOTE: Voice traffic is peer-to-peer (WebRTC). Supabase is used only for presence + moderation/report events.
-  // ✅ FIX: Check if already declared to prevent duplicate declaration error
-  if (typeof VOICE_ROOM_ID === 'undefined') {
-    var VOICE_ROOM_ID = 'global';
-  }
-  if (typeof VOICE_REPORT_TYPE === 'undefined') {
-    var VOICE_REPORT_TYPE = 'voice_report';
-  }
-  if (typeof VOICE_MOD_TYPE === 'undefined') {
-    var VOICE_MOD_TYPE = 'voice_mod';
-  }
-  if (typeof VOICE_MOD_STATE_KEY === 'undefined') {
-    var VOICE_MOD_STATE_KEY = 'voice_mod_state_v1';
-  }
+  // NOTE: VOICE_ROOM_ID, VOICE_REPORT_TYPE, VOICE_MOD_TYPE, and VOICE_MOD_STATE_KEY are declared in script.js
+  // These constants are already available in the global scope, no need to redeclare them here.
 
   // Voice moderation state (client-enforced, driven by %Owner% events)
   function loadVoiceModState() {
@@ -56,12 +45,7 @@
   }
 
   // Report UI (works even when you're not in voice)
-  if (typeof voiceReportModalEl === 'undefined') {
-    var voiceReportModalEl = null;
-  }
-  if (typeof voiceReportsInboxEl === 'undefined') {
-    var voiceReportsInboxEl = null;
-  }
+  // NOTE: voiceReportModalEl and voiceReportsInboxEl are declared in script.js
 
   function ensureVoiceReportModal() {
       if (voiceReportModalEl) return voiceReportModalEl;
@@ -390,9 +374,7 @@
   }
 
   // Owner-only Reports button (lets you ban/timeout directly from incoming reports)
-  if (typeof ownerReportsBtnEl === 'undefined') {
-    var ownerReportsBtnEl = null;
-  }
+  // NOTE: ownerReportsBtnEl is declared in script.js
   function ensureOwnerReportsButton() {
       if (ownerReportsBtnEl) return ownerReportsBtnEl;
       if (!globalChatSettingsBtn || !globalChatSettingsBtn.parentElement) return null;
@@ -426,67 +408,16 @@
   // -------- Voice runtime (full) --------
   // PeerJS docs: https://peerjs.com/
   // Level/speaking sync now uses PeerJS data channels (P2P), not Supabase broadcasts.
-  if (typeof VOICE_SPEAKING_RMS_THRESHOLD === 'undefined') {
-    var VOICE_SPEAKING_RMS_THRESHOLD = 0.008;
-  }
-  if (typeof VOICE_SPEAKING_LEVEL_THRESHOLD === 'undefined') {
-    var VOICE_SPEAKING_LEVEL_THRESHOLD = 0.02;
-  }
-  if (typeof VOICE_SPEAKING_HOLD_MS === 'undefined') {
-    var VOICE_SPEAKING_HOLD_MS = 260;
-  }
-  if (typeof VOICE_LEVEL_SEND_INTERVAL_MS === 'undefined') {
-    var VOICE_LEVEL_SEND_INTERVAL_MS = 120;
-  }
-  if (typeof peerJsLoadPromise === 'undefined') {
-    var peerJsLoadPromise = null;
-  }
-  if (typeof voicePeer === 'undefined') {
-    var voicePeer = null;
-  }
-  if (typeof voicePeerId === 'undefined') {
-    var voicePeerId = '';
-  }
-  if (typeof voiceJoined === 'undefined') {
-    var voiceJoined = false;
-  }
-  if (typeof voiceLocalStream === 'undefined') {
-    var voiceLocalStream = null;
-  }
+  // NOTE: All voice-related constants and variables are declared in script.js
+  // voiceScreenStream and voiceScreenSharing are declared here since they're not in script.js
   if (typeof voiceScreenStream === 'undefined') {
     var voiceScreenStream = null;
   }
   if (typeof voiceScreenSharing === 'undefined') {
     var voiceScreenSharing = false;
   }
-  if (typeof voiceMuted === 'undefined') {
-    var voiceMuted = false;
-  }
-  if (typeof voiceRtChannel === 'undefined') {
-    var voiceRtChannel = null;
-  }
-  if (typeof voiceRtSubscribed === 'undefined') {
-    var voiceRtSubscribed = false;
-  }
   // Observer channel: lets users see current voice participants before joining
-  if (typeof voiceObserverChannel === 'undefined') {
-    var voiceObserverChannel = null;
-  }
-  if (typeof voiceObserverKey === 'undefined') {
-    var voiceObserverKey = '';
-  }
-  if (typeof voiceCalls === 'undefined') {
-    var voiceCalls = new Map(); // peerId -> call
-  }
-  if (typeof voiceDataConns === 'undefined') {
-    var voiceDataConns = new Map(); // peerId -> PeerJS DataConnection
-  }
-  if (typeof voiceParticipants === 'undefined') {
-    var voiceParticipants = new Map(); // peerId -> { userId, lastSeen, lastSpokeTs, speaking, connected, lastBroadcastTs, level, lastLevelTs, muted }
-  }
-  if (typeof voiceParticipantsLoading === 'undefined') {
-    var voiceParticipantsLoading = false;
-  }
+  // NOTE: voiceObserverChannel, voiceObserverKey, voiceCalls, voiceDataConns, voiceParticipants, and voiceParticipantsLoading are declared in script.js
 
   function cleanupVoiceDataConn(peerId) {
       const dc = voiceDataConns.get(peerId);
@@ -571,27 +502,8 @@
   // This replaces Supabase Realtime for voice presence + join/leave banners when configured.
   // Set in HTML (recommended):
   //   window.__VOICE_DISCOVERY_WS_URL__ = "wss://<your-worker>.workers.dev/voice";
-  if (typeof VOICE_DISCOVERY_WS_URL === 'undefined') {
-    var VOICE_DISCOVERY_WS_URL = String(window.__VOICE_DISCOVERY_WS_URL__ || '').trim();
-  }
-  if (typeof VOICE_DISCOVERY_ENABLED === 'undefined') {
-    var VOICE_DISCOVERY_ENABLED = !!VOICE_DISCOVERY_WS_URL;
-  }
-  if (typeof voiceDiscoveryWs === 'undefined') {
-    var voiceDiscoveryWs = null;
-  }
-  if (typeof voiceDiscoveryMode === 'undefined') {
-    var voiceDiscoveryMode = 'off'; // 'observer' | 'joined' | 'off'
-  }
-  if (typeof voiceDiscoveryConnectPromise === 'undefined') {
-    var voiceDiscoveryConnectPromise = null;
-  }
-  if (typeof voiceDiscoveryPingTimer === 'undefined') {
-    var voiceDiscoveryPingTimer = null;
-  }
-  if (typeof voiceDiscoveryReconnectTimer === 'undefined') {
-    var voiceDiscoveryReconnectTimer = null;
-  }
+  // NOTE: VOICE_DISCOVERY_WS_URL, VOICE_DISCOVERY_ENABLED, voiceDiscoveryWs, voiceDiscoveryMode,
+  // voiceDiscoveryConnectPromise, voiceDiscoveryPingTimer, and voiceDiscoveryReconnectTimer are declared in script.js
 
   function buildVoiceDiscoveryUrl() {
       try {
@@ -797,84 +709,12 @@
   }
 
   // Local mic meter (Web Audio analyser)
-  if (typeof voiceAudioCtx === 'undefined') {
-    var voiceAudioCtx = null;
-  }
-  if (typeof voiceAnalyser === 'undefined') {
-    var voiceAnalyser = null;
-  }
-  if (typeof voiceMeterRaf === 'undefined') {
-    var voiceMeterRaf = null;
-  }
-  if (typeof voiceLocalSpeaking === 'undefined') {
-    var voiceLocalSpeaking = false;
-  }
-  if (typeof voiceLocalLastSpeakingSendTs === 'undefined') {
-    var voiceLocalLastSpeakingSendTs = 0;
-  }
-  if (typeof voiceLocalLastLevelSendTs === 'undefined') {
-    var voiceLocalLastLevelSendTs = 0;
-  }
-  if (typeof voiceNoiseFloor === 'undefined') {
-    var voiceNoiseFloor = 0;
-  }
-  if (typeof voiceNoiseFloorInitTs === 'undefined') {
-    var voiceNoiseFloorInitTs = 0;
-  }
-
-  // Remote speaking detection (fallback, if broadcast packets are missed)
-  if (typeof voiceRemoteAudioCtx === 'undefined') {
-    var voiceRemoteAudioCtx = null;
-  }
-  if (typeof voiceRemoteAnalysers === 'undefined') {
-    var voiceRemoteAnalysers = new Map(); // peerId -> { analyser, data }
-  }
-  if (typeof voiceRemoteMeterRaf === 'undefined') {
-    var voiceRemoteMeterRaf = null;
-  }
-
-  // Local-only mutes (you can't hear specific peers; doesn't affect others)
-  if (typeof VOICE_LOCAL_MUTES_KEY === 'undefined') {
-    var VOICE_LOCAL_MUTES_KEY = 'voice_local_mutes_v1';
-  }
-  if (typeof voiceLocallyMutedPeers === 'undefined') {
-    var voiceLocallyMutedPeers = new Set();
-  }
-
-  // Age gate / terms consent (localStorage-enforced UI gate)
-  if (typeof VOICE_GATE_KEY === 'undefined') {
-    var VOICE_GATE_KEY = 'voice_gate_v1';
-  }
-  // values: 'adult_accepted' | 'under18_declined'
-  if (typeof voiceGateModalEl === 'undefined') {
-    var voiceGateModalEl = null;
-  }
-
-  // Join/leave notifications for everyone on chat pages
-  if (typeof VOICE_BROADCAST_ACTIVITY_EVENT === 'undefined') {
-    var VOICE_BROADCAST_ACTIVITY_EVENT = 'activity';
-  }
-  if (typeof voiceActivityEl === 'undefined') {
-    var voiceActivityEl = null;
-  }
-  if (typeof voiceActivityTimer === 'undefined') {
-    var voiceActivityTimer = null;
-  }
-  if (typeof voiceActivityChannel === 'undefined') {
-    var voiceActivityChannel = null;
-  }
-  if (typeof voiceActivityLastTsByUser === 'undefined') {
-    var voiceActivityLastTsByUser = new Map();
-  }
-  if (typeof VOICE_ACTIVITY_HEARTBEAT_MS === 'undefined') {
-    var VOICE_ACTIVITY_HEARTBEAT_MS = 12000;
-  }
-  if (typeof VOICE_ACTIVITY_STALE_MS === 'undefined') {
-    var VOICE_ACTIVITY_STALE_MS = 28000;
-  }
-  if (typeof voiceActivityHeartbeatTimer === 'undefined') {
-    var voiceActivityHeartbeatTimer = null;
-  }
+  // NOTE: All voice audio-related variables (voiceAudioCtx, voiceAnalyser, voiceMeterRaf, voiceLocalSpeaking,
+  // voiceLocalLastSpeakingSendTs, voiceLocalLastLevelSendTs, voiceNoiseFloor, voiceNoiseFloorInitTs,
+  // voiceRemoteAudioCtx, voiceRemoteAnalysers, voiceRemoteMeterRaf, VOICE_LOCAL_MUTES_KEY, voiceLocallyMutedPeers,
+  // VOICE_GATE_KEY, voiceGateModalEl, VOICE_BROADCAST_ACTIVITY_EVENT, voiceActivityEl, voiceActivityTimer,
+  // voiceActivityChannel, voiceActivityLastTsByUser, VOICE_ACTIVITY_HEARTBEAT_MS, VOICE_ACTIVITY_STALE_MS,
+  // and voiceActivityHeartbeatTimer are declared in script.js
 
   function stopVoiceActivityHeartbeats() {
       if (voiceActivityHeartbeatTimer) {
@@ -1064,21 +904,7 @@
       return voiceActivityChannel;
   }
 
-  if (typeof voiceUi === 'undefined') {
-    var voiceUi = {
-        built: false,
-        toggleBtn: null,
-        panel: null,
-        joinBtn: null,
-        leaveBtn: null,
-        muteBtn: null,
-        statusEl: null,
-        listEl: null,
-        audioBucket: null,
-        meterCanvas: null,
-        reportsBtn: null
-    };
-  }
+  // NOTE: voiceUi is declared in script.js
 
   async function ensurePeerJs() {
       if (window.Peer) return window.Peer;
@@ -1281,12 +1107,7 @@
   }
 
   // -------- "New edition" one-time popup --------
-  if (typeof NEW_EDITION_POPUP_KEY === 'undefined') {
-    var NEW_EDITION_POPUP_KEY = 'new_edition_voicechat_popup_v1';
-  }
-  if (typeof newEditionPopupEl === 'undefined') {
-    var newEditionPopupEl = null;
-  }
+  // NOTE: NEW_EDITION_POPUP_KEY and newEditionPopupEl are declared in script.js
 
   function ensureNewEditionPopup() {
       if (newEditionPopupEl) return newEditionPopupEl;

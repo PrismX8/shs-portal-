@@ -205,3 +205,5 @@ console.log({
 - Event listeners are now properly guarded against duplicate binding
 - Toast and badge logic now work regardless of which system loads history first
 
+
+
