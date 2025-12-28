@@ -1,8 +1,0 @@
-# Exclude backend files from frontend deployment
-backend/
-*.db
-firebase_export*.json
-node_modules/
-.git/
-.vscode/
-*.log
