@@ -141,16 +141,48 @@ main {
   z-index: 10000;
 }
 
+#gamesHeader {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10000;
+}
+
+#gamesHeader .left-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#gamesHeader .right-controls {
+  display: flex;
+  gap: 8px;
+}
+
 #gamesHeader button {
   background: rgba(0,0,0,0.7);
   border: 1px solid rgba(255,255,255,0.3);
   color: white;
-  font-size: 16px;
-  padding: 8px 12px;
+  font-size: 12px;
+  padding: 6px 8px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+}
+
+#backendInfo {
+  background: rgba(0,0,0,0.8);
+  color: #00ff88;
+  font-size: 10px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  border: 1px solid rgba(0,255,136,0.3);
 }
 
 #gamesHeader button:hover {
@@ -533,13 +565,380 @@ document.querySelectorAll('.article-card').forEach(card => {
   });
 });
 
-// Games overlay functions
-function openGames() {
+// Multiple backend URLs for redundancy and load balancing
+// Replace these URLs with your actual deployed backends
+const backendUrls = [
+  "https://neutral-joan-nebulo-7ce3f9eb.koyeb.app/", // Koyeb (current/active)
+  // Add your other deployed backends below:
+   "https://booksmarts.vercel.app",                 // Render
+  // "https://your-fly-app.fly.dev/",                   // Fly.io
+  // "https://your-cyclic-app.cyclic.app/",             // Cyclic.sh
+  // "https://your-glitch-app.glitch.me/",              // Glitch
+  // "https://your-replit-app.replit.dev/",             // Replit
+  // "https://your-000webhost-app.000webhostapp.com/", // 000webhost
+];
+
+// Backend selection strategies
+const BACKEND_STRATEGIES = {
+  RANDOM: 'random',
+  ROUND_ROBIN: 'round_robin',
+  FAILOVER: 'failover'
+};
+
+let currentBackendIndex = 0;
+let failedBackends = new Set();
+
+// Get next available backend URL
+function getNextBackend(strategy = BACKEND_STRATEGIES.RANDOM) {
+  const availableUrls = backendUrls.filter(url => !failedBackends.has(url));
+
+  if (availableUrls.length === 0) {
+    // If all backends failed, try them all again
+    failedBackends.clear();
+    console.warn('All backends failed, resetting and trying again...');
+    return backendUrls[Math.floor(Math.random() * backendUrls.length)];
+  }
+
+  switch (strategy) {
+    case BACKEND_STRATEGIES.RANDOM:
+      return availableUrls[Math.floor(Math.random() * availableUrls.length)];
+
+    case BACKEND_STRATEGIES.ROUND_ROBIN:
+      const url = availableUrls[currentBackendIndex % availableUrls.length];
+      currentBackendIndex++;
+      return url;
+
+    case BACKEND_STRATEGIES.FAILOVER:
+    default:
+      return availableUrls[0]; // Always use first available
+  }
+}
+
+// Test if a backend is accessible and not blocked
+async function testBackend(url, timeout = 8000) {
+  console.log(`🔍 Testing backend: ${url}`);
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    // Try multiple test methods to detect blocking
+    const testPromises = [
+      // Method 1: HEAD request
+      fetch(url, {
+        method: 'HEAD',
+        mode: 'no-cors',
+        signal: controller.signal,
+        cache: 'no-cache'
+      }),
+
+      // Method 2: GET request with short timeout
+      fetch(`${url}?test=${Date.now()}`, {
+        method: 'GET',
+        mode: 'no-cors',
+        signal: controller.signal,
+        cache: 'no-cache'
+      }).catch(() => Promise.resolve({ ok: false })) // Ignore errors for this method
+    ];
+
+    // Wait for first successful response
+    const results = await Promise.allSettled(testPromises);
+    clearTimeout(timeoutId);
+
+    // Check if any test method succeeded
+    const hasSuccess = results.some(result =>
+      result.status === 'fulfilled' &&
+      (result.value.ok || result.value.status === 0) // status 0 often means success with no-cors
+    );
+
+    if (hasSuccess) {
+      console.log(`✅ Backend ${url} - ACCESSIBLE`);
+      return true;
+    } else {
+      console.log(`❌ Backend ${url} - BLOCKED or UNREACHABLE`);
+      return false;
+    }
+
+  } catch (error) {
+    console.log(`❌ Backend ${url} - ERROR: ${error.message}`);
+    return false;
+  }
+}
+
+// Test backend by attempting to load it in an iframe (more realistic test)
+async function testBackendWithIframe(url, timeout = 10000) {
+  return new Promise((resolve) => {
+    console.log(`🎯 Testing backend with iframe: ${url}`);
+
+    const testFrame = document.createElement('iframe');
+    testFrame.src = url;
+    testFrame.style.display = 'none';
+    testFrame.style.width = '1px';
+    testFrame.style.height = '1px';
+
+    let timeoutId = setTimeout(() => {
+      document.body.removeChild(testFrame);
+      console.log(`⏰ Backend ${url} - TIMEOUT (likely blocked)`);
+      resolve(false);
+    }, timeout);
+
+    testFrame.onload = () => {
+      clearTimeout(timeoutId);
+      document.body.removeChild(testFrame);
+      console.log(`✅ Backend ${url} - SUCCESSFULLY LOADED`);
+      resolve(true);
+    };
+
+    testFrame.onerror = () => {
+      clearTimeout(timeoutId);
+      document.body.removeChild(testFrame);
+      console.log(`❌ Backend ${url} - LOAD ERROR (blocked)`);
+      resolve(false);
+    };
+
+    // Add to DOM to start loading
+    document.body.appendChild(testFrame);
+  });
+}
+
+// Find working backend with sequential blocking detection
+async function findWorkingBackend(useIframeTest = false) {
+  console.log('🔄 Starting backend detection process...');
+  console.log(`📋 Available backends: ${backendUrls.length}`);
+  console.log(`🎯 Using ${useIframeTest ? 'iframe' : 'fetch'} testing method`);
+
+  // Try backends sequentially (first to last)
+  for (let i = 0; i < backendUrls.length; i++) {
+    const url = backendUrls[i];
+    console.log(`\n🎲 Testing backend ${i + 1}/${backendUrls.length}: ${url}`);
+
+    try {
+      let isAccessible;
+
+      if (useIframeTest) {
+        // More thorough test using iframe (better for detecting actual blocking)
+        isAccessible = await testBackendWithIframe(url);
+      } else {
+        // Faster initial test using fetch
+        isAccessible = await testBackend(url);
+      }
+
+      if (isAccessible) {
+        failedBackends.delete(url);
+        console.log(`\n🎉 SUCCESS! Selected backend: ${url}`);
+        console.log(`📍 Backend ${i + 1} of ${backendUrls.length} is accessible`);
+        return url;
+      } else {
+        failedBackends.add(url);
+        console.log(`⏭️  Backend ${i + 1} blocked or unreachable, trying next...`);
+      }
+    } catch (error) {
+      failedBackends.add(url);
+      console.log(`💥 Error testing backend ${i + 1}: ${error.message}`);
+    }
+  }
+
+  // If all backends fail, use iframe test as fallback for the first one
+  console.log('\n⚠️  All backends failed initial tests, trying iframe test on first backend...');
+  if (!useIframeTest && backendUrls.length > 0) {
+    const firstUrl = backendUrls[0];
+    const iframeTest = await testBackendWithIframe(firstUrl);
+    if (iframeTest) {
+      console.log(`🎉 SUCCESS with iframe test! Selected backend: ${firstUrl}`);
+      return firstUrl;
+    }
+  }
+
+  // Absolute last resort
+  console.error('🚨 All backends appear to be blocked! Using first backend as last resort');
+  return backendUrls[0] || 'https://neutral-joan-nebulo-7ce3f9eb.koyeb.app/';
+}
+
+// Enhanced games overlay functions with blocking detection
+async function openGames() {
   const overlay = document.getElementById("gamesOverlay");
   const frame = document.getElementById("gamesFrame");
-  if (!frame.src) frame.src = "https://neutral-joan-nebulo-7ce3f9eb.koyeb.app/";
+  const backendInfo = document.getElementById("backendInfo");
+
+  // Show loading state
   overlay.style.display = "flex";
   document.body.style.overflow = "hidden";
+  backendInfo.textContent = "Backend: Detecting...";
+  backendInfo.style.color = "#ffff00"; // Yellow while detecting
+
+  console.log('\n🚀 Opening games overlay...');
+  console.log('🌐 Starting backend blocking detection...');
+
+  if (!frame.src) {
+    try {
+      // Find a working backend (not blocked on user's network)
+      const backendUrl = await findWorkingBackend(false); // Start with fast fetch test
+
+      console.log(`\n🎯 FINAL SELECTION: ${backendUrl}`);
+      console.log('📡 Loading backend in iframe...');
+
+      frame.src = backendUrl;
+      updateBackendInfo(backendUrl);
+      backendInfo.style.color = "#00ff88"; // Green when successful
+
+      // Log successful backend selection
+      const backendName = backendUrl.replace('https://', '').replace('http://', '').split('.')[0];
+      console.log(`✅ SUCCESS: Connected to ${backendName} backend`);
+      console.log(`🔗 URL: ${backendUrl}`);
+
+    } catch (error) {
+      console.error('💥 CRITICAL ERROR: Failed to find any working backend:', error);
+      backendInfo.textContent = "Backend: ERROR";
+      backendInfo.style.color = "#ff4444"; // Red on error
+
+      // Try iframe test as absolute last resort
+      console.log('🆘 Attempting emergency iframe test...');
+      try {
+        const emergencyUrl = await findWorkingBackend(true);
+        frame.src = emergencyUrl;
+        updateBackendInfo(emergencyUrl);
+        backendInfo.style.color = "#ff8800"; // Orange for emergency
+        console.log(`🚨 EMERGENCY: Using ${emergencyUrl} after iframe test`);
+      } catch (emergencyError) {
+        console.error('🚨 EMERGENCY FAILED: No backends accessible');
+        // Absolute fallback
+        frame.src = backendUrls[0] || 'https://neutral-joan-nebulo-7ce3f9eb.koyeb.app/';
+        backendInfo.textContent = "Backend: OFFLINE";
+        backendInfo.style.color = "#ff0000";
+      }
+    }
+  } else {
+    console.log('ℹ️  Games already loaded, showing overlay');
+    backendInfo.style.color = "#00ff88"; // Green if already loaded
+  }
+}
+
+// Manual backend selection for testing/debugging
+function openGamesWithBackend(backendIndex) {
+  const overlay = document.getElementById("gamesOverlay");
+  const frame = document.getElementById("gamesFrame");
+
+  if (backendIndex >= 0 && backendIndex < backendUrls.length) {
+    frame.src = backendUrls[backendIndex];
+    overlay.style.display = "flex";
+    document.body.style.overflow = "hidden";
+    console.log(`Manually selected backend: ${backendUrls[backendIndex]}`);
+  } else {
+    console.error('Invalid backend index');
+  }
+}
+
+// Backend health check function with detailed logging
+async function checkBackendHealth() {
+  console.log('\n🔍 STARTING BACKEND HEALTH CHECK...');
+  console.log(`📊 Checking ${backendUrls.length} backends`);
+  console.log('⏳ This may take a few seconds...\n');
+
+  const backendInfo = document.getElementById("backendInfo");
+  const originalText = backendInfo.textContent;
+  backendInfo.textContent = "Backend: Checking...";
+  backendInfo.style.color = "#ffff00";
+
+  const results = await Promise.allSettled(
+    backendUrls.map(async (url, index) => {
+      console.log(`🔎 Testing backend ${index + 1}/${backendUrls.length}...`);
+      const isHealthy = await testBackend(url);
+      return { index, url, healthy: isHealthy };
+    })
+  );
+
+  console.log('\n📋 HEALTH CHECK RESULTS:');
+  console.log('=' .repeat(50));
+
+  let healthyCount = 0;
+  let blockedCount = 0;
+
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      const { index, url, healthy } = result.value;
+      const backendName = url.replace('https://', '').replace('http://', '').split('.')[0];
+
+      if (healthy) {
+        failedBackends.delete(url);
+        healthyCount++;
+        console.log(`✅ ${backendName}: ACCESSIBLE`);
+      } else {
+        failedBackends.add(url);
+        blockedCount++;
+        console.log(`❌ ${backendName}: BLOCKED/UNREACHABLE`);
+      }
+    } else {
+      blockedCount++;
+      console.log(`💥 Backend check failed: ${result.reason}`);
+    }
+  });
+
+  console.log('=' .repeat(50));
+  console.log(`📈 SUMMARY: ${healthyCount} accessible, ${blockedCount} blocked`);
+  console.log(`🎯 Success rate: ${Math.round((healthyCount / backendUrls.length) * 100)}%\n`);
+
+  // Restore original backend info
+  backendInfo.textContent = originalText;
+  backendInfo.style.color = originalText.includes('ERROR') ? '#ff4444' :
+                           originalText.includes('Detecting') ? '#ffff00' : '#00ff88';
+}
+
+// Switch to a different backend manually with blocking detection
+async function switchBackend() {
+  const frame = document.getElementById("gamesFrame");
+  const backendInfo = document.getElementById("backendInfo");
+  const currentSrc = frame.src;
+
+  console.log('\n🔄 Manual backend switch requested');
+  console.log(`📍 Current backend: ${currentSrc}`);
+
+  backendInfo.textContent = "Backend: Switching...";
+  backendInfo.style.color = "#ffff00"; // Yellow while switching
+
+  // Find current backend index
+  let currentIndex = backendUrls.findIndex(url =>
+    currentSrc.includes(url.replace('https://', '').replace('http://', '').split('/')[0])
+  );
+
+  console.log(`📊 Current index: ${currentIndex}`);
+
+  // Try next backends sequentially
+  for (let i = 1; i <= backendUrls.length; i++) {
+    const nextIndex = (currentIndex + i) % backendUrls.length;
+    const nextUrl = backendUrls[nextIndex];
+
+    console.log(`🎲 Testing next backend ${nextIndex + 1}: ${nextUrl}`);
+
+    try {
+      const isAccessible = await testBackend(nextUrl);
+      if (isAccessible) {
+        frame.src = nextUrl;
+        updateBackendInfo(nextUrl);
+        backendInfo.style.color = "#00ff88"; // Green on success
+
+        const backendName = nextUrl.replace('https://', '').replace('http://', '').split('.')[0];
+        console.log(`✅ SWITCHED: Now using ${backendName} backend`);
+        console.log(`🔗 New URL: ${nextUrl}`);
+        return;
+      }
+    } catch (error) {
+      console.log(`💥 Error testing ${nextUrl}: ${error.message}`);
+    }
+  }
+
+  // If no other backends work, show error
+  backendInfo.textContent = "Backend: No alternatives";
+  backendInfo.style.color = "#ff4444";
+  console.log('❌ No alternative backends available');
+}
+
+// Update backend info display
+function updateBackendInfo(url) {
+  const backendInfo = document.getElementById("backendInfo");
+  if (backendInfo && url) {
+    const backendName = url.replace('https://', '').replace('http://', '').split('.')[0];
+    backendInfo.textContent = `Backend: ${backendName}`;
+  }
 }
 
 function closeGames() {
@@ -558,11 +957,65 @@ document.addEventListener("keydown", function(e) {
 <!-- GAMES OVERLAY -->
 <div id="gamesOverlay">
   <div id="gamesHeader">
-    <button onclick="closeGames()">✖</button>
+    <div class="left-controls">
+      <div id="backendInfo">Backend: Auto</div>
+    </div>
+    <div class="right-controls">
+      <button onclick="checkBackendHealth()">🔄</button>
+      <button onclick="switchBackend()">🔀</button>
+      <button onclick="closeGames()">✖</button>
+    </div>
   </div>
-  <iframe id="gamesFrame" loading="lazy"></iframe>
+  <iframe id="gamesFrame" loading="lazy" onerror="handleIframeError()"></iframe>
 </div>
 <script>
+// Initialize backend info display
+document.addEventListener("DOMContentLoaded", () => {
+  updateBackendInfo(null); // Show "Backend: Auto" initially
+
+  // Log backend system info to console
+  console.log('\n🌐 NEBULO BACKEND SYSTEM INITIALIZED');
+  console.log('=' .repeat(50));
+  console.log('🔧 Multi-Backend Protection Active');
+  console.log(`📊 ${backendUrls.length} backends configured`);
+  console.log('🛡️  Automatic blocking detection enabled');
+  console.log('🔄 Failover protection active');
+  console.log('📝 Check console for backend selection details');
+  console.log('🎮 Click orange button to test backend detection');
+  console.log('=' .repeat(50));
+});
+
+// Monitor iframe src changes to update backend info
+const iframeObserver = new MutationObserver(() => {
+  const frame = document.getElementById("gamesFrame");
+  if (frame && frame.src) {
+    updateBackendInfo(frame.src);
+  }
+});
+
+iframeObserver.observe(document.getElementById("gamesFrame"), {
+  attributes: true,
+  attributeFilter: ['src']
+});
+
+// Handle iframe loading errors
+function handleIframeError() {
+  const backendInfo = document.getElementById("backendInfo");
+  const frame = document.getElementById("gamesFrame");
+
+  console.log('💥 IFRAME LOAD ERROR - Backend may be blocked');
+  console.log(`📍 Failed URL: ${frame.src}`);
+
+  backendInfo.textContent = "Backend: BLOCKED";
+  backendInfo.style.color = "#ff4444";
+
+  // Automatically try next backend
+  console.log('🔄 Auto-switching to next backend...');
+  setTimeout(() => {
+    switchBackend();
+  }, 2000); // Wait 2 seconds before switching
+}
+
 window.addEventListener("load", () => {
   alert(
     "Welcome!\n\nClick the BIG ORANGE button to access the site.\nOnce you're on the cooking page, click it AGAIN to continue."
