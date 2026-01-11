@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script type="module" src="https://richinfo.co/richpartners/push/js/rp-cl-ob.js?pubid=998500&siteid=384113&niche=33" async data-cfasync="false"></script>
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
@@ -1146,17 +1147,9 @@ document.querySelectorAll('.article-card').forEach(card => {
   });
 });
 
-// Multiple backend URLs for redundancy and load balancing
-// Replace these URLs with your actual deployed backends
+// Koyeb backend configuration
 const backendUrls = [
-  "https://neutral-joan-nebulo-7ce3f9eb.koyeb.app/", // Koyeb (current/active)
-  // Add your other deployed backends below:
-   "https://booksmarts.vercel.app",                 // Render
-  // "https://your-fly-app.fly.dev/",                   // Fly.io
-  // "https://your-cyclic-app.cyclic.app/",             // Cyclic.sh
-  // "https://your-glitch-app.glitch.me/",              // Glitch
-  // "https://your-replit-app.replit.dev/",             // Replit
-  // "https://your-000webhost-app.000webhostapp.com/", // 000webhost
+  "https://neutral-joan-nebulo-7ce3f9eb.koyeb.app/"
 ];
 
 // Backend selection strategies
@@ -1589,12 +1582,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Log backend system info to console
   console.log('\n🌐 NEBULO BACKEND SYSTEM INITIALIZED');
   console.log('=' .repeat(50));
-  console.log('🔧 Multi-Backend Protection Active');
-  console.log(`📊 ${backendUrls.length} backends configured`);
-  console.log('🛡️  Automatic blocking detection enabled');
-  console.log('🔄 Failover protection active');
-  console.log('📝 Check console for backend selection details');
-  console.log('🎮 Click orange button to test backend detection');
+  console.log('🔧 Koyeb Backend Active');
+  console.log(`📊 ${backendUrls.length} backend configured`);
+  console.log('🛡️  Blocking detection enabled');
+  console.log('📝 Backend: neutral-joan-nebulo-7ce3f9eb.koyeb.app');
+  console.log('🎮 Click orange button to access Nebulo');
   console.log('=' .repeat(50));
 });
 
