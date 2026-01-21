@@ -30,6 +30,10 @@
       --warning: #f59e0b;
       --error: #ef4444;
       --info: #3b82f6;
+      --owner-gold: #f6d365;
+      --owner-gold-deep: #d89a31;
+      --owner-gold-soft: rgba(246, 211, 101, 0.35);
+      --owner-text: #2b1b05;
     }
 
     * {
@@ -204,6 +208,53 @@
       border-bottom-left-radius: 4px;
     }
 
+    .message.owner .message-content {
+      background: linear-gradient(135deg, #f7dc8b, #f0b64b);
+      color: var(--owner-text);
+      border: 1px solid rgba(255, 222, 138, 0.9);
+      box-shadow: 0 0 0 1px rgba(255, 215, 120, 0.7), 0 10px 24px rgba(214, 154, 49, 0.35);
+      position: relative;
+      isolation: isolate;
+    }
+
+    .message.owner .message-content::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 236, 170, 0.8);
+      box-shadow: 0 0 14px rgba(255, 214, 130, 0.4), inset 0 0 10px rgba(255, 233, 160, 0.25);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .message.owner .message-content::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 18px;
+      background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
+      opacity: 0.5;
+      transform: translateX(-60%);
+      animation: ownerSheen 3.6s ease-in-out infinite;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      z-index: 0;
+    }
+
+    .message.owner .message-content > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .message.owner.user .message-content {
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.owner.other .message-content {
+      border-bottom-left-radius: 4px;
+    }
+
     .message-header {
       display: flex;
       align-items: center;
@@ -229,6 +280,11 @@
       color: var(--bg-primary);
     }
 
+    .message.owner .message-username {
+      color: var(--owner-gold);
+      text-shadow: 0 0 8px rgba(246, 211, 101, 0.55);
+    }
+
     .message-timestamp {
       color: var(--text-secondary);
       font-size: 0.75rem;
@@ -236,6 +292,22 @@
 
     .message.user .message-timestamp {
       color: rgba(15, 23, 42, 0.7);
+    }
+
+    .message.owner .message-timestamp {
+      color: rgba(66, 45, 8, 0.75);
+    }
+
+    @keyframes ownerSheen {
+      0% {
+        transform: translateX(-60%);
+      }
+      60% {
+        transform: translateX(60%);
+      }
+      100% {
+        transform: translateX(60%);
+      }
     }
 
     /* Sending and failed message states */
@@ -486,6 +558,21 @@ let CHAT_API_BASE = null; // Will be set by parent window message
     let workerHistoryLoaded = false;
     let globalChatSeen = new Set();
     let messageNodeIndex = new Map();
+    const OWNER_USERNAME = 'shs12lord';
+    const OWNER_DISPLAY_NAME = 'Owner';
+
+    function normalizeUsername(name) {
+      return (name || '').trim();
+    }
+
+    function isOwnerUser(name) {
+      return normalizeUsername(name).toLowerCase() === OWNER_USERNAME;
+    }
+
+    function getDisplayUsername(name) {
+      const normalized = normalizeUsername(name);
+      return isOwnerUser(normalized) ? OWNER_DISPLAY_NAME : (normalized || 'Unknown');
+    }
 
     // Initialize chat
     function initChat() {
@@ -726,6 +813,8 @@ let CHAT_API_BASE = null; // Will be set by parent window message
         id: tempMessageId,
         content: text,
         username: currentUsername,
+        displayUsername: getDisplayUsername(currentUsername),
+        isOwner: isOwnerUser(currentUsername),
         timestamp: 'Sending...',
         isCurrentUser: true,
         isSending: true // Mark as sending
@@ -788,14 +877,17 @@ let CHAT_API_BASE = null; // Will be set by parent window message
       }
 
       // Convert worker message format to our format
+      const rawUsername = message.name || message.username || 'Unknown';
       const formattedMessage = {
         id: messageId || Date.now(),
         content: message.text || message.content || '',
-        username: message.name || message.username || 'Unknown',
+        username: rawUsername,
+        displayUsername: getDisplayUsername(rawUsername),
+        isOwner: isOwnerUser(rawUsername),
         timestamp: message.t ?
           new Date(message.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
           new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isCurrentUser: (message.name || message.username) === currentUsername
+        isCurrentUser: rawUsername === currentUsername
       };
 
       // Check if this is a confirmation of our own message
@@ -843,6 +935,8 @@ let CHAT_API_BASE = null; // Will be set by parent window message
         id: Date.now(),
         content: content,
         username: username,
+        displayUsername: getDisplayUsername(username),
+        isOwner: isOwnerUser(username),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isCurrentUser: isCurrentUser
       };
@@ -899,11 +993,13 @@ let CHAT_API_BASE = null; // Will be set by parent window message
           <div class="message-content">${message.content}</div>
         `;
       } else {
-        messageDiv.className = `message ${message.isCurrentUser ? 'user' : 'other'} ${message.isSending ? 'sending' : ''} ${message.isFailed ? 'failed' : ''}`;
+        const isOwner = message.isOwner || isOwnerUser(message.username);
+        const displayUsername = message.displayUsername || getDisplayUsername(message.username);
+        messageDiv.className = `message ${message.isCurrentUser ? 'user' : 'other'} ${message.isSending ? 'sending' : ''} ${message.isFailed ? 'failed' : ''} ${isOwner ? 'owner' : ''}`;
         messageDiv.innerHTML = `
           <div class="message-content">
             <div class="message-header">
-              <span class="message-username">${message.username}</span>
+              <span class="message-username">${displayUsername}</span>
               <span class="message-timestamp">${message.timestamp}</span>
               ${message.isSending ? '<span class="sending-indicator"><i class="fas fa-circle-notch fa-spin"></i> Sending...</span>' : ''}
               ${message.isFailed ? '<span class="failed-indicator"><i class="fas fa-exclamation-triangle"></i> Failed</span>' : ''}
@@ -1030,7 +1126,7 @@ let CHAT_API_BASE = null; // Will be set by parent window message
       try {
         window.parent.postMessage({
           type: 'showChatNotification',
-          username: message.username,
+          username: message.displayUsername || getDisplayUsername(message.username),
           content: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : '')
         }, '*');
       } catch (error) {

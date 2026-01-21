@@ -6,22 +6,22 @@
 
 @font-face {
     font-family: font;
-    src: url('font/font.ttf');
+    src: url('../font/font.ttf');
 }
 
 @font-face {
     font-family: fonti;
-    src: url('font/fonti.ttf');
+    src: url('../font/fonti.ttf');
 }
 
 @font-face {
     font-family: fontb;
-    src: url('font/fontb.ttf');
+    src: url('../font/fontb.ttf');
 }
 
 @font-face {
     font-family: fontbi;
-    src: url('font/fontbi.ttf');
+    src: url('../font/fontbi.ttf');
 }
 
 :root {

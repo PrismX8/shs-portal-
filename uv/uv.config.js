@@ -1,5 +1,5 @@
 (() => {
-    let uvPfx = "/uv/";
+    const uvPfx = "/uv/";
     let loc = "";
     const scriptPath =
         typeof document !== "undefined" &&
@@ -13,17 +13,21 @@
     } else if (self.location.pathname.includes(uvPfx)) {
         loc = self.location.pathname.substring(
             0,
-            self.location.pathname.indexOf(uvPfx),
+            self.location.pathname.indexOf(uvPfx)
         );
     } else {
         loc = self.location.pathname.substring(
             0,
-            self.location.pathname.lastIndexOf("/"),
+            self.location.pathname.lastIndexOf("/")
         );
     }
 
+    const origin =
+        typeof self !== "undefined" && self.location ? self.location.origin : "";
+
     self.__uv$config = {
         prefix: loc + uvPfx + "service/",
+        bare: origin + loc + "/bare/",
         encodeUrl: Ultraviolet.codec.xor.encode,
         decodeUrl: Ultraviolet.codec.xor.decode,
         handler: loc + uvPfx + "uv.handler.js",
@@ -31,7 +35,6 @@
         bundle: loc + uvPfx + "uv.bundle.js",
         config: loc + uvPfx + "uv.config.js",
         sw: loc + uvPfx + "uv.sw.js",
-        stockSW: loc + uvPfx + "sw.js",
         loc: loc,
     };
 })();

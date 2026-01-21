@@ -274,6 +274,181 @@ window.addEventListener('keydown', function checkBiosKey(e) {
 
 // ==================== END BIOS SYSTEM ====================
 
+// ==================== SCRAMJET PROXY SETUP ====================
+const SCRAMJET_ASSET_BASE_URL = new URL("BdSkdFY/sail-sj/sail/", window.location.href);
+const SCRAMJET_ASSET_BASE = SCRAMJET_ASSET_BASE_URL.pathname;
+const SCRAMJET_PREFIX = `${SCRAMJET_ASSET_BASE}go/`;
+const SCRAMJET_SCRAM_PATH = `${SCRAMJET_ASSET_BASE}scram/`;
+const SCRAMJET_SW_PATH = `${SCRAMJET_ASSET_BASE}sw.js`;
+const SCRAMJET_BAREMUX_WORKER = `${SCRAMJET_ASSET_BASE}baremux/worker.js`;
+const SCRAMJET_LIBCURL = new URL("libcurl/index.esm.js", SCRAMJET_ASSET_BASE_URL).href;
+const SCRAMJET_DB_NAME = "$scramjet";
+const SCRAMJET_REQUIRED_STORES = [
+  "config",
+  "cookies",
+  "redirectTrackers",
+  "referrerPolicies",
+  "publicSuffixList",
+];
+
+let scramjetReadyPromise = null;
+
+async function ensureScramjetDbHealthy() {
+  if (!("indexedDB" in window)) return;
+
+  const createStores = (db) => {
+    for (const store of SCRAMJET_REQUIRED_STORES) {
+      if (!db.objectStoreNames.contains(store)) {
+        db.createObjectStore(store);
+      }
+    }
+  };
+
+  const openDb = () =>
+    new Promise((resolve, reject) => {
+      const request = indexedDB.open(SCRAMJET_DB_NAME, 1);
+      request.onupgradeneeded = (event) => createStores(event.target.result);
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = () => reject(request.error || new Error("Failed to open Scramjet DB."));
+    });
+
+  const deleteDb = () =>
+    new Promise((resolve) => {
+      const request = indexedDB.deleteDatabase(SCRAMJET_DB_NAME);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => resolve(false);
+      request.onblocked = () => resolve(false);
+    });
+
+  let db;
+  try {
+    db = await openDb();
+  } catch (error) {
+    console.warn("[SCRAMJET] Failed to open Scramjet DB:", error);
+    return;
+  }
+
+  const healthy = SCRAMJET_REQUIRED_STORES.every((store) =>
+    db.objectStoreNames.contains(store)
+  );
+  db.close();
+
+  if (healthy) return;
+
+  await deleteDb();
+  try {
+    const refreshed = await openDb();
+    refreshed.close();
+  } catch (error) {
+    console.warn("[SCRAMJET] Failed to refresh Scramjet DB:", error);
+  }
+}
+
+function initScramjetProxy() {
+  if (scramjetReadyPromise) return scramjetReadyPromise;
+
+  scramjetReadyPromise = (async () => {
+    if (window.location.protocol === "file:") {
+      return null;
+    }
+
+    if (typeof BareMux === "undefined" || typeof $scramjetLoadController !== "function") {
+      console.warn("[SCRAMJET] Proxy libraries not loaded.");
+      return null;
+    }
+
+    await ensureScramjetDbHealthy();
+
+    const wispUrl = localStorage.getItem("nOS_wispUrl") || "wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/";
+    try {
+      const connection = new BareMux.BareMuxConnection(SCRAMJET_BAREMUX_WORKER);
+      await connection.setTransport(SCRAMJET_LIBCURL, [{ websocket: wispUrl }]);
+    } catch (error) {
+      console.warn("[SCRAMJET] Failed to configure transport:", error);
+    }
+
+    let controller = null;
+    try {
+      const { ScramjetController } = $scramjetLoadController();
+      controller = new ScramjetController({
+        files: {
+          all: `${SCRAMJET_SCRAM_PATH}scramjet.all.js`,
+          wasm: `${SCRAMJET_SCRAM_PATH}scramjet.wasm.wasm`,
+          sync: `${SCRAMJET_SCRAM_PATH}scramjet.sync.js`,
+        },
+        prefix: SCRAMJET_PREFIX,
+      });
+
+      if ("serviceWorker" in navigator) {
+        try {
+          await navigator.serviceWorker.register(SCRAMJET_SW_PATH, { scope: SCRAMJET_ASSET_BASE });
+          await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise((resolve) => setTimeout(resolve, 2500)),
+          ]);
+        } catch (error) {
+          console.error("[SCRAMJET] Service worker registration failed:", error);
+        }
+      }
+
+      await controller.init();
+    } catch (error) {
+      console.error("[SCRAMJET] Failed to initialize controller:", error);
+      controller = null;
+    }
+
+    return controller;
+  })();
+
+  return scramjetReadyPromise;
+}
+
+function encodeScramjetUrl(url) {
+  if (!url) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return parsed.href;
+    }
+
+    const hash = parsed.hash ? `#${encodeURIComponent(parsed.hash.slice(1))}` : "";
+    parsed.hash = "";
+    return `${SCRAMJET_PREFIX}${encodeURIComponent(parsed.href)}${hash}`;
+  } catch (error) {
+    return url;
+  }
+}
+
+function decodeScramjetUrl(url) {
+  if (!url) return url;
+  try {
+    const fullUrl = url.startsWith("http") ? url : `${window.location.origin}${url}`;
+    const prefix = `${window.location.origin}${SCRAMJET_PREFIX}`;
+    if (!fullUrl.startsWith(prefix)) return url;
+    return decodeURIComponent(fullUrl.slice(prefix.length));
+  } catch (error) {
+    return url;
+  }
+}
+
+function isScramjetUrl(url) {
+  return Boolean(url && url.includes(SCRAMJET_PREFIX));
+}
+
+function toScramjetUrl(url) {
+  if (!url) return "";
+  if (url.startsWith(SCRAMJET_PREFIX)) return url;
+  if (url.startsWith("about:") || url.startsWith("blob:")) return url;
+  try {
+    new URL(url);
+    return encodeScramjetUrl(url);
+  } catch (error) {
+    return url;
+  }
+}
+
+const scramjetReady = initScramjetProxy();
+
 class db {
   constructor(dbName, storeName) {
     this.dbName = dbName;
@@ -1021,6 +1196,7 @@ function checkFileProtocol(title = null) {
 
 let toastQueue = [];
 let isSystemLoggedIn = false;
+let bootNoticeOpen = false;
 
 function showToast(message, icon = "fa-info-circle") {
   // Show immediately during setup or login screens
@@ -1052,6 +1228,50 @@ function showToast(message, icon = "fa-info-circle") {
 
   addNotificationToHistory(message, icon);
 }
+
+function showBootNoticeModal(message) {
+  const bootloader = document.getElementById("bootloader");
+  if (!bootloader) return;
+
+  if (document.getElementById("bootNoticeOverlay")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "bootNoticeOverlay";
+  overlay.className = "boot-notice-overlay";
+
+  const card = document.createElement("div");
+  card.className = "boot-notice-card";
+
+  const header = document.createElement("div");
+  header.className = "boot-notice-header";
+  header.innerHTML = `<i class="fas fa-star"></i><span>Update</span>`;
+
+  const body = document.createElement("p");
+  body.className = "boot-notice-message";
+  body.textContent = message;
+
+  const button = document.createElement("button");
+  button.className = "boot-notice-button";
+  button.type = "button";
+  button.textContent = "Got it";
+
+  const closeNotice = () => {
+    overlay.remove();
+    bootloader.classList.remove("notice-active");
+    bootNoticeOpen = false;
+  };
+
+  button.addEventListener("click", closeNotice);
+
+  card.appendChild(header);
+  card.appendChild(body);
+  card.appendChild(button);
+  overlay.appendChild(card);
+  bootloader.appendChild(overlay);
+
+  bootloader.classList.add("notice-active");
+  bootNoticeOpen = true;
+}
 function closeToast(btn) {
   const toast = btn.closest(".toast");
   toast.classList.add("hiding");
@@ -1062,15 +1282,31 @@ function closeToast(btn) {
 
 
 window.addEventListener("DOMContentLoaded", () => {
+  const bootNoticeKey = "nebulo_bootNotice_browser_games_fix_v2";
+  const bootloader = document.getElementById("bootloader");
+  const shouldShowBootNotice =
+    bootloader &&
+    !bootloader.classList.contains("hidden") &&
+    localStorage.getItem(bootNoticeKey) !== "true";
+
   const savedBootChoice = localStorage.getItem("nebulo_bootChoice");
   if (savedBootChoice !== null) {
     bootSelectedIndex = parseInt(savedBootChoice, 10);
     // Add a small delay to ensure all elements are rendered
     setTimeout(() => {
       if (document.getElementById("bootOptions")) {
-        selectBoot();
+        if (!shouldShowBootNotice) {
+          selectBoot();
+        }
       }
     }, 100);
+  }
+
+  if (shouldShowBootNotice) {
+    showBootNoticeModal(
+      "Browser + games should be working now! Sorry for the issues before. Extra fixes include window sizes adjusting to screens. (⚠️: If your browser isnt working it is a school network issue!!! join the discord: https://dsc.gg/nebulo for help.)"
+    );
+    localStorage.setItem(bootNoticeKey, "true");
   }
 });
 const appMetadata = {
@@ -2093,6 +2329,9 @@ document.addEventListener("keydown", function (e) {
 
   const bootloader = document.getElementById("bootloader");
   const bootOptions = document.getElementById("bootOptions");
+  if (bootNoticeOpen || document.getElementById("bootNoticeOverlay")) {
+    return;
+  }
   if (
     bootloader &&
     !bootloader.classList.contains("hidden") &&
@@ -2993,8 +3232,9 @@ function createWindow(
   }
 
   // Constrain requested window size to viewport with sensible minimums
-  const maxW = Math.max(300, window.innerWidth - 80);
-  const maxH = Math.max(200, window.innerHeight - 80);
+  const windowMargin = 16;
+  const maxW = Math.max(240, window.innerWidth - windowMargin * 2);
+  const maxH = Math.max(180, window.innerHeight - windowMargin * 2);
   width = Math.min(width, maxW);
   height = Math.min(height, maxH);
 
@@ -3002,10 +3242,13 @@ function createWindow(
   windowEl.className = "window";
   windowEl.style.width = width + "px";
   windowEl.style.height = height + "px";
-  windowEl.style.left =
-    window.innerWidth / 2 - width / 2 + Math.random() * 50 + "px";
-  windowEl.style.top =
-    window.innerHeight / 2 - height / 2 - 30 + Math.random() * 20 + "px";
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const baseLeft = window.innerWidth / 2 - width / 2 + Math.random() * 50;
+  const baseTop = window.innerHeight / 2 - height / 2 - 30 + Math.random() * 20;
+  const maxLeft = Math.max(windowMargin, window.innerWidth - width - windowMargin);
+  const maxTop = Math.max(windowMargin, window.innerHeight - height - windowMargin);
+  windowEl.style.left = clamp(baseLeft, windowMargin, maxLeft) + "px";
+  windowEl.style.top = clamp(baseTop, windowMargin, maxTop) + "px";
   windowEl.style.zIndex = ++zIndexCounter;
 
   // Check if content is primarily an iframe and clean it up
@@ -3375,6 +3618,14 @@ function makeResizable(element) {
   const handleBottom = element.querySelector(".resize-handle-bottom");
   const handleLeft = element.querySelector(".resize-handle-left");
   let startX, startY, startWidth, startHeight, startLeft, startTop;
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const getResizeBounds = () => {
+    const minWidth = Math.min(400, Math.max(240, window.innerWidth - 24));
+    const minHeight = Math.min(300, Math.max(180, window.innerHeight - 120));
+    const maxWidth = Math.max(minWidth, window.innerWidth - 24);
+    const maxHeight = Math.max(minHeight, window.innerHeight - 24);
+    return { minWidth, minHeight, maxWidth, maxHeight };
+  };
 
   handle.onmousedown = initResize;
   handleTop.onmousedown = initResizeTop;
@@ -3393,10 +3644,11 @@ function makeResizable(element) {
   }
 
   function doResize(e) {
-    const newWidth = startWidth + e.clientX - startX;
-    const newHeight = startHeight + e.clientY - startY;
-    if (newWidth > 400) element.style.width = newWidth + "px";
-    if (newHeight > 300) element.style.height = newHeight + "px";
+    const { minWidth, minHeight, maxWidth, maxHeight } = getResizeBounds();
+    const newWidth = clamp(startWidth + e.clientX - startX, minWidth, maxWidth);
+    const newHeight = clamp(startHeight + e.clientY - startY, minHeight, maxHeight);
+    element.style.width = newWidth + "px";
+    element.style.height = newHeight + "px";
   }
 
   function initResizeTop(e) {
@@ -3411,11 +3663,11 @@ function makeResizable(element) {
 
   function doResizeTop(e) {
     const deltaY = e.clientY - startY;
-    const newHeight = startHeight - deltaY;
-    if (newHeight > 300) {
-      element.style.height = newHeight + "px";
-      element.style.top = startTop + deltaY + "px";
-    }
+    const { minHeight, maxHeight } = getResizeBounds();
+    const newHeight = clamp(startHeight - deltaY, minHeight, maxHeight);
+    const newTop = startTop + (startHeight - newHeight);
+    element.style.height = newHeight + "px";
+    element.style.top = newTop + "px";
   }
 
   function initResizeRight(e) {
@@ -3428,8 +3680,9 @@ function makeResizable(element) {
   }
 
   function doResizeRight(e) {
-    const newWidth = startWidth + e.clientX - startX;
-    if (newWidth > 400) element.style.width = newWidth + "px";
+    const { minWidth, maxWidth } = getResizeBounds();
+    const newWidth = clamp(startWidth + e.clientX - startX, minWidth, maxWidth);
+    element.style.width = newWidth + "px";
   }
 
   function initResizeBottom(e) {
@@ -3442,8 +3695,9 @@ function makeResizable(element) {
   }
 
   function doResizeBottom(e) {
-    const newHeight = startHeight + e.clientY - startY;
-    if (newHeight > 300) element.style.height = newHeight + "px";
+    const { minHeight, maxHeight } = getResizeBounds();
+    const newHeight = clamp(startHeight + e.clientY - startY, minHeight, maxHeight);
+    element.style.height = newHeight + "px";
   }
 
   function initResizeLeft(e) {
@@ -3458,11 +3712,11 @@ function makeResizable(element) {
 
   function doResizeLeft(e) {
     const deltaX = e.clientX - startX;
-    const newWidth = startWidth - deltaX;
-    if (newWidth > 400) {
-      element.style.width = newWidth + "px";
-      element.style.left = startLeft + deltaX + "px";
-    }
+    const { minWidth, maxWidth } = getResizeBounds();
+    const newWidth = clamp(startWidth - deltaX, minWidth, maxWidth);
+    const newLeft = startLeft + (startWidth - newWidth);
+    element.style.width = newWidth + "px";
+    element.style.left = newLeft + "px";
   }
 
   function stopResize() {
@@ -4758,7 +5012,7 @@ alt="favicon">
                                     class="searchEngineI" 
                                     style="margin-left: 0; width: 100%;" 
                                     id="wispUrlInput" 
-                                    value="${localStorage.getItem('nOS_wispUrl') || 'wss://wisp.rhw.one/'}"
+                                    value="${localStorage.getItem('nOS_wispUrl') || 'wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/'}"
                                     placeholder="wss://..."
                                     onchange="changeWispUrl(this.value)">
                                 <button class="settings-action-btn" onclick="resetWispUrl()" style="padding: 0 1rem; margin-left: 0.5rem;">
@@ -5473,7 +5727,7 @@ alt="favicon">
     </div>
     <div class="carousel-content">
         <h2>Browser Options</h2>
-        <p>Choose your browsing experience! Browser (powered by Ultraviolet) for everyday use, and Helios Browser for a premium experience. Each browser offers unique features tailored to your needs.</p>
+        <p>Choose your browsing experience! Browser (powered by Scramjet) for everyday use, and Helios Browser for a premium experience. Each browser offers unique features tailored to your needs.</p>
     </div>
 </div>
 
@@ -6016,10 +6270,7 @@ print(f'Sum: {sum(numbers)}')
             </div>
           `;
         }
-        const assetBasePath = new URL(".", window.location.href).pathname;
-        const uvPrefix = (typeof __uv$config !== "undefined" && __uv$config.prefix)
-          ? __uv$config.prefix
-          : `${assetBasePath}uv/service/`;
+        const vscUrl = encodeScramjetUrl("https://vscode.dev/");
         return `
         <style>
         
@@ -6046,11 +6297,11 @@ print(f'Sum: {sum(numbers)}')
                   <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: -5;">
                     <center>
                     <div class="loader"></div><br>
-                    <h5 style="margin-bottom: 10px;">Launching VS Code with Ultraviolet...</h5>
+                    <h5 style="margin-bottom: 10px;">Launching VS Code with Sail...</h5>
                     <p>Load times may vary</p>
                     </center>
                   </div>
-                  <iframe src="${uvPrefix}hvtrs8%2F-vqcmdg.fet%2F" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"></iframe>
+                  <iframe src="${vscUrl}" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"></iframe>
               </div>
       `;
       })(),
@@ -6690,12 +6941,40 @@ print(f'Sum: {sum(numbers)}')
       const iframe = windowEl.querySelector("iframe");
       if (iframe) {
         iframe.setAttribute("tabindex", "0");
-        iframe.addEventListener("load", () => {
+        const focusMinecraftFrame = () => {
+          if (focusedWindow !== "minecraft") {
+            focusedWindow = "minecraft";
+            focusWindow(windowEl);
+            updateTaskbarIndicators();
+          }
+          try {
+            if (iframe.contentWindow) {
+              iframe.contentWindow.focus();
+            }
+          } catch (err) {
+            // Ignore cross-origin focus errors.
+          }
           iframe.focus();
-        }, { once: true });
-        windowEl.addEventListener("mousedown", () => {
-          iframe.focus();
-        });
+        };
+        iframe.addEventListener(
+          "load",
+          () => {
+            focusMinecraftFrame();
+            try {
+              const frameDoc = iframe.contentDocument;
+              if (frameDoc) {
+                frameDoc.addEventListener("mousedown", focusMinecraftFrame);
+                frameDoc.addEventListener("keydown", focusMinecraftFrame);
+                frameDoc.addEventListener("touchstart", focusMinecraftFrame, { passive: true });
+              }
+            } catch (err) {
+              // Ignore cross-origin access errors.
+            }
+          },
+          { once: true }
+        );
+        windowEl.addEventListener("mousedown", focusMinecraftFrame);
+        windowEl.addEventListener("touchstart", focusMinecraftFrame, { passive: true });
       }
     }
 
@@ -8078,7 +8357,7 @@ function switchAppStoreSection(section, element) {
       {
         name: "Browser",
         author: "PrismX and Nebulo Labs",
-        desc: "Browse the web with the built-in Ultraviolet-powered browser.",
+        desc: "Browse the web with the built-in Scramjet-powered browser.",
         isInstalled: installedApps.includes("browser"),
         installAction: "installApp('browser')",
         uninstallAction: "uninstallApp('browser')",
@@ -8087,7 +8366,7 @@ function switchAppStoreSection(section, element) {
       {
         name: "Games",
         author: "PrismX and Nebulo Labs",
-        desc: "Launch MSN Play in the Ultraviolet-powered games hub.",
+        desc: "Launch MSN Play in the Scramjet-powered games hub.",
         isInstalled: installedApps.includes("games"),
         installAction: "installApp('games')",
         uninstallAction: "uninstallApp('games')",
@@ -8615,25 +8894,14 @@ function cleanSearchEngine() {
     return defaultEngine;
   }
 
-  // Unwrap proxied UV URLs if they were accidentally saved.
-  if (typeof __uv$config !== 'undefined' && typeof __uv$config.decodeUrl === 'function') {
-    const uvPrefix = __uv$config.prefix || '/uv/service/';
-    if (engine.includes(uvPrefix)) {
-      const encoded = engine.split(uvPrefix).pop();
-      try {
-        const decoded = __uv$config.decodeUrl(encoded);
-        if (decoded) engine = decoded;
-      } catch (error) {
-        console.warn('Failed to decode UV search engine URL:', error);
-      }
-    } else if (engine.includes('hvtrs8')) {
-      try {
-        const decoded = __uv$config.decodeUrl(engine);
-        if (decoded) engine = decoded;
-      } catch (error) {
-        console.warn('Failed to decode UV search engine token:', error);
-      }
+  // Unwrap proxied Scramjet URLs if they were accidentally saved.
+  if (isScramjetUrl(engine)) {
+    const decoded = decodeScramjetUrl(engine);
+    if (decoded && decoded !== engine) {
+      engine = decoded;
     }
+  } else if (engine.includes('/uv/service/') || engine.includes('hvtrs8')) {
+    engine = defaultEngine;
   }
 
   // Normalize to a simple base like "...?q=".
@@ -8661,9 +8929,9 @@ function navigateBrowser(input) {
 
   let url = input.trim();
 
-  // Skip UV URLs that might be generated accidentally
-  if (url.includes('/uv/service/') || url.includes('hvtrs8') || url.includes('.aoo')) {
-    console.warn('Skipping malformed UV URL:', url);
+  // Skip proxy URLs that might be generated accidentally
+  if (isScramjetUrl(url) || url.includes('/uv/service/') || url.includes('hvtrs8') || url.includes('.aoo')) {
+    console.warn('Skipping malformed proxy URL:', url);
     return;
   }
 
@@ -8810,53 +9078,53 @@ async function loadBrowserPage(url) {
     // Check if this is a site that blocks iframes or is problematic.
     const problematicSites = ["msn.com", "google.com", "bing.com", "yahoo.com", "discord.com", "outlook.com", "microsoft.com"];
     const isProblematic = problematicSites.some(site => url.includes(site));
-    const canUseUv = typeof __uv$config !== 'undefined' && __uv$config.encodeUrl && __uv$config.prefix && window.bareMuxReady && window.bareMuxTransport && transportConfigured;
+    const scramjetController = await initScramjetProxy();
+    const canUseScramjet = Boolean(scramjetController);
 
-    if (!canUseUv && (isProblematic || url === "https://uc.robby.blue/ultraviolet" || url.includes("uc.robby.blue/ultraviolet"))) {
-      console.warn('[DEBUG] UV unavailable for a problematic site, attempting external proxy fallback.');
+    if (!canUseScramjet && isProblematic) {
+      console.warn('[DEBUG] Scramjet unavailable for a problematic site, attempting external proxy fallback.');
     }
     console.log('[DEBUG] Problematic site check skipped, proceeding to proxy logic.');
 
-    // Try UV first with SharedWorker BareMux setup, fallback to external proxy
-    if (canUseUv) {
-        console.log('[DEBUG] Using UV proxy for:', url);
+    // Try Scramjet first, fallback to external proxy
+    if (canUseScramjet) {
+        console.log('[DEBUG] Using Scramjet proxy for:', url);
 
         try {
-            const uvUrl = __uv$config.prefix + __uv$config.encodeUrl(url);
-            console.log('[DEBUG] UV encoded URL:', uvUrl);
-            console.log('[DEBUG] Creating UV iframe.');
+            const scramjetUrl = encodeScramjetUrl(url);
+            console.log('[DEBUG] Scramjet encoded URL:', scramjetUrl);
+            console.log('[DEBUG] Creating Scramjet iframe.');
 
-            // Create iframe for UV
             const iframe = document.createElement('iframe');
-            iframe.src = uvUrl;
+            iframe.src = scramjetUrl;
             iframe.style.width = '100%';
             iframe.style.height = '100%';
             iframe.style.border = 'none';
             iframe.sandbox = 'allow-forms allow-modals allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts';
-            console.log('[DEBUG] Created UV iframe with sandbox:', iframe.sandbox);
+            console.log('[DEBUG] Created Scramjet iframe with sandbox:', iframe.sandbox);
 
             iframe.onload = () => {
-                console.log('[DEBUG] UV iframe loaded successfully');
+                console.log('[DEBUG] Scramjet iframe loaded successfully');
                 const loading = document.getElementById("browserLoading");
                 if (loading) loading.classList.remove("active");
             };
 
             iframe.onerror = (error) => {
-                console.warn('[DEBUG] UV iframe failed, falling back to external proxy:', error);
+                console.warn('[DEBUG] Scramjet iframe failed, falling back to external proxy:', error);
                 iframe.remove();
                 fallbackToExternalProxy(url);
             };
 
-            console.log('[DEBUG] Appending UV iframe to viewEl');
+            console.log('[DEBUG] Appending Scramjet iframe to viewEl');
             viewEl.appendChild(iframe);
             return;
 
         } catch (error) {
-            console.warn('[DEBUG] UV failed with error:', error);
+            console.warn('[DEBUG] Scramjet failed with error:', error);
             return fallbackToExternalProxy(url);
         }
     } else {
-        console.log('[DEBUG] UV proxy not available or configured, falling back to external proxy for:', url);
+        console.log('[DEBUG] Scramjet proxy not available or configured, falling back to external proxy for:', url);
         await fallbackToExternalProxy(url);
     }
 
@@ -8873,7 +9141,7 @@ async function loadBrowserPage(url) {
       if (titleEl) titleEl.textContent = currentTab.title;
     }
     viewEl.scrollTop = 0;
-    // For UV iframe, navigation is handled by the iframe itself
+    // For proxy iframe, navigation is handled by the iframe itself
     // We just need to update the UI when the iframe navigates
   } catch (error) {
     console.error("Browser error:", error);
@@ -11843,15 +12111,23 @@ function openGlobalChatWindow() {
   const icon = 'fas fa-comments';
   const width = 900;
   const height = 700;
+  const windowMargin = 16;
+  const maxW = Math.max(240, window.innerWidth - windowMargin * 2);
+  const maxH = Math.max(180, window.innerHeight - windowMargin * 2);
+  const windowWidth = Math.min(width, maxW);
+  const windowHeight = Math.min(height, maxH);
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
   const windowEl = document.createElement("div");
   windowEl.className = "window";
-  windowEl.style.width = width + "px";
-  windowEl.style.height = height + "px";
-  windowEl.style.left =
-    window.innerWidth / 2 - width / 2 + Math.random() * 50 + "px";
-  windowEl.style.top =
-    window.innerHeight / 2 - height / 2 - 30 + Math.random() * 20 + "px";
+  windowEl.style.width = windowWidth + "px";
+  windowEl.style.height = windowHeight + "px";
+  const baseLeft = window.innerWidth / 2 - windowWidth / 2 + Math.random() * 50;
+  const baseTop = window.innerHeight / 2 - windowHeight / 2 - 30 + Math.random() * 20;
+  const maxLeft = Math.max(windowMargin, window.innerWidth - windowWidth - windowMargin);
+  const maxTop = Math.max(windowMargin, window.innerHeight - windowHeight - windowMargin);
+  windowEl.style.left = clamp(baseLeft, windowMargin, maxLeft) + "px";
+  windowEl.style.top = clamp(baseTop, windowMargin, maxTop) + "px";
   windowEl.style.zIndex = ++zIndexCounter;
 
   const chatContent = `
@@ -12153,7 +12429,12 @@ window.testOnlineUsers = function() {
 function showChatToast(username, content) {
   // Only show notifications if chat window is not currently open
   if (!window.chatWindowOpen) {
-    showToast(`💬 <strong>${username}</strong>: ${content}`, 'fa-comments');
+    const normalizedName = (username || '').trim();
+    const displayName =
+      normalizedName.toLowerCase() === 'shs12lord'
+        ? 'Owner'
+        : (normalizedName || 'User');
+    showToast(`dY'� <strong>${displayName}</strong>: ${content}`, 'fa-comments');
   }
 }
 
@@ -14170,7 +14451,7 @@ function expandHelpTopic(topicId) {
                 <ul>
                     <li><strong>Files</strong> - Browse and manage your virtual file system with tree navigation</li>
                     <li><strong>Terminal</strong> - Access command-line interface with Unix commands</li>
-                    <li><strong>Browser</strong> - Browse the web with Ultraviolet-powered navigation</li>
+                    <li><strong>Browser</strong> - Browse the web with Scramjet-powered navigation</li>
                     <li><strong>Text Editor</strong> - Create and edit text files with save options</li>
                     <li><strong>Music</strong> - Play audio files with playback controls</li>
                     <li><strong>Photos</strong> - View screenshots and images</li>
@@ -14484,7 +14765,7 @@ function expandHelpTopic(topicId) {
       icon: "fa-globe",
       content: `
                 <h2><i class="fas fa-globe"></i> Browser</h2>
-                <p>Browse the web with the built-in Ultraviolet-powered browser.</p>
+                <p>Browse the web with the built-in Scramjet-powered browser.</p>
                 <h3>Features</h3>
                 <ul>
                     <li><strong>Multiple Tabs</strong> - Open multiple websites simultaneously</li>
@@ -16915,7 +17196,7 @@ ARCHITECTURE & TECHNOLOGY:
 AVAILABLE APPLICATIONS:
 1. Files - Full file explorer with folder navigation, tree sidebar, create/delete/rename operations
 2. Terminal - Command-line interface with bash-like commands
-3. Browser - Built-in Ultraviolet-powered web browser
+3. Browser - Built-in Scramjet-powered web browser
 4. Text Editor - Create and edit text files with save/load functionality
 5. Music Player - Play music from URLs or uploaded files
 6. Photos - View, upload, and manage photos with screenshot capability
@@ -18193,7 +18474,7 @@ function executeTool_GetAvailableOptions(params) {
       },
       urls: {
         wispUrl: {
-          current: localStorage.getItem('nOS_wispUrl') || 'wss://wisp.rhw.one/',
+          current: localStorage.getItem('nOS_wispUrl') || 'wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/',
           description: 'Wisp proxy URL for browser'
         },
         bareUrl: {
@@ -18471,7 +18752,7 @@ function changeWispUrl(url) {
 }
 
 function resetWispUrl() {
-  const defaultUrl = 'wss://wisp.rhw.one/';
+  const defaultUrl = 'wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/';
   localStorage.setItem('nOS_wispUrl', defaultUrl);
   const input = document.getElementById('wispUrlInput');
   if (input) input.value = defaultUrl;
@@ -18605,14 +18886,12 @@ function launchCustomWebApp(appId) {
 }
 
 function openCustomWebAppWindow(app) {
-  // Use UV proxy for seamless embedding like the main browser
-  // Construct proxy URL
-  let proxyUrl = app.url;
-  if (window.__uv$config) {
-    proxyUrl = window.__uv$config.prefix + window.__uv$config.encodeUrl(app.url);
-  } else {
-    // Fallback if UV not ready (shouldn't happen usually)
-    console.warn("UV config not found, using direct URL");
+  // Use Scramjet proxy for seamless embedding like the main browser
+  initScramjetProxy();
+  let proxyUrl = encodeScramjetUrl(app.url);
+  if (!proxyUrl || proxyUrl === app.url) {
+    console.warn("Scramjet not available, using direct URL");
+    proxyUrl = app.url;
   }
 
   const content = `
@@ -19493,3 +19772,5 @@ setInterval(checkChatIntegrity, 5000);
 
 // Run check when window gains focus
 window.addEventListener('focus', checkChatIntegrity);
+
+
