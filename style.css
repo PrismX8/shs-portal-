@@ -89,6 +89,77 @@ input {
     pointer-events: none;
 }
 
+#bootloader.notice-active {
+    cursor: auto;
+}
+
+.boot-notice-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10005;
+    cursor: auto;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+.boot-notice-card {
+    width: min(820px, 92vw);
+    max-height: min(80vh, 640px);
+    background: linear-gradient(160deg, rgba(33, 41, 58, 0.98), rgba(12, 16, 26, 0.98));
+    border: 1px solid rgba(125, 211, 192, 0.25);
+    border-radius: clamp(16px, 3vw, 24px);
+    padding: clamp(1.6rem, 4.5vw, 2.6rem) clamp(1.4rem, 5vw, 2.9rem);
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.6);
+    text-align: center;
+    font-family: font, "font";
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(0.75rem, 2vw, 1.25rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.boot-notice-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.boot-notice-header i {
+    color: var(--accent);
+}
+
+.boot-notice-message {
+    font-size: clamp(0.95rem, 2.6vw, 1.1rem);
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 46rem;
+}
+
+.boot-notice-button {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    border: 1px solid var(--accent-dark);
+    color: var(--pure-white);
+    padding: clamp(0.65rem, 2.2vw, 0.85rem) clamp(1.6rem, 6vw, 2.4rem);
+    border-radius: 10px;
+    font-size: clamp(0.9rem, 2.6vw, 1.05rem);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.boot-notice-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.35);
+}
+
 .boot-logo {
     display: flex;
     align-items: center;
@@ -1446,7 +1517,7 @@ select:focus {
 
 .desktop-icons {
     position: absolute;
-    top: 30px;
+    top: calc(30px + var(--chat-button-offset, 0px));
     left: 20px;
     right: 20px;
     bottom: 80px;
@@ -1884,8 +1955,10 @@ select:focus {
     overflow: hidden;
     z-index: 100;
     animation: windowOpen 0.1s ease;
-    min-width: 400px;
-    min-height: 300px;
+    min-width: min(400px, 92vw);
+    min-height: min(300px, 70vh);
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 120px);
 }
 
 .snap-overlay {

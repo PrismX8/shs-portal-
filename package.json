@@ -1,0 +1,12 @@
+{
+  "name": "nebulo-os",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@tomphttp/bare-server-node": "^2.0.6",
+    "express": "^4.19.2"
+  }
+}

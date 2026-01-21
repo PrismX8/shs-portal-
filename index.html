@@ -15,66 +15,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:ital,wght@0,100..800;1,100..800&display=swap"
         rel="stylesheet">
-    <script src="uv/uv.bundle.js"></script>
-    <script src="uv/uv.config.js"></script>
-    <script src="uv/uv.sw.js"></script>
-    <script src="baremux/index.js"></script>
-    <script>
-        const assetBasePath = new URL(".", window.location.href).pathname;
-        let transportConfigured = false;
-        let bareMuxWorker = null;
-        let bareMuxTransport = null;
-        let bareMuxConnection = null;
-
-        async function setupBareMux() {
-            try {
-                if (typeof BareMux === 'undefined') {
-                    console.log('Waiting for BareMux to load...');
-                    return false;
-                }
-
-                if (transportConfigured && bareMuxConnection && bareMuxTransport) {
-                    return true;
-                }
-
-                const wispUrl = localStorage.getItem('nOS_wispUrl') || 'wss://webmath.help/wisp/';
-                if (!bareMuxConnection) {
-                    bareMuxConnection = new BareMux.BareMuxConnection(`${assetBasePath}baremux/worker.js`);
-                }
-
-                await bareMuxConnection.setTransport(`${assetBasePath}libcurl/index.mjs`, [{ websocket: wispUrl }]);
-
-                bareMuxTransport = typeof bareMuxConnection.getInnerPort === 'function'
-                    ? bareMuxConnection.getInnerPort()
-                    : true;
-                bareMuxWorker = bareMuxConnection.worker || null;
-                transportConfigured = true;
-
-                window.BareClient = BareMux.BareClient;
-                window.BareMux = BareMux;
-
-                return true;
-            } catch (error) {
-                console.error('BareMux setup failed:', error);
-                transportConfigured = false;
-                bareMuxWorker = null;
-                bareMuxTransport = null;
-                bareMuxConnection = null;
-
-                window.BareClient = class FallbackClient {
-                    async fetch() { throw new Error('BareMux unavailable'); }
-                    connect() { throw new Error('BareMux unavailable'); }
-                };
-
-                window.BareMux = {
-                    initialized: false,
-                    error: error.message
-                };
-
-                return false;
-            }
-        }
-    </script>
+    <script src="BdSkdFY/sail-sj/sail/baremux/index.js"></script>
+    <script src="BdSkdFY/sail-sj/sail/scram/scramjet.all.js"></script>
     <script src="v86/cache-detector.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
     <link rel="stylesheet" href="./style.css">
@@ -88,6 +30,10 @@
         href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
         rel="stylesheet">
     <style>
+        :root {
+            --chat-button-offset: 0px;
+        }
+
         /* Global Chat Button Styles */
         .global-chat-button {
             position: fixed;
@@ -170,11 +116,11 @@
         /* Global Chat Window Styles */
         .global-chat-window {
             position: fixed;
-            top: 60px;
+            top: clamp(56px, 10vh, 80px);
             left: 50%;
             transform: translateX(-50%);
-            width: 400px;
-            height: 500px;
+            width: min(400px, calc(100vw - 24px));
+            height: min(500px, calc(100vh - 120px));
             background: rgba(21, 25, 35, 0.95);
             backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -194,6 +140,16 @@
             display: flex;
             opacity: 1;
             transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 900px) {
+            :root {
+                --chat-button-offset: 56px;
+            }
+
+            .global-chat-button {
+                top: max(env(safe-area-inset-top), 6px);
+            }
         }
 
         .chat-header {
@@ -1289,15 +1245,6 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM fully loaded');
 
-            const success = await setupBareMux();
-            window.bareMuxReady = !!success;
-            if (success) {
-                window.bareMuxWorker = bareMuxWorker;
-                window.bareMuxTransport = bareMuxTransport;
-            }
-
-
-
             // Ensure badge is always visible
             const badge = document.getElementById('chatNotificationBadge');
             if (badge) {
@@ -1312,10 +1259,10 @@
 
         // Login/setup overrides removed - using iframe system only
 
-        // register sw
+        // register scramjet sw
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {
-                navigator.serviceWorker.register(`${assetBasePath}uv/sw.js`);
+                navigator.serviceWorker.register("BdSkdFY/sail-sj/sail/sw.js");
             });
         }
 
