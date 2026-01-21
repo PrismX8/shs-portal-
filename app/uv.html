@@ -4,10 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>An Ultraviolet Proxy for Next Dev</title>
-    <script src="../uv/uv.bundle.js"></script>
-    <script src="../uv/uv.config.js"></script>
-    <script src="../baremux/index.js"></script>
+    <title>Sail Proxy</title>
+    <script src="../BdSkdFY/sail-sj/sail/baremux/index.js"></script>
+    <script src="../BdSkdFY/sail-sj/sail/scram/scramjet.all.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -298,8 +297,8 @@
     </button>
 
     <div class="backgroundtext">
-        <h1>ultraviolet</h1>
-        <p>made by $xor | built for nautilus-os</p>
+        <h1>sail</h1>
+        <p>powered by Scramjet | built for Nebulo</p>
     </div>
 
     <iframe src="" frameborder="0" id="iframe"></iframe>
@@ -324,15 +323,146 @@
     </script>
 
     <script>
-        // register sw
-        if ("serviceWorker" in navigator) {
-            window.addEventListener("load", () => {
-                const uvBasePath =
-                    typeof __uv$config !== "undefined" && typeof __uv$config.loc === "string"
-                        ? `${__uv$config.loc}/`.replace(/\/+$/, "/")
-                        : new URL("../", window.location.href).pathname
-                navigator.serviceWorker.register(`${uvBasePath}uv/sw.js`)
-            })
+        const scramjetBasePath = new URL("../BdSkdFY/sail-sj/sail/", window.location.href).pathname
+        const scramjetPrefix = `${scramjetBasePath}go/`
+        const scramjetScramPath = `${scramjetBasePath}scram/`
+        const scramjetSwPath = `${scramjetBasePath}sw.js`
+        const scramjetWorkerPath = `${scramjetBasePath}baremux/worker.js`
+        const scramjetTransportPath = `${scramjetBasePath}libcurl/index.esm.js`
+
+        const scramjetWispUrl = localStorage.getItem("nOS_wispUrl") || "wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/"
+
+        const scramjetConnection = new BareMux.BareMuxConnection(scramjetWorkerPath)
+        scramjetConnection
+            .setTransport(scramjetTransportPath, [{ websocket: scramjetWispUrl }])
+            .catch((error) => console.warn("[SCRAMJET] Failed to configure transport:", error))
+
+        const { ScramjetController } = $scramjetLoadController()
+        const scramjetController = new ScramjetController({
+            files: {
+                all: `${scramjetScramPath}scramjet.all.js`,
+                wasm: `${scramjetScramPath}scramjet.wasm.wasm`,
+                sync: `${scramjetScramPath}scramjet.sync.js`
+            },
+            prefix: scramjetPrefix
+        })
+
+        const SCRAMJET_DB_NAME = "$scramjet"
+        const SCRAMJET_REQUIRED_STORES = [
+            "config",
+            "cookies",
+            "redirectTrackers",
+            "referrerPolicies",
+            "publicSuffixList"
+        ]
+
+        async function ensureScramjetDbHealthy() {
+            if (!("indexedDB" in window)) return
+
+            const createStores = (db) => {
+                for (const store of SCRAMJET_REQUIRED_STORES) {
+                    if (!db.objectStoreNames.contains(store)) {
+                        db.createObjectStore(store)
+                    }
+                }
+            }
+
+            const openDb = () =>
+                new Promise((resolve, reject) => {
+                    const request = indexedDB.open(SCRAMJET_DB_NAME, 1)
+                    request.onupgradeneeded = (event) => createStores(event.target.result)
+                    request.onsuccess = (event) => resolve(event.target.result)
+                    request.onerror = () =>
+                        reject(request.error || new Error("Failed to open Scramjet DB."))
+                })
+
+            const deleteDb = () =>
+                new Promise((resolve) => {
+                    const request = indexedDB.deleteDatabase(SCRAMJET_DB_NAME)
+                    request.onsuccess = () => resolve(true)
+                    request.onerror = () => resolve(false)
+                    request.onblocked = () => resolve(false)
+                })
+
+            let db
+            try {
+                db = await openDb()
+            } catch (error) {
+                console.warn("[SCRAMJET] Failed to open Scramjet DB:", error)
+                return
+            }
+
+            const healthy = SCRAMJET_REQUIRED_STORES.every((store) =>
+                db.objectStoreNames.contains(store)
+            )
+            db.close()
+
+            if (healthy) return
+
+            await deleteDb()
+            try {
+                const refreshed = await openDb()
+                refreshed.close()
+            } catch (error) {
+                console.warn("[SCRAMJET] Failed to refresh Scramjet DB:", error)
+            }
+        }
+
+        const scramjetReady = (async () => {
+            if ("serviceWorker" in navigator) {
+                try {
+                    await navigator.serviceWorker.register(scramjetSwPath, { scope: scramjetBasePath })
+                    await Promise.race([
+                        navigator.serviceWorker.ready,
+                        new Promise((resolve) => setTimeout(resolve, 2500))
+                    ])
+                } catch (error) {
+                    console.error("Scramjet service worker registration failed:", error)
+                }
+            }
+            await ensureScramjetDbHealthy()
+            try {
+                await scramjetController.init()
+            } catch (error) {
+                console.error("Scramjet controller init failed:", error)
+            }
+            return scramjetController
+        })()
+
+        async function getScramjet() {
+            return scramjetReady
+        }
+
+        function decodeProxyUrl(url) {
+            if (!url) return ""
+            const fullUrl = url.startsWith("http") ? url : `${window.location.origin}${url}`
+            try {
+                return scramjetController.decodeUrl(fullUrl)
+            } catch (error) {
+                console.warn("Failed to decode proxy URL:", error)
+                return url
+            }
+        }
+
+        function encodeProxyUrl(url) {
+            try {
+                return scramjetController.encodeUrl(url)
+            } catch (error) {
+                console.warn("Failed to encode proxy URL:", error)
+                return url
+            }
+        }
+
+        function toProxyUrl(url) {
+            if (!url) return ""
+            if (url.startsWith(scramjetPrefix)) return url
+            if (url.startsWith("about:") || url.startsWith("blob:")) return url
+            try {
+                new URL(url)
+                return encodeProxyUrl(url)
+            } catch (error) {
+                return url
+            }
         }
     </script>
 
@@ -344,17 +474,57 @@
         const isGamesMode = urlParams.get("mode") === "games"
         const gamesStartUrl = urlParams.get("url") || gamesUrl
 
-        const uvBasePath =
-            typeof __uv$config !== "undefined" && typeof __uv$config.loc === "string"
-                ? `${__uv$config.loc}/`.replace(/\/+$/, "/")
-                : new URL("../", window.location.href).pathname
+        // actual proxy handling
+        const loadTimeoutMs = 15000
+        let loadTimer = null
 
-        // actual uv handling
-        const connection = new BareMux.BareMuxConnection(`${uvBasePath}baremux/worker.js`)
-        const wispUrl = "wss://wisp.rhw.one/" // rhw wisp, super speedy
-        const bareUrl = "https://useclassplay.vercel.app/fq/" // old site i have
+        const backgroundEl = document.querySelector(".backgroundtext")
+        const defaultBackgroundHtml = `
+            <h1>sail</h1>
+            <p>powered by Scramjet</p>
+        `
 
-        connection.setTransport(`${uvBasePath}libcurl/index.mjs`, [{ websocket: wispUrl }])
+        function setBackgroundHtml(html) {
+            if (!backgroundEl) return
+            backgroundEl.innerHTML = html
+        }
+
+        function showDefaultBackground() {
+            setBackgroundHtml(defaultBackgroundHtml)
+        }
+
+        function showLoadingBackground(label) {
+            const message = label || "Loading..."
+            setBackgroundHtml(`
+                <center>
+                    <div class="loader"></div>
+                    <p>${message}</p>
+                </center>
+            `)
+        }
+
+        function showBlockedBackground() {
+            setBackgroundHtml(`
+                <center>
+                    <p>Still loading.</p>
+                    <p>The proxy backend may be blocked or offline.</p>
+                    <p>Check your bare server URL or try a different network.</p>
+                </center>
+            `)
+        }
+
+        function startLoadTimeout() {
+            if (loadTimer) clearTimeout(loadTimer)
+            loadTimer = setTimeout(() => {
+                showBlockedBackground()
+            }, loadTimeoutMs)
+        }
+
+        function stopLoadTimeout() {
+            if (!loadTimer) return
+            clearTimeout(loadTimer)
+            loadTimer = null
+        }
 
         const tabCont = document.querySelector(".tabs")
 
@@ -473,7 +643,7 @@
             console.log("i")
         })
 
-        function nav(i) {
+        async function nav(i) {
             console.log("e")
             if (!i.trim()) return
 
@@ -491,35 +661,17 @@
             const cTab = bTabs.find((t) => t.id === aTab)
             if (!cTab) return
 
+            await getScramjet()
+
             cTab.history.push(url)
             cTab.historyIndex++
 
             cTab.url = url
-            const fUrl = __uv$config.prefix + __uv$config.encodeUrl(url)
+            const fUrl = encodeProxyUrl(url)
 
-            const loadC = document.querySelector(".backgroundtext")
-            if (loadC) {
-                loadC.innerHTML = `
-                    <center>
-                        <div class="loader"></div>
-                        <p>Loading...</p>
-                    </center>
-                `
-            }
+            showLoadingBackground("Loading...")
 
             go(fUrl)
-        }
-
-        function toUvUrl(url) {
-            if (!url) return ""
-            if (url.startsWith(__uv$config.prefix)) return url
-            if (url.startsWith("about:") || url.startsWith("blob:")) return url
-            try {
-                new URL(url)
-                return __uv$config.prefix + __uv$config.encodeUrl(url)
-            } catch (e) {
-                return url
-            }
         }
 
         function applyGamesModeOverrides(viewframe) {
@@ -531,7 +683,7 @@
 
                 cw.open = (url) => {
                     if (url) {
-                        viewframe.src = toUvUrl(url)
+                        viewframe.src = toProxyUrl(url)
                     }
                     return null
                 }
@@ -545,7 +697,7 @@
                         event.stopPropagation()
                         const href = link.href || link.getAttribute("href")
                         if (href) {
-                            viewframe.src = toUvUrl(href)
+                            viewframe.src = toProxyUrl(href)
                         }
                     }
                 }, true)
@@ -555,23 +707,21 @@
         }
 
         async function go(u) {
-
-            if (!await connection.getTransport()) {
-                connection.setTransport(`${uvBasePath}libcurl/index.mjs`, [{ websocket: wispUrl }])
-            }
-
+            await getScramjet()
             console.log("a")
             const cTab = bTabs.find((t) => t.id === aTab)
             const favEl = document.querySelector(`#fav[data-fav-id="${aTab}"]`)
             const viewframe = document.querySelector(`.viewframe[data-frame-id="${aTab}"]`)
             if (!viewframe) return
 
+            const decodedUrl = decodeProxyUrl(u)
             const ubar = document.getElementById("urlbar")
-            if (ubar) ubar.value = __uv$config.decodeUrl(u.replace(__uv$config.prefix, ""))
-            const favUrl = __uv$config.decodeUrl(u.replace(__uv$config.prefix, ""))
+            if (ubar) ubar.value = decodedUrl
+            const favUrl = decodedUrl
             if (favEl) favEl.src = `https://www.google.com/s2/favicons?domain=${favUrl}&sz=256`
 
             try {
+                startLoadTimeout()
                 viewframe.src = u
                 console.log("ooooo")
 
@@ -585,17 +735,13 @@
                         if (titleEl) titleEl.textContent = title
                     }
 
-                    const loadC = document.querySelector(".backgroundtext")
-                    if (loadC) {
-                        loadC.innerHTML = `
-                            <h1>ultraviolet</h1>
-                            <p>made by $xor (fkn goat)</p>
-                        `
-                    }
+                    stopLoadTimeout()
+                    showDefaultBackground()
 
                     applyGamesModeOverrides(viewframe)
                 }
             } catch (e) {
+                stopLoadTimeout()
                 console.error("There was an error while loading the page:", e)
                 alert("There was an error while loading the page: " + e)
             }
@@ -608,7 +754,7 @@
             cTab.historyIndex--
             const u = cTab.history[cTab.historyIndex]
             cTab.url = u
-            const furl = __uv$config.prefix + __uv$config.encodeUrl(u)
+            const furl = encodeProxyUrl(u)
 
             go(furl)
         }
@@ -619,7 +765,7 @@
             cTab.historyIndex++
             const u = cTab.history[cTab.historyIndex]
             cTab.url = u
-            const furl = __uv$config.prefix + __uv$config.encodeUrl(u)
+            const furl = encodeProxyUrl(u)
 
             go(furl)
         }
@@ -665,3 +811,4 @@
 </body>
 
 </html>
+
