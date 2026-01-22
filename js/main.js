@@ -1199,6 +1199,12 @@ let isSystemLoggedIn = false;
 let bootNoticeOpen = false;
 
 function showToast(message, icon = "fa-info-circle") {
+  const isChat = icon === 'fa-comments';
+  // If it's a chat notification and chat notifications are disabled, return early
+  if (isChat && localStorage.getItem('chatNotificationsEnabled') === 'false') {
+    return;
+  }
+
   // Show immediately during setup or login screens
   const isSetupVisible = document.getElementById('setup') && document.getElementById('setup').style.display !== 'none';
   const isLoginVisible = document.getElementById('login') && document.getElementById('login').style.display !== 'none';
@@ -1210,7 +1216,7 @@ function showToast(message, icon = "fa-info-circle") {
 
   const container = document.getElementById("toastContainer");
   const toast = document.createElement("div");
-  toast.className = "toast";
+  toast.className = "toast" + (isChat ? " chat-toast" : "");
 
   toast.innerHTML = `
                <i class="fas ${icon} toast-icon"></i>
@@ -1222,9 +1228,11 @@ function showToast(message, icon = "fa-info-circle") {
 
   container.appendChild(toast);
 
+  const duration = isChat ? 700 : 4000;
+
   setTimeout(() => {
     closeToast(toast.querySelector(".toast-close"));
-  }, 4000);
+  }, duration);
 
   addNotificationToHistory(message, icon);
 }
@@ -1322,6 +1330,7 @@ const appMetadata = {
   calculator: { name: "Calculator", icon: "fa-calculator", preinstalled: true },
   browser: { name: "Browser", icon: "fa-globe", preinstalled: true },
   games: { name: "Games", icon: "fa-gamepad", preinstalled: true },
+  "blooket-bot": { name: "Blooket Bot", icon: "fa-robot", preinstalled: true },
   minecraft: {
     name: "Minecraft",
     icon: "fa-cube",
@@ -3260,8 +3269,19 @@ function createWindow(
     if (iframe) {
       const src = iframe.getAttribute('src');
       if (src) {
+        const allowAttr = iframe.getAttribute('allow') || '';
+        const allowList = new Set(
+          allowAttr
+            .split(';')
+            .map((item) => item.trim())
+            .filter(Boolean)
+        );
+        ['fullscreen', 'pointer-lock', 'gamepad'].forEach((perm) => allowList.add(perm));
+        const allow = allowList.size
+          ? Array.from(allowList).join('; ')
+          : 'fullscreen; pointer-lock; gamepad';
         // Replace content with a full-size iframe
-        content = `<iframe src="${src}" style="width: 100%; height: 100%; border: none; display: block;" allow="${iframe.getAttribute('allow') || 'fullscreen; camera; microphone; shared-worker'}" referrerpolicy="no-referrer"></iframe>`;
+        content = `<iframe src="${src}" style="width: 100%; height: 100%; border: none; display: block;" allow="${allow}" allowfullscreen="true" tabindex="0" referrerpolicy="no-referrer"></iframe>`;
         noPadding = true;
       }
     }
@@ -3296,6 +3316,21 @@ function createWindow(
               <div class="resize-handle-bottom"></div>
               <div class="resize-handle-left"></div>
           `;
+
+  const iframeEl = windowEl.querySelector("iframe");
+  if (iframeEl) {
+    iframeEl.setAttribute("tabindex", "0");
+    windowEl.addEventListener("pointerdown", () => iframeEl.focus(), { passive: true });
+    iframeEl.addEventListener("load", () => {
+      try {
+        iframeEl.focus();
+      } catch (error) {
+        // Ignore focus errors for cross-origin iframes.
+      }
+    });
+  }
+
+
 
   if (appName) {
     windowEl.dataset.appIcon = icon;
@@ -3379,6 +3414,11 @@ function maximizeWindow(btn) {
     window.style.height = window.dataset.oldHeight;
     window.style.left = window.dataset.oldLeft;
     window.style.top = window.dataset.oldTop;
+    window.style.maxWidth = window.dataset.oldMaxWidth || "";
+    window.style.maxHeight = window.dataset.oldMaxHeight || "";
+    window.style.minWidth = window.dataset.oldMinWidth || "";
+    window.style.minHeight = window.dataset.oldMinHeight || "";
+
     window.dataset.maximized = "false";
     icon.classList.remove("fa-clone");
     icon.classList.add("fa-square");
@@ -3398,11 +3438,20 @@ function maximizeWindow(btn) {
     window.dataset.oldHeight = window.style.height;
     window.dataset.oldLeft = window.style.left;
     window.dataset.oldTop = window.style.top;
+    window.dataset.oldMaxWidth = window.style.maxWidth;
+    window.dataset.oldMaxHeight = window.style.maxHeight;
+    window.dataset.oldMinWidth = window.style.minWidth;
+    window.dataset.oldMinHeight = window.style.minHeight;
 
     window.style.width = "100vw";
     window.style.height = "100vh";
     window.style.left = "0";
     window.style.top = "0";
+    window.style.maxWidth = "100vw";
+    window.style.maxHeight = "100vh";
+    window.style.minWidth = "100vw";
+    window.style.minHeight = "100vh";
+
     window.dataset.maximized = "true";
     icon.classList.remove("fa-square");
     icon.classList.add("fa-clone");
@@ -4149,7 +4198,7 @@ function handleChatInput(event) {
   }
 }
 
-function openApp(appName, editorContent = "", filename = "") {
+async function openApp(appName, editorContent = "", filename = "") {
   if (appName === 'chat') {
     openGlobalChatWindow();
     return;
@@ -4158,6 +4207,16 @@ function openApp(appName, editorContent = "", filename = "") {
   if (!hasAppPermission(appName)) {
     showToast(`Access denied: You don't have permission to use ${appMetadata[appName]?.name || appName}`, "fa-exclamation-circle");
     return;
+  }
+
+  if (appName === "blooket-bot") {
+    await showModal({
+      type: "info",
+      icon: "fa-hourglass-half",
+      title: "Please Wait",
+      message: "Blooket Bot may take a bit to load. Please be patient.",
+      confirm: false,
+    });
   }
 
   // Handle custom web apps
@@ -4353,10 +4412,35 @@ function openApp(appName, editorContent = "", filename = "") {
           `;
         }
         const assetBasePath = new URL(".", window.location.href).pathname;
-        const gamesUrl = "https://crazygames.com";
         return `
         <div class="browser-container" style="overflow: hidden;">
-                      <iframe src="${assetBasePath}app/uv.html?mode=games&url=${encodeURIComponent(gamesUrl)}" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"></iframe>
+                      <iframe src="${assetBasePath}games.html" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"></iframe>
+              </div>
+      `;
+      })(),
+      noPadding: true,
+      width: 900,
+      height: 600,
+    },
+
+    "blooket-bot": {
+      title: "Blooket Bot",
+      icon: "fas fa-robot",
+      content: (() => {
+        if (!checkFileProtocol("Blooket Bot")) {
+          return `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 3rem; background: rgba(10, 14, 26, 0.8);">
+              <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: var(--error-red); margin-bottom: 2rem;"></i>
+              <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Blooket Bot Unavailable</h2>
+              <p style="color: var(--text-secondary); text-align: center; max-width: 420px;">Blooket Bot doesn't work on file:// protocol. Please run Nebulo from a web server to use this feature.</p>
+            </div>
+          `;
+        }
+        const assetBasePath = new URL(".", window.location.href).pathname;
+        const blooketUrl = "https://blooketbot.schoolcheats.net/";
+        return `
+        <div class="browser-container" style="overflow: hidden;">
+                      <iframe src="${assetBasePath}app/uv.html?mode=games&url=${encodeURIComponent(blooketUrl)}" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"></iframe>
               </div>
       `;
       })(),
@@ -6910,7 +6994,7 @@ print(f'Sum: {sum(numbers)}')
       icon: "fas fa-comments",
       content: `
         <div id="global-chat-container" style="width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--bg-primary);">
-          <iframe id="chat-iframe" src="./pages/chat-only.html?apiBase=${encodeURIComponent(window.CHAT_API_BASE)}&username=${encodeURIComponent(localStorage.getItem('nebulo_username') || 'User')}" style="width: 100%; height: 100%; border: none; background: transparent;" onload="initChatIframe()"></iframe>
+          <iframe id="chat-iframe" src="./pages/chat-only.html?apiBase=${encodeURIComponent(window.CHAT_API_BASE)}&username=${encodeURIComponent(localStorage.getItem('nebulo_username') || 'User')}" style="width: 100%; height: 100%; border: none; background: transparent;" onload="initChatIframe(this)"></iframe>
         </div>
       `,
       noPadding: true,
@@ -11624,6 +11708,9 @@ function addDesktopIcon(appName) {
   if (appName === "browser" || appName === "games") {
     iconEl.classList.add("desktop-icon-gold-ring");
   }
+  if (appName === "blooket-bot") {
+    iconEl.classList.add("desktop-icon-red-ring");
+  }
   iconEl.setAttribute("data-app", appName);
   const iconMarkup = iconConfig.image
     ? `<img src="${iconConfig.image}" alt="${iconConfig.label}">`
@@ -11652,6 +11739,8 @@ function openStartupApps() {
     { id: "terminal", name: "Terminal", icon: "fa-terminal" },
     { id: "browser", name: "Browser", icon: "fa-globe" },
     { id: "games", name: "Games", icon: "fa-gamepad" },
+    { id: "blooket-bot", name: "Blooket Bot", icon: "fa-robot" },
+
     { id: "minecraft", name: "Minecraft", icon: "fa-cube" },
     { id: "settings", name: "Settings", icon: "fa-cog" },
     { id: "editor", name: "Text Editor", icon: "fa-edit" },
@@ -11777,6 +11866,7 @@ function toggleStartupApp(appId) {
         { id: "terminal", name: "Terminal", icon: "fa-terminal" },
         { id: "browser", name: "Browser", icon: "fa-globe" },
         { id: "games", name: "Games", icon: "fa-gamepad" },
+        { id: "blooket-bot", name: "Blooket Bot", icon: "fa-robot" },
         { id: "minecraft", name: "Minecraft", icon: "fa-cube" },
         { id: "settings", name: "Settings", icon: "fa-cog" },
         { id: "editor", name: "Text Editor", icon: "fa-edit" },
@@ -12097,6 +12187,94 @@ function openCredits() {
   createWindow('Credits', 'fa-heart', content, 700, 600);
 }
 
+
+let backgroundChatContainer = null;
+let backgroundChatIframe = null;
+
+function getChatIframeSrc() {
+  return `./pages/chat-only.html?apiBase=${encodeURIComponent(window.CHAT_API_BASE)}&username=${encodeURIComponent(localStorage.getItem('nebulo_username') || 'User')}`;
+}
+
+function sendChatInitToIframe(iframe) {
+  if (!iframe || !iframe.contentWindow) {
+    return false;
+  }
+  if (iframe.dataset.chatInitSent === 'true') {
+    return true;
+  }
+  iframe.dataset.chatInitSent = 'true';
+  iframe.contentWindow.postMessage({
+    type: 'initChat',
+    username: currentUsername,
+    theme: 'nautilus',
+    chatApiBase: window.CHAT_API_BASE
+  }, '*');
+  return true;
+}
+
+function ensureBackgroundChatIframe() {
+  if (!backgroundChatContainer) {
+    backgroundChatContainer = document.getElementById('backgroundChatContainer');
+    if (!backgroundChatContainer) {
+      backgroundChatContainer = document.createElement('div');
+      backgroundChatContainer.id = 'backgroundChatContainer';
+      backgroundChatContainer.style.cssText = 'position:fixed; width:1px; height:1px; right:0; bottom:0; opacity:0; pointer-events:none; overflow:hidden; z-index:-1;';
+      document.body.appendChild(backgroundChatContainer);
+    }
+  }
+
+  if (!backgroundChatIframe) {
+    backgroundChatIframe = document.createElement('iframe');
+    backgroundChatIframe.id = 'chat-background-iframe';
+    backgroundChatIframe.src = getChatIframeSrc();
+    backgroundChatIframe.style.border = 'none';
+    backgroundChatIframe.style.width = '100%';
+    backgroundChatIframe.style.height = '100%';
+    backgroundChatIframe.style.background = 'transparent';
+    backgroundChatIframe.addEventListener('load', () => {
+      sendChatInitToIframe(backgroundChatIframe);
+    });
+    backgroundChatContainer.appendChild(backgroundChatIframe);
+  }
+
+  return backgroundChatIframe;
+}
+
+function attachChatIframeToWindow(container) {
+  const iframe = ensureBackgroundChatIframe();
+  if (!container || !iframe) {
+    return null;
+  }
+  iframe.id = 'chat-iframe';
+  iframe.style.width = '100%';
+  iframe.style.height = '100%';
+  iframe.style.display = 'block';
+  iframe.style.background = 'transparent';
+  container.innerHTML = '';
+  container.appendChild(iframe);
+  sendChatInitToIframe(iframe);
+  return iframe;
+}
+
+function detachChatIframeToBackground() {
+  if (!backgroundChatIframe || !backgroundChatContainer) {
+    return;
+  }
+  backgroundChatIframe.id = 'chat-background-iframe';
+  backgroundChatIframe.style.width = '100%';
+  backgroundChatIframe.style.height = '100%';
+  if (backgroundChatIframe.parentElement !== backgroundChatContainer) {
+    backgroundChatContainer.appendChild(backgroundChatIframe);
+  }
+}
+
+function initBackgroundChatIframe() {
+  if (!document.body) {
+    return;
+  }
+  ensureBackgroundChatIframe();
+}
+
 function openGlobalChatWindow() {
   console.log('🗣️ openGlobalChat() called');
   // Check if chat window is already open
@@ -12131,9 +12309,7 @@ function openGlobalChatWindow() {
   windowEl.style.zIndex = ++zIndexCounter;
 
   const chatContent = `
-    <div id="global-chat-container" style="width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--bg-primary);">
-      <iframe id="chat-iframe" src="./pages/chat-only.html?apiBase=${encodeURIComponent(window.CHAT_API_BASE)}&username=${encodeURIComponent(localStorage.getItem('nebulo_username') || 'User')}" style="width: 100%; height: 100%; border: none; background: transparent;" onload="initChatIframe()"></iframe>
-    </div>
+    <div id="global-chat-container" style="width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--bg-primary);"></div>
   `;
 
   windowEl.innerHTML = `
@@ -12166,6 +12342,15 @@ function openGlobalChatWindow() {
   windowEl.dataset.appName = appName;
 
   document.getElementById("desktop").appendChild(windowEl);
+
+  const chatContainer = windowEl.querySelector('#global-chat-container');
+  const chatIframe = attachChatIframeToWindow(chatContainer);
+  if (chatIframe && chatIframe.contentWindow) {
+    chatIframe.contentWindow.postMessage({
+      type: 'chatOpened'
+    }, '*');
+  }
+  window.chatWindowOpen = true;
   makeDraggable(windowEl);
   makeResizable(windowEl);
 
@@ -12185,40 +12370,39 @@ function openGlobalChatWindow() {
 }
 
 // Update the global chat button badge with unread count
-function updateGlobalChatBadge(show = true) {
-  console.log('🔴 Updating chat badge, show:', show);
+function updateGlobalChatBadge(countOrShow = 0) {
   const badge = document.getElementById('chatNotificationBadge');
-  if (badge) {
-    console.log('✅ Badge element found, current display:', badge.style.display);
+  if (!badge) {
+    console.error('Chat notification badge element not found!');
+    return;
+  }
 
-    if (show) {
-      // Always show the pulsing badge indicator
-      badge.style.display = 'block';
-      badge.style.visibility = 'visible';
-      badge.style.opacity = '1';
-      badge.style.zIndex = '1000'; // Ensure high z-index
-      badge.style.pointerEvents = 'none'; // Don't interfere with button clicks
-      console.log('✅ Pulsing badge shown');
-    } else {
-      // Hide badge
-      badge.style.display = 'none';
-      badge.style.visibility = 'hidden';
-      badge.style.opacity = '0';
-      console.log('✅ Badge hidden');
-    }
-    console.log('Badge styles:', {
-      display: badge.style.display,
-      visibility: badge.style.visibility,
-      position: badge.style.position,
-      top: badge.style.top,
-      right: badge.style.right,
-      zIndex: badge.style.zIndex
-    });
+  let count = 0;
+  let show = false;
+  if (typeof countOrShow === 'number') {
+    count = Math.max(0, Math.floor(countOrShow));
+    show = count > 0;
   } else {
-    console.error('❌ Chat notification badge element not found!');
-    console.log('Available elements with chat in ID:', Array.from(document.querySelectorAll('[id*="chat"]')).map(el => el.id));
+    show = countOrShow !== false;
+  }
+
+  if (show) {
+    const displayCount = count > 99 ? '99+' : (count > 0 ? String(count) : '');
+    badge.textContent = displayCount;
+    badge.style.display = 'flex';
+    badge.style.visibility = 'visible';
+    badge.style.opacity = '1';
+    badge.style.zIndex = '1000';
+    badge.style.pointerEvents = 'none';
+  } else {
+    badge.textContent = '';
+    badge.style.display = 'none';
+    badge.style.visibility = 'hidden';
+    badge.style.opacity = '0';
   }
 }
+
+
 
 // Make function globally accessible for testing
 window.updateGlobalChatBadge = updateGlobalChatBadge;
@@ -12427,19 +12611,20 @@ window.testOnlineUsers = function() {
 
 // Show chat notification toast
 function showChatToast(username, content) {
-  // Only show notifications if chat window is not currently open
-  if (!window.chatWindowOpen) {
-    const normalizedName = (username || '').trim();
-    const displayName =
-      normalizedName.toLowerCase() === 'shs12lord'
-        ? 'Owner'
-        : (normalizedName || 'User');
-    showToast(`dY'� <strong>${displayName}</strong>: ${content}`, 'fa-comments');
-  }
+  const normalizedName = (username || '').trim();
+  const displayName =
+    normalizedName.toLowerCase() === 'shs12lord'
+      ? 'Owner'
+      : (normalizedName || 'User');
+  showToast(`dY'? <strong>${displayName}</strong>: ${content}`, 'fa-comments');
 }
 
-function initChatIframe() {
-  const iframe = document.querySelector('#global-chat-container iframe');
+
+function initChatIframe(iframeEl) {
+  const iframe =
+    iframeEl ||
+    document.querySelector('#global-chat-container iframe') ||
+    document.getElementById('chat-background-iframe');
   if (!iframe) {
     console.log('Chat iframe not found');
     return false;
@@ -12450,25 +12635,17 @@ function initChatIframe() {
     return false;
   }
 
-  try {
-    if (iframe.dataset.chatInitSent === 'true') {
-      return true;
-    }
-    iframe.dataset.chatInitSent = 'true';
-    // Pass current username to chat iframe (use global currentUsername)
-    console.log('Sending chat init message:', {
-      type: 'initChat',
-      username: currentUsername,
-      theme: 'nautilus',
-      chatApiBase: window.CHAT_API_BASE
-    });
+  // Send the initial chatNotificationsEnabled state to the iframe
+  iframe.contentWindow.postMessage({
+    type: 'toggleNotifications',
+    enabled: chatNotificationsEnabled
+  }, '*');
+  console.log('Sent initial chatNotificationsEnabled state to iframe:', chatNotificationsEnabled);
 
-    iframe.contentWindow.postMessage({
-      type: 'initChat',
-      username: currentUsername,
-      theme: 'nautilus',
-      chatApiBase: window.CHAT_API_BASE
-    }, '*');
+  try {
+    if (!sendChatInitToIframe(iframe)) {
+      return false;
+    }
 
     // Notify chat that it was opened (to reset unread count and mark as initialized)
     setTimeout(() => {
@@ -12487,6 +12664,7 @@ function initChatIframe() {
     return false;
   }
 }
+
 
 const _originalOpenApp = openApp;
 window.openApp = openApp = function (appName, ...args) {
@@ -12516,16 +12694,14 @@ window.closeWindow = closeWindow = function (btn, appName) {
   // Track chat window state
   if (appName === 'global-chat') {
     window.chatWindowOpen = false;
-    // Notify chat iframe that chat was closed
-    const iframes = document.querySelectorAll('#global-chat-container iframe');
-    iframes.forEach(iframe => {
-      if (iframe.contentWindow) {
-        iframe.contentWindow.postMessage({
-          type: 'chatClosed'
-        }, '*');
-        console.log('Chat closed notification sent to iframe');
-      }
-    });
+    const iframe = backgroundChatIframe || document.querySelector('#global-chat-container iframe') || document.getElementById('chat-background-iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'chatClosed'
+      }, '*');
+      console.log('Chat closed notification sent to iframe');
+    }
+    detachChatIframeToBackground();
   }
 
   setTimeout(() => {
@@ -12534,6 +12710,13 @@ window.closeWindow = closeWindow = function (btn, appName) {
     }
   }, 150);
 };
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBackgroundChatIframe);
+} else {
+  initBackgroundChatIframe();
+}
+
 function initStartMenuSearch() {
   const searchInput = document.getElementById('startSearch');
   if (!searchInput || searchInput.dataset.listenerAdded) {
@@ -13411,6 +13594,7 @@ function trackAppOpened(appName) {
     "terminal",
     "browser",
     "games",
+    "blooket-bot",
     "minecraft",
     "settings",
     "editor",
@@ -15161,6 +15345,7 @@ function checkImportedAchievements() {
     "terminal",
     "browser",
     "games",
+    "blooket-bot",
     "minecraft",
     "settings",
     "editor",
@@ -19396,7 +19581,12 @@ window.addEventListener('message', function(event) {
   console.log('Main window received message from iframe:', event.data);
   if (event.data.type === 'updateChatBadge') {
     console.log('Processing updateChatBadge message');
-    updateGlobalChatBadge(event.data.show !== false); // Default to true if not specified
+    const count = Number(event.data.count);
+    if (Number.isFinite(count)) {
+      updateGlobalChatBadge(count);
+    } else {
+      updateGlobalChatBadge(event.data.show !== false);
+    }
   } else if (event.data.type === 'showChatNotification') {
     console.log('Processing showChatNotification message');
     showChatToast(event.data.username, event.data.content);
@@ -19772,5 +19962,50 @@ setInterval(checkChatIntegrity, 5000);
 
 // Run check when window gains focus
 window.addEventListener('focus', checkChatIntegrity);
+
+let chatNotificationsEnabled = true;
+
+function toggleChatNotifications() {
+    chatNotificationsEnabled = !chatNotificationsEnabled;
+    localStorage.setItem('chatNotificationsEnabled', chatNotificationsEnabled);
+    updateChatNotificationButton();
+    showToast(`Chat notifications ${chatNotificationsEnabled ? 'enabled' : 'disabled'}`, chatNotificationsEnabled ? 'fa-bell' : 'fa-bell-slash');
+
+    // Send updated notification state to chat iframe
+    const chatIframe = document.getElementById('chat-iframe');
+    if (chatIframe && chatIframe.contentWindow) {
+        chatIframe.contentWindow.postMessage({
+            type: 'toggleNotifications',
+            enabled: chatNotificationsEnabled
+        }, '*');
+    }
+}
+
+function updateChatNotificationButton() {
+    const toggleButton = document.getElementById('chatNotificationToggle');
+    if (toggleButton) {
+        if (chatNotificationsEnabled) {
+            toggleButton.classList.remove('disabled');
+            toggleButton.title = "Disable Chat Notifications";
+            toggleButton.querySelector('i').className = 'fas fa-bell';
+        } else {
+            toggleButton.classList.add('disabled');
+            toggleButton.title = "Enable Chat Notifications";
+            toggleButton.querySelector('i').className = 'fas fa-bell-slash';
+        }
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('chatNotificationsEnabled') === 'false') {
+        chatNotificationsEnabled = false;
+    }
+    updateChatNotificationButton();
+
+    const toggleButton = document.getElementById('chatNotificationToggle');
+    if (toggleButton) {
+        toggleButton.addEventListener('click', toggleChatNotifications);
+    }
+});
 
 

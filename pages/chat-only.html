@@ -63,7 +63,7 @@
     /* Chat header */
     .chat-header {
       background: rgba(30, 35, 48, 0.9);
-      backdrop-filter: blur(10px);
+      backdrop-filter: none;
       border-bottom: 1px solid var(--border);
       padding: 12px 16px;
       display: flex;
@@ -155,7 +155,7 @@
     .message {
       display: flex;
       margin-bottom: 8px;
-      animation: fadeIn 0.3s ease;
+      animation: none;
     }
 
     @keyframes fadeIn {
@@ -212,7 +212,7 @@
       background: linear-gradient(135deg, #f7dc8b, #f0b64b);
       color: var(--owner-text);
       border: 1px solid rgba(255, 222, 138, 0.9);
-      box-shadow: 0 0 0 1px rgba(255, 215, 120, 0.7), 0 10px 24px rgba(214, 154, 49, 0.35);
+      box-shadow: 0 0 0 1px rgba(255, 215, 120, 0.6);
       position: relative;
       isolation: isolate;
     }
@@ -220,26 +220,16 @@
     .message.owner .message-content::before {
       content: '';
       position: absolute;
-      inset: -3px;
+      inset: -2px;
       border-radius: 18px;
-      border: 1px solid rgba(255, 236, 170, 0.8);
-      box-shadow: 0 0 14px rgba(255, 214, 130, 0.4), inset 0 0 10px rgba(255, 233, 160, 0.25);
+      border: 1px solid rgba(255, 236, 170, 0.7);
+      box-shadow: none;
       pointer-events: none;
       z-index: 0;
     }
 
     .message.owner .message-content::after {
-      content: '';
-      position: absolute;
-      inset: -3px;
-      border-radius: 18px;
-      background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
-      opacity: 0.5;
-      transform: translateX(-60%);
-      animation: ownerSheen 3.6s ease-in-out infinite;
-      pointer-events: none;
-      mix-blend-mode: screen;
-      z-index: 0;
+      display: none;
     }
 
     .message.owner .message-content > * {
@@ -281,8 +271,8 @@
     }
 
     .message.owner .message-username {
-      color: var(--owner-gold);
-      text-shadow: 0 0 8px rgba(246, 211, 101, 0.55);
+      color: #111;
+      text-shadow: none;
     }
 
     .message-timestamp {
@@ -343,7 +333,7 @@
     /* Input area */
     .input-area {
       background: rgba(21, 25, 35, 0.9);
-      backdrop-filter: blur(10px);
+      backdrop-filter: none;
       border-top: 1px solid var(--border);
       padding: 16px;
       display: flex;
@@ -504,13 +494,7 @@
     <div class="chat-content">
       <!-- Messages Area -->
       <div class="messages-area">
-        <div class="messages-container" id="messagesContainer">
-          <div class="message system">
-            <div class="message-content">
-              Welcome to NautilusOS Global Chat! 👋
-            </div>
-          </div>
-        </div>
+        <div class="messages-container" id="messagesContainer"></div>
       </div>
 
     </div>
@@ -543,6 +527,7 @@ let CHAT_API_BASE = null; // Will be set by parent window message
     let messages = [];
     let users = [];
     let soundEnabled = true;
+    let notificationsEnabled = true; // New variable to control notifications
     let globalChatSending = false;
     let seenMessageIds = new Set(); // Track seen message IDs to prevent duplicates
     let unreadMessageCount = 0; // Track unread messages
@@ -615,6 +600,9 @@ let CHAT_API_BASE = null; // Will be set by parent window message
           }
         } else if (event.data.type === 'chatClosed') {
           isChatWindowOpen = false;
+        } else if (event.data.type === 'toggleNotifications') { // New listener for notifications
+          notificationsEnabled = event.data.enabled;
+          console.log('Chat notifications ' + (notificationsEnabled ? 'enabled' : 'disabled'));
         }
       });
 
@@ -669,7 +657,8 @@ let CHAT_API_BASE = null; // Will be set by parent window message
       }
       periodicNotificationsStarted = true;
       setInterval(() => {
-        if (!isChatWindowOpen) {
+        // Only show periodic notifications if they are enabled AND the chat window is closed
+        if (notificationsEnabled && !isChatWindowOpen) {
           showChatNotification({
             username: 'System',
             content: 'There are new messages in Global Chat!'
@@ -917,12 +906,17 @@ let CHAT_API_BASE = null; // Will be set by parent window message
       messages.push(formattedMessage);
       renderMessage(formattedMessage);
 
-      // Only increment unread count and show notifications for NEW messages from other users
+      // Only count unread for new messages from other users
       // Don't count historical messages when initially loading history
-      if (!formattedMessage.isCurrentUser && chatHistoryBootstrapped && !isChatWindowOpen) {
-        unreadMessageCount++;
-        updateUnreadBadge();
-        showChatNotification(formattedMessage);
+      if (!formattedMessage.isCurrentUser && chatHistoryBootstrapped) {
+        if (!isChatWindowOpen) {
+          unreadMessageCount++;
+          updateUnreadBadge();
+        }
+        // Only show visual notification if notifications are enabled
+        if (notificationsEnabled) {
+          showChatNotification(formattedMessage);
+        }
       }
 
       // Scroll to bottom
@@ -1106,13 +1100,14 @@ let CHAT_API_BASE = null; // Will be set by parent window message
       }
     }
 
-    // Update unread message badge (always show pulsing indicator)
+    // Update unread message badge (send unread count to parent)
     function updateUnreadBadge() {
-      // Notify parent window to show the pulsing badge
+      // Notify parent window to update the unread badge count
       try {
         window.parent.postMessage({
           type: 'updateChatBadge',
-          show: true
+          count: unreadMessageCount,
+          show: unreadMessageCount > 0
         }, '*');
       } catch (error) {
         // Silently fail
@@ -1121,16 +1116,17 @@ let CHAT_API_BASE = null; // Will be set by parent window message
 
     // Show chat notification using Nautilus OS notification system
     function showChatNotification(message) {
-      // Always show notifications for new messages from other users
-      // The parent window will handle whether to show them based on chat state
-      try {
-        window.parent.postMessage({
-          type: 'showChatNotification',
-          username: message.displayUsername || getDisplayUsername(message.username),
-          content: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : '')
-        }, '*');
-      } catch (error) {
-        // Silently fail
+      // Only show notifications if they are enabled AND the chat window is closed
+      if (notificationsEnabled && !isChatWindowOpen) {
+        try {
+          window.parent.postMessage({
+            type: 'showChatNotification',
+            username: message.displayUsername || getDisplayUsername(message.username),
+            content: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : '')
+          }, '*');
+        } catch (error) {
+          // Silently fail
+        }
       }
     }
 
