@@ -1,4 +1,4 @@
-@import "https://unpkg.com/open-props";
+
 @import "https://unpkg.com/open-props/normalize.min.css";
 @import "https://unpkg.com/open-props/buttons.min.css";
 
@@ -1585,6 +1585,18 @@ select:focus {
     font-size: 2rem;
 }
 
+.desktop-icon.desktop-icon-red-ring i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 999px;
+    border: 2px solid #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25), 0 6px 14px rgba(0, 0, 0, 0.3);
+    font-size: 2rem;
+}
+
 .desktop-icon span {
     font-size: 0.75rem;
     color: var(--text-primary);
@@ -2957,6 +2969,14 @@ select:focus {
 .toast-close:hover {
     background: var(--transparent-white-8);
     color: var(--text-primary);
+}
+
+.chat-toast {
+    max-width: 220px;
+    font-size: 11px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    line-height: 1.2;
 }
 
 .context-menu {

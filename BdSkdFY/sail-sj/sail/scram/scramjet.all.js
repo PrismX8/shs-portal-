@@ -433,15 +433,18 @@
           }
           get frame() {
             if (!d.iswindow) return null;
+            if (!this.descriptors) return null;
             let e = this.descriptors.get("window.frameElement", this.global);
             if (!e) return null;
             let t = e[n.zr];
             if (!t) {
               let e = this.global.window;
               for (; e.parent !== e; ) {
-                let t = e[n.pX].descriptors.get("window.frameElement", e);
+                let t = e[n.pX];
                 if (!t) return null;
-                if (t && t[n.zr]) return t[n.zr];
+                let i = t.descriptors.get("window.frameElement", e);
+                if (!i) return null;
+                if (i && i[n.zr]) return i[n.zr];
                 e = e.parent.window;
               }
             }

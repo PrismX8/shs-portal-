@@ -27,7 +27,7 @@
 
     <script>
         const connection = new BareMux.BareMuxConnection("/sail/baremux/worker.js") // you could always use epoxy, but libcurl is better imo
-        connection.setTransport("/sail/libcurl/index.esm.js", [{ websocket: "wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/" }]) // use some other wisp here
+        connection.setTransport("/sail/libcurl/index.esm.js", [{ websocket: "wss://guesty.surge.sh/" }]) // use some other wisp here
 
         const frame = document.getElementById("frame")
         const bar = document.getElementById("bar")

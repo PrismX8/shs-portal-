@@ -34,12 +34,20 @@
             --chat-button-offset: 0px;
         }
 
-        /* Global Chat Button Styles */
-        .global-chat-button {
+        /* Global Chat Container */
+        .global-chat-container {
             position: fixed;
             top: max(env(safe-area-inset-top), 8px);
             left: 50%;
             transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 80;
+        }
+
+        /* Global Chat Button Styles */
+        .global-chat-button {
+            position: relative;
             background: linear-gradient(135deg, rgba(125, 211, 192, 0.9), rgba(100, 181, 246, 0.9));
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.15);
@@ -50,7 +58,6 @@
             align-items: center;
             gap: clamp(6px, 1.2vw, 8px);
             cursor: pointer;
-            z-index: 80;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             transition: all 0.3s ease;
             font-family: 'Inter', sans-serif;
@@ -62,38 +69,53 @@
         }
 
         .global-chat-button:hover {
-            transform: translateX(-50%) translateY(-2px);
             box-shadow: 0 6px 25px rgba(125, 211, 192, 0.4);
             background: linear-gradient(135deg, rgba(125, 211, 192, 1), rgba(100, 181, 246, 1));
         }
 
         .global-chat-button:active {
-            transform: translateX(-50%) translateY(0);
+            transform: none;
         }
-
+        
+        #chatNotificationToggle.disabled i {
+            color: var(--error-red);
+        }
+        
+        #chatNotificationToggle.disabled:hover i {
+            color: var(--error-red-hover);
+        }
         .chat-notification-badge {
             position: absolute;
             top: -8px;
             right: -8px;
             background: #ff4757 !important;
-            border-radius: 50% !important;
-            width: clamp(12px, 2.6vw, 16px) !important;
-            height: clamp(12px, 2.6vw, 16px) !important;
+            color: #fff;
+            border-radius: 999px !important;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
             display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1;
             z-index: 10000 !important;
             pointer-events: none !important;
+            border: 2px solid rgba(21, 25, 35, 0.95);
+            box-shadow: 0 0 0 2px rgba(125, 211, 192, 0.3);
             animation: pulse-red 2s infinite;
         }
 
         .chat-notification-badge::before {
             content: '';
             position: absolute;
-            top: -4px;
-            left: -4px;
-            right: -4px;
-            bottom: -4px;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 999px;
             animation: pulse-white 2s infinite;
         }
 
@@ -109,9 +131,7 @@
             100% { transform: scale(1); opacity: 0.8; }
         }
 
-        .global-chat-button {
-            position: fixed; /* Ensure badge positioning works */
-        }
+        /* Badge positioning now handled by container */
 
         /* Global Chat Window Styles */
         .global-chat-window {
@@ -147,7 +167,7 @@
                 --chat-button-offset: 56px;
             }
 
-            .global-chat-button {
+            .global-chat-container {
                 top: max(env(safe-area-inset-top), 6px);
             }
         }
@@ -402,22 +422,29 @@
             background: rgba(125, 211, 192, 0.5);
         }
 
-        /* Updated Notification Badge - Always Visible */
+        /* Updated Notification Badge - Unread Count */
         .chat-notification-badge {
             position: absolute;
             top: -6px;
             right: -6px;
             background: #ff4757 !important;
-            border-radius: 50% !important;
-            width: 10px !important;
-            height: 10px !important;
-            display: block !important;
+            color: #fff;
+            border-radius: 999px !important;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1;
             z-index: 10000 !important;
             pointer-events: none !important;
             border: 2px solid rgba(21, 25, 35, 0.95);
             box-shadow: 0 0 0 2px rgba(125, 211, 192, 0.3);
             animation: gentle-pulse 3s infinite;
-            opacity: 0.9;
+            opacity: 0.95;
         }
 
         .chat-notification-badge::before {
@@ -427,21 +454,12 @@
             left: -2px;
             right: -2px;
             bottom: -2px;
-            border-radius: 50%;
+            border-radius: 999px;
             animation: gentle-glow 3s infinite;
         }
 
         .chat-notification-badge::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 50%;
-            filter: blur(0.5px);
+            display: none;
         }
 
         @keyframes gentle-pulse {
@@ -855,11 +873,16 @@
             <span id="displayUsername">Guest</span>
         </div>
 
-        <!-- Global Chat Button -->
-        <div id="globalChatButton" class="global-chat-button" onclick="openApp('chat')">
-            <i class="fas fa-comments"></i>
-            <span class="chat-text">Global Chat</span>
-            <span class="chat-notification-badge" id="chatNotificationBadge"></span>
+        <!-- Global Chat Container -->
+        <div class="global-chat-container">
+            <div id="chatNotificationToggle" class="global-chat-button" title="Toggle Chat Notifications">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div id="globalChatButton" class="global-chat-button" onclick="openApp('chat')">
+                <i class="fas fa-comments"></i>
+                <span class="chat-text">Global Chat</span>
+                <span class="chat-notification-badge" id="chatNotificationBadge"></span>
+            </div>
         </div>
 
         <div class="wallpaper">
@@ -910,6 +933,9 @@
             </div>
             <div class="desktop-icon desktop-icon-gold-ring" ondblclick="openApp('games')" data-app="games">
                 <i class="fas fa-gamepad"></i> <span>Games</span>
+            </div>
+            <div class="desktop-icon desktop-icon-red-ring" ondblclick="openApp('blooket-bot')" data-app="blooket-bot">
+                <i class="fas fa-robot"></i> <span>Blooket Bot</span>
             </div>
             <div class="desktop-icon" ondblclick="openApp('minecraft')" data-app="minecraft">
                 <img src="Minecraft/Minecraft-Grass-Block.jpg" alt="Minecraft"> <span>Minecraft</span>
@@ -1012,6 +1038,9 @@
                 </div>
                 <div class="app-item" onclick="openApp('games')">
                     <i class="fas fa-gamepad"></i> <span>Games</span>
+                </div>
+                <div class="app-item" onclick="openApp('blooket-bot')">
+                    <i class="fas fa-robot"></i> <span>Blooket Bot</span>
                 </div>
                 <div class="app-item" onclick="openApp('minecraft')">
                     <img src="Minecraft/Minecraft-Grass-Block.jpg" alt="Minecraft"> <span>Minecraft</span>
@@ -1245,15 +1274,13 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('DOM fully loaded');
 
-            // Ensure badge is always visible
+            // Initialize badge as hidden until unread messages arrive
             const badge = document.getElementById('chatNotificationBadge');
             if (badge) {
-                badge.style.display = 'block';
-                badge.style.visibility = 'visible';
-                badge.style.opacity = '0.9';
-
-                // Start with gentle pulse
-                badge.style.animation = 'gentle-pulse 3s infinite';
+                badge.textContent = '';
+                badge.style.display = 'none';
+                badge.style.visibility = 'hidden';
+                badge.style.opacity = '0';
             }
         });
 
