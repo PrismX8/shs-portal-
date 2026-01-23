@@ -8,14 +8,12 @@
   <meta name="keywords" content="chat, community, NautilusOS">
   <meta name="author" content="NautilusOS">
 
-  <!-- Import Nautilus OS styles -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/open-props">
   <link rel="stylesheet" href="https://unpkg.com/open-props/normalize.min.css">
   <link rel="stylesheet" href="https://unpkg.com/open-props/buttons.min.css">
 
   <style>
-    /* Import Nautilus OS theme variables */
     :root {
       --bg-primary: #0f172a;
       --bg-secondary: #1e293b;
@@ -30,17 +28,10 @@
       --warning: #f59e0b;
       --error: #ef4444;
       --info: #3b82f6;
-      --owner-gold: #f6d365;
-      --owner-gold-deep: #d89a31;
-      --owner-gold-soft: rgba(246, 211, 101, 0.35);
       --owner-text: #2b1b05;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -52,7 +43,6 @@
       flex-direction: column;
     }
 
-    /* Chat container */
     .chat-container {
       display: flex;
       flex-direction: column;
@@ -60,10 +50,8 @@
       background: var(--bg-primary);
     }
 
-    /* Chat header */
     .chat-header {
       background: rgba(30, 35, 48, 0.9);
-      backdrop-filter: none;
       border-bottom: 1px solid var(--border);
       padding: 12px 16px;
       display: flex;
@@ -92,16 +80,8 @@
       text-align: center;
     }
 
-    .chat-title i {
-      color: var(--accent);
-      font-size: 1.1rem;
-    }
-
-
-    .chat-actions {
-      display: flex;
-      gap: 5px;
-    }
+    .chat-title i { color: var(--accent); font-size: 1.1rem; }
+    .chat-actions { display: flex; gap: 5px; }
 
     .chat-action-btn {
       background: transparent;
@@ -124,15 +104,8 @@
       border-color: var(--accent);
     }
 
-    /* Chat content - full width now */
-    .chat-content {
-      flex: 1;
-      display: block;
-      overflow: hidden;
-      height: 100%;
-    }
+    .chat-content { flex: 1; display: block; overflow: hidden; height: 100%; }
 
-    /* Messages area - full width */
     .messages-area {
       width: 100%;
       height: 100%;
@@ -151,22 +124,10 @@
       max-height: 100%;
     }
 
-    /* Message styles */
-    .message {
-      display: flex;
-      margin-bottom: 8px;
-      animation: none;
-    }
+    .message { display: flex; margin-bottom: 8px; }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .message.system {
-      justify-content: center;
-    }
-
+    /* Center messages (we use this for moderation notices too) */
+    .message.system { justify-content: center; }
     .message.system .message-content {
       background: rgba(125, 211, 192, 0.1);
       border: 1px solid rgba(125, 211, 192, 0.2);
@@ -178,13 +139,8 @@
       max-width: 70%;
     }
 
-    .message.user {
-      justify-content: flex-end;
-    }
-
-    .message.other {
-      justify-content: flex-start;
-    }
+    .message.user { justify-content: flex-end; }
+    .message.other { justify-content: flex-start; }
 
     .message-content {
       max-width: 70%;
@@ -223,27 +179,11 @@
       inset: -2px;
       border-radius: 18px;
       border: 1px solid rgba(255, 236, 170, 0.7);
-      box-shadow: none;
       pointer-events: none;
       z-index: 0;
     }
 
-    .message.owner .message-content::after {
-      display: none;
-    }
-
-    .message.owner .message-content > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    .message.owner.user .message-content {
-      border-bottom-right-radius: 4px;
-    }
-
-    .message.owner.other .message-content {
-      border-bottom-left-radius: 4px;
-    }
+    .message.owner .message-content > * { position: relative; z-index: 1; }
 
     .message-header {
       display: flex;
@@ -251,63 +191,27 @@
       gap: 8px;
       margin-bottom: 4px;
       font-size: 0.8rem;
+      flex-wrap: wrap;
     }
 
-    .message.user .message-header {
-      justify-content: flex-end;
-    }
+    .message.user .message-header { justify-content: flex-end; }
+    .message.other .message-header { justify-content: flex-start; }
 
-    .message.other .message-header {
-      justify-content: flex-start;
-    }
+    .message-username { font-weight: 600; color: var(--accent); }
+    .message.user .message-username { color: var(--bg-primary); }
+    .message.owner .message-username { color: #111; }
 
-    .message-username {
-      font-weight: 600;
-      color: var(--accent);
-    }
+    .message-timestamp { color: var(--text-secondary); font-size: 0.75rem; }
+    .message.user .message-timestamp { color: rgba(15, 23, 42, 0.7); }
+    .message.owner .message-timestamp { color: rgba(66, 45, 8, 0.75); }
 
-    .message.user .message-username {
-      color: var(--bg-primary);
-    }
-
-    .message.owner .message-username {
-      color: #111;
-      text-shadow: none;
-    }
-
-    .message-timestamp {
-      color: var(--text-secondary);
-      font-size: 0.75rem;
-    }
-
-    .message.user .message-timestamp {
-      color: rgba(15, 23, 42, 0.7);
-    }
-
-    .message.owner .message-timestamp {
-      color: rgba(66, 45, 8, 0.75);
-    }
-
-    @keyframes ownerSheen {
-      0% {
-        transform: translateX(-60%);
-      }
-      60% {
-        transform: translateX(60%);
-      }
-      100% {
-        transform: translateX(60%);
-      }
-    }
-
-    /* Sending and failed message states */
     .message.sending .message-content {
-      opacity: 0.8;
+      opacity: 0.85;
       border: 1px solid rgba(251, 191, 36, 0.3);
     }
 
     .message.failed .message-content {
-      opacity: 0.7;
+      opacity: 0.75;
       border: 1px solid rgba(239, 68, 68, 0.3);
       background: rgba(239, 68, 68, 0.1);
     }
@@ -315,25 +219,16 @@
     .sending-indicator, .failed-indicator {
       margin-left: 8px;
       font-size: 0.8rem;
-      opacity: 0.8;
+      opacity: 0.9;
+      white-space: nowrap;
     }
 
-    .sending-indicator {
-      color: #f59e0b;
-    }
+    .sending-indicator { color: #f59e0b; }
+    .failed-indicator { color: #ef4444; }
+    .sending-indicator i { margin-right: 4px; }
 
-    .failed-indicator {
-      color: #ef4444;
-    }
-
-    .sending-indicator i {
-      margin-right: 4px;
-    }
-
-    /* Input area */
     .input-area {
       background: rgba(21, 25, 35, 0.9);
-      backdrop-filter: none;
       border-top: 1px solid var(--border);
       padding: 16px;
       display: flex;
@@ -362,9 +257,7 @@
       background: rgba(30, 35, 48, 0.95);
     }
 
-    .message-input::placeholder {
-      color: var(--text-muted);
-    }
+    .message-input::placeholder { color: var(--text-muted); }
 
     .send-button {
       width: 44px;
@@ -386,95 +279,21 @@
       box-shadow: 0 4px 15px rgba(125, 211, 192, 0.3);
     }
 
-    .send-button:active {
-      transform: translateY(0);
-    }
+    .send-button:active { transform: translateY(0); }
 
+    .messages-container::-webkit-scrollbar { width: 6px; }
+    .messages-container::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 3px; }
+    .messages-container::-webkit-scrollbar-thumb { background: rgba(125, 211, 192, 0.3); border-radius: 3px; }
+    .messages-container::-webkit-scrollbar-thumb:hover { background: rgba(125, 211, 192, 0.5); }
 
-    .user-item:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .user-status {
-      font-size: 0.6rem;
-    }
-
-    .user-status.online {
-      color: #10b981;
-    }
-
-    .user-status.away {
-      color: #f59e0b;
-    }
-
-    .user-status.offline {
-      color: #64748b;
-    }
-
-    .user-name {
-      flex: 1;
-      color: var(--text-primary);
-    }
-
-    .current-user .user-name {
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    /* Loading state */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      color: var(--text-secondary);
-    }
-
-    .loading i {
-      animation: spin 1s linear infinite;
-      margin-right: 8px;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    /* Scrollbar styling */
-    .messages-container::-webkit-scrollbar,
-    .users-list::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .messages-container::-webkit-scrollbar-track,
-    .users-list::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 3px;
-    }
-
-    .messages-container::-webkit-scrollbar-thumb,
-    .users-list::-webkit-scrollbar-thumb {
-      background: rgba(125, 211, 192, 0.3);
-      border-radius: 3px;
-    }
-
-    .messages-container::-webkit-scrollbar-thumb:hover,
-    .users-list::-webkit-scrollbar-thumb:hover {
-      background: rgba(125, 211, 192, 0.5);
-    }
-
-    /* Responsive */
     @media (max-width: 768px) {
-      .message-content {
-        max-width: 85%;
-      }
+      .message-content { max-width: 85%; }
     }
   </style>
 </head>
 
 <body>
   <div class="chat-container">
-    <!-- Chat Header -->
     <div class="chat-header">
       <div class="chat-title">
         <i class="fas fa-comments"></i>
@@ -490,23 +309,19 @@
       </div>
     </div>
 
-    <!-- Chat Content -->
     <div class="chat-content">
-      <!-- Messages Area -->
       <div class="messages-area">
         <div class="messages-container" id="messagesContainer"></div>
       </div>
-
     </div>
 
-    <!-- Input Area -->
     <div class="input-area">
       <textarea
         class="message-input"
         id="messageInput"
         placeholder="Type your message..."
         onkeydown="handleKeyPress(event)"
-        maxlength="500"
+        maxlength="750"
       ></textarea>
       <button class="send-button" onclick="sendMessage()">
         <i class="fas fa-paper-plane"></i>
@@ -514,290 +329,611 @@
     </div>
   </div>
 
+  <!-- Supabase client library (defines window.supabase). -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
     // =====================================================
-    // NEBULO CHAT FUNCTIONALITY - INTEGRATED FOR NAUTILUS OS
+    // GLOBAL CHAT - CLOUDFLARE (PRIMARY) + SUPABASE (FALLBACK)
+    // + Moderation (center-of-chat text only, NO OS-style notifications)
+    // + Sending animation + reconcile (no double messages)
     // =====================================================
 
-// Configuration - Set this to your Cloudflare Worker endpoint
-let CHAT_API_BASE = null; // Will be set by parent window message
+    // Cloudflare Worker base (set by parent window or URL param)
+    let CHAT_API_BASE = null;
+
+    // Supabase (browser-safe anon/publishable key)
+    const SUPABASE_URL = "https://bvhigzazfcsoqeivnmxe.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_DMZNbwUB_8qvQRTtl5xS5g_OMdvEZdQ";
+    const SUPABASE_TABLE = "chat_messages";
+
+    // IMPORTANT: do NOT name this "supabase" (Nebulo likely already has a global)
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Cloudflare circuit breaker (rate-limit backoff)
+    let cfBackoffUntil = 0;
+    const CF_BACKOFF_MS = 10 * 60 * 1000; // 10 minutes
 
     // Chat state
     let currentUsername = 'User';
     let messages = [];
-    let users = [];
     let soundEnabled = true;
-    let notificationsEnabled = true; // New variable to control notifications
+    let notificationsEnabled = true; // kept for your normal chat notifications (not used for moderation)
     let globalChatSending = false;
-    let seenMessageIds = new Set(); // Track seen message IDs to prevent duplicates
-    let unreadMessageCount = 0; // Track unread messages
-    let isChatInitialized = false; // Track if chat has been initialized
-    let isChatWindowOpen = false; // Track if chat window is currently open
+
+    // Unread / window state
+    let unreadMessageCount = 0;
+    let isChatWindowOpen = false;
+
+    // Bootstrap / UI flags
     let chatBootstrapInFlight = false;
     let periodicNotificationsStarted = false;
     let onlineCountIntervalStarted = false;
-    let lastGlobalChatMessageSig = '';
     let chatHistoryBootstrapped = false;
-    let shouldAutoScroll = true; // Track if we should autoscroll to bottom
-    let lastScrollTop = 0; // Track last scroll position
-    let workerHistoryLoaded = false;
-    let globalChatSeen = new Set();
-    let messageNodeIndex = new Map();
+    let shouldAutoScroll = true;
+    let lastScrollTop = 0;
+
+    // Backend mode tracking
+    let backendMode = "unknown"; // "cloudflare" | "supabase" | "unknown"
+    let lastGlobalChatMessageSig = "";
+
+    // Dedup + DOM tracking
+    const seenSigs = new Set();         // dedupe of rendered messages (signature)
+    const messageNodeIndex = new Map(); // messageId -> DOM node
+
+    // Pending "sending" reconciliation (prevents duplicate popups)
+    const pendingOutbox = []; // [{tempId, name, text, createdAtMs}]
+    const PENDING_MATCH_WINDOW_MS = 60 * 1000; // confirm within 60s
+
     const OWNER_USERNAME = 'shs12lord';
     const OWNER_DISPLAY_NAME = 'Owner';
+
+    // ------------------------------
+    // MODERATION
+    //  - Works on SEND (blocks message)
+    //  - Works on RECEIVE (hides message + shows centered notice)
+    //  - IMPORTANT: moderation notices are NOT OS notifications, only centered chat text.
+    // ------------------------------
+
+    // Helper: safely make a regex that matches any of these words/phrases (word-boundary based).
+    function buildWordRegex(words) {
+      const escaped = (words || []).map(w => String(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      return new RegExp(`\\b(${escaped.join("|")})\\b`, "i");
+    }
+
+    const MOD = {
+      enabled: true,
+
+      // Hate/racism patterns (keep yours)
+      hatePatterns: [
+        /\b(white\s*power|heil\s*hitler|ku\s*klux\s*klan|kkk|1488|14\/88|nigger|nigga)\b/i,
+        /\b(go\s+back\s+to\s+your\s+country)\b/i,
+        /\b(kill|exterminate|lynch|gas)\s+(all|every)\s+(black|white|asian|mexican|latino|jewish|muslim|christian|immigrant)s?\b/i,
+        /\b(all|every)\s+(black|white|asian|mexican|latino|jewish|muslim|christian|immigrant)s?\s+(should|must)\s+(die|be\s+killed|be\s+gone)\b/i
+      ],
+
+      // Everything else built from lists
+      sexualPatterns: [],
+      selfHarmPatterns: [],
+      violencePatterns: [],
+      hackingPatterns: [],
+      illegalPatterns: []
+    };
+
+    // Add your provided list into the right buckets
+    MOD.sexualPatterns.push(buildWordRegex([
+      "porn", "xxx", "hentai", "fetish", "erotic", "milf", "bdsm", "cam", "webcam",
+      "nude", "nudity", "boobs", "tits", "pussy", "anal", "cum", "blowjob", "jav",
+      "incest", "amateur", "softcore", "goon", "daddy", "diddy", "gooner", "ballsack",
+      "oil", "gay", "lesbian", "shemale", "trans", "balls", "gaping", "creampie", "threesome",
+      "o!l", "mom", "dad", "freaky", "nsfw", "nsfwchat", "bondage", "spanking",
+      "roast", "harder", "tickling", "watersports", "swing", "stupid",
+
+      "pornhub.com", "xvideos.com", "redtube.com", "youporn.com", "xhamster.com", "xnxx.com",
+      "spankbang.com", "tube8.com", "tnaflix.com", "porndig.com", "efukt.com", "empflix.com",
+      "javhub.com", "faproulette.com", "sex.com", "cam4.com", "chaturbate.com", "livejasmin.com",
+
+      "4chan.org", "8kun.top", "kiwifarms.net", "reddit.com/r/nsfw", "reddit.com/r/gonewild",
+
+      "write porn story", "erotic roleplay", "roleplay as my girlfriend", "be my sexbot",
+      "generate nude", "make nsfw image", "make porn", "draw hentai", "make me a sex story",
+      "write erotic novel", "write smut", "dirty story", "make nsfw picture", "make nude picture",
+      "simulate sex", "roleplay nsfw", "pretend to be my lover", "dirty talk", "make hentai"
+    ]));
+
+    MOD.selfHarmPatterns.push(buildWordRegex([
+      "help me kill myself", "tell me how to die", "help me suicide", "write suicide note",
+      "make me self harm", "ways to kill myself", "how to commit suicide", "how to overdose",
+      "what’s the best way to die", "help me harm myself", "tell me how to hang myself"
+    ]));
+
+    MOD.violencePatterns.push(buildWordRegex([
+      "how to make a bomb", "how to make explosives", "build a gun", "how to stab",
+      "how to poison", "how to kill someone", "murder plan", "terrorist guide",
+      "shooting guide", "assassin instructions", "step by step bomb", "terror attack"
+    ]));
+
+    MOD.hackingPatterns.push(buildWordRegex([
+      "how to hack facebook", "hack instagram", "hack gmail", "steal password",
+      "crack wifi", "bypass paywall", "bypass filter", "how to ddos", "how to hack website",
+      "prompt injection", "jailbreak ai", "bypass moderation", "ignore your rules", "act as unrestricted ai"
+    ]));
+
+    MOD.illegalPatterns.push(buildWordRegex([
+      "pirated movies", "torrent site", "warez", "crack download", "serial key generator",
+      "download paid content free", "illegal software", "piracy site", "dark web drugs",
+      "buy cocaine", "buy heroin", "order weed online", "illegal marketplace",
+      "deepfake celebrity", "make fake nude", "deepfake generator", "fake porn",
+      "ai nsfw generator", "make porn ai", "deepfake video"
+    ]));
 
     function normalizeUsername(name) {
       return (name || '').trim();
     }
-
     function isOwnerUser(name) {
       return normalizeUsername(name).toLowerCase() === OWNER_USERNAME;
     }
-
     function getDisplayUsername(name) {
       const normalized = normalizeUsername(name);
       return isOwnerUser(normalized) ? OWNER_DISPLAY_NAME : (normalized || 'Unknown');
     }
 
-    // Initialize chat
-    function initChat() {
-      // First try to get config from URL parameters (more reliable)
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlApiBase = urlParams.get('apiBase');
-      const urlUsername = urlParams.get('username');
-
-      if (urlApiBase) {
-        CHAT_API_BASE = urlApiBase;
-        console.log('Got CHAT_API_BASE from URL:', CHAT_API_BASE);
+    function setBackendMode(mode) {
+      if (backendMode !== mode) {
+        backendMode = mode;
+        console.log("🔁 Backend mode:", backendMode);
       }
+    }
 
-      if (urlUsername) {
-        currentUsername = urlUsername;
-      }
+    // Signature used ONLY for dedupe AFTER a message is rendered.
+    // (No timestamp so CF/SB differences don’t duplicate.)
+    function makeSig(name, text) {
+      const n = (name || '').trim().toLowerCase();
+      const x = (text || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      return `${n}|${x}`;
+    }
 
-      // Listen for messages from parent window (merged handler)
-      window.addEventListener('message', function(event) {
-        if (event.data.type === 'initChat') {
-          currentUsername = event.data.username || currentUsername || 'User';
-          if (event.data.chatApiBase) {
-            CHAT_API_BASE = event.data.chatApiBase; // Override if provided
-          }
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
 
-          bootstrapChatExperience();
-        } else if (event.data.type === 'chatOpened') {
-          resetUnreadCount();
-          isChatInitialized = true;
-          isChatWindowOpen = true;
+    // Classify moderation category
+    function classifyModeration(text) {
+      if (!MOD.enabled) return { ok: true };
+      const t = (text || "").trim();
+      if (!t) return { ok: false, kind: "empty" };
 
-          if (!onlineCountIntervalStarted) {
-            onlineCountIntervalStarted = true;
-            // Start fake online count updates immediately
-            updateOnlineCount();
-            // Update every 30 seconds
-            setInterval(() => {
-              updateOnlineCount();
-            }, 30000);
-          }
-        } else if (event.data.type === 'chatClosed') {
-          isChatWindowOpen = false;
-        } else if (event.data.type === 'toggleNotifications') { // New listener for notifications
-          notificationsEnabled = event.data.enabled;
-          console.log('Chat notifications ' + (notificationsEnabled ? 'enabled' : 'disabled'));
-        }
+      for (const r of MOD.hatePatterns) if (r.test(t)) return { ok: false, kind: "hate" };
+      for (const r of MOD.sexualPatterns) if (r.test(t)) return { ok: false, kind: "sexual" };
+      for (const r of MOD.selfHarmPatterns) if (r.test(t)) return { ok: false, kind: "selfharm" };
+      for (const r of MOD.violencePatterns) if (r.test(t)) return { ok: false, kind: "violence" };
+      for (const r of MOD.hackingPatterns) if (r.test(t)) return { ok: false, kind: "hacking" };
+      for (const r of MOD.illegalPatterns) if (r.test(t)) return { ok: false, kind: "illegal" };
+
+      return { ok: true };
+    }
+
+    // Center-of-chat moderation text (NOT an OS notification)
+    function postModerationCenter(kind, whoDisplay) {
+      const who = whoDisplay || "Someone";
+      let msg = "🚫 Message blocked by moderation.";
+
+      if (kind === "hate") msg = `😡 ${who} tried to be racist.`;
+      else if (kind === "sexual") msg = `🚫 ${who} tried to post sexual content.`;
+      else if (kind === "selfharm") msg = `🚫 ${who} tried to post self-harm content.`;
+      else if (kind === "violence") msg = `🚫 ${who} tried to post violent instructions.`;
+      else if (kind === "hacking") msg = `🚫 ${who} tried to post hacking content.`;
+      else if (kind === "illegal") msg = `🚫 ${who} tried to post illegal content.`;
+
+      addCenterText(msg);
+    }
+
+    // Center-of-chat text helper (uses same centered style as system messages,
+    // but we keep it separate so it’s not tied to any "notification" behavior)
+    function addCenterText(content) {
+      const message = {
+        id: Date.now() + "_center",
+        content,
+        type: 'system',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      messages.push(message);
+      renderMessage(message);
+      scrollToBottom();
+    }
+
+    // ------------------------------
+    // Cloudflare helpers (with backoff on rate limits)
+    // ------------------------------
+    async function cfFetchRecent(limit = 10) {
+      if (!CHAT_API_BASE) throw new Error("CHAT_API_BASE not set");
+
+      const res = await fetch(`${CHAT_API_BASE}/chat/recent?limit=${limit}&images=1`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'cors'
       });
 
-      // Auto-connect after a short delay
-      setTimeout(() => {
-        if (CHAT_API_BASE) {
-          bootstrapChatExperience();
-        } else {
-          addSystemMessage('❌ Chat backend not configured. Please set CHAT_API_BASE.');
-        }
-      }, 500);
+      if (res.status === 429 || res.status === 503 || res.status === 520 || res.status === 522 || res.status === 403) {
+        cfBackoffUntil = Date.now() + CF_BACKOFF_MS;
+        throw new Error(`Cloudflare rate-limited/unavailable (HTTP ${res.status})`);
+      }
+
+      if (!res.ok) throw new Error(`CF recent HTTP ${res.status}`);
+      return await res.json();
     }
 
-    // Bootstrap chat experience (adapted from NEBULO)
-    function bootstrapChatExperience() {
-      if (chatBootstrapInFlight || chatHistoryBootstrapped) {
-        return;
-      }
-      chatBootstrapInFlight = true;
-      if (!CHAT_API_BASE) {
-        addSystemMessage('❌ Chat backend not configured.');
-        // Mark as bootstrapped to prevent notification issues
-        chatHistoryBootstrapped = true;
-        chatBootstrapInFlight = false;
-        // Start periodic notifications
-        startPeriodicNotifications();
-        return;
-      }
+    async function cfSendMessage(name, text) {
+      if (!CHAT_API_BASE) throw new Error("CHAT_API_BASE not set");
 
-      addSystemMessage('🔄 Connecting to chat service...');
-
-      // Initialize with NEBULO chat system
-      initGlobalChatClient().then(() => {
-        addSystemMessage('✅ Connected to Global Chat! 🎉');
-        // Start periodic notifications even when connected
-        startPeriodicNotifications();
-        chatBootstrapInFlight = false;
-      }).catch(err => {
-        console.error('Chat initialization failed:', err);
-        addSystemMessage('❌ Chat connection failed.');
-        // Mark as bootstrapped and start periodic notifications
-        chatHistoryBootstrapped = true;
-        startPeriodicNotifications();
-        chatBootstrapInFlight = false;
+      const res = await fetch(`${CHAT_API_BASE}/chat/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({ name, text })
       });
+
+      if (res.status === 429 || res.status === 503 || res.status === 520 || res.status === 522 || res.status === 403) {
+        cfBackoffUntil = Date.now() + CF_BACKOFF_MS;
+        throw new Error(`Cloudflare rate-limited/unavailable (HTTP ${res.status})`);
+      }
+
+      if (!res.ok) throw new Error(`CF send HTTP ${res.status}`);
+      return true;
     }
 
-    // Start periodic notifications every 5 minutes
-    function startPeriodicNotifications() {
-      if (periodicNotificationsStarted) {
+    async function checkCloudflareHealthy() {
+      if (!CHAT_API_BASE) return false;
+      if (Date.now() < cfBackoffUntil) return false;
+
+      try {
+        await cfFetchRecent(1);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // ------------------------------
+    // Supabase helpers (robust ordering: try t, then created_at)
+    // ------------------------------
+    async function sbInsertMessage(name, text) {
+      const payload = { name, text };
+      const { data, error } = await sbClient
+        .from(SUPABASE_TABLE)
+        .insert(payload)
+        .select()
+        .limit(1);
+
+      if (error) throw error;
+      return data && data[0] ? data[0] : null;
+    }
+
+    async function sbFetchRecent(limit = 10) {
+      let { data, error } = await sbClient
+        .from(SUPABASE_TABLE)
+        .select("*")
+        .order("t", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        ({ data, error } = await sbClient
+          .from(SUPABASE_TABLE)
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(limit));
+      }
+
+      if (error) throw error;
+      return (data || []).reverse();
+    }
+
+    // ------------------------------
+    // Rendering
+    // ------------------------------
+    function renderMessageElement(message) {
+      const messageDiv = document.createElement('div');
+      messageDiv.dataset.messageId = String(message.id);
+
+      if (message.type === 'system') {
+        messageDiv.className = 'message system';
+        messageDiv.innerHTML = `<div class="message-content">${message.content}</div>`;
+        return messageDiv;
+      }
+
+      const isOwner = message.isOwner || isOwnerUser(message.username);
+      const displayUsername = message.displayUsername || getDisplayUsername(message.username);
+
+      messageDiv.className =
+        `message ${message.isCurrentUser ? 'user' : 'other'} ` +
+        `${message.isSending ? 'sending' : ''} ${message.isFailed ? 'failed' : ''} ` +
+        `${isOwner ? 'owner' : ''}`;
+
+      messageDiv.innerHTML = `
+        <div class="message-content">
+          <div class="message-header">
+            <span class="message-username">${escapeHtml(displayUsername)}</span>
+            <span class="message-timestamp">${escapeHtml(message.timestamp || '')}</span>
+            ${message.isSending ? '<span class="sending-indicator"><i class="fas fa-circle-notch fa-spin"></i> Sending...</span>' : ''}
+            ${message.isFailed ? '<span class="failed-indicator"><i class="fas fa-exclamation-triangle"></i> Failed</span>' : ''}
+          </div>
+          <div>${escapeHtml(message.content || '')}</div>
+        </div>
+      `;
+
+      return messageDiv;
+    }
+
+    function renderMessage(message) {
+      const container = document.getElementById('messagesContainer');
+      const node = renderMessageElement(message);
+      container.appendChild(node);
+      messageNodeIndex.set(String(message.id), node);
+    }
+
+    function replaceRenderedMessage(oldId, newMessageObj) {
+      const oldKey = String(oldId);
+      const existingNode = messageNodeIndex.get(oldKey);
+
+      const newNode = renderMessageElement(newMessageObj);
+      messageNodeIndex.set(String(newMessageObj.id), newNode);
+
+      if (existingNode && existingNode.parentNode) {
+        existingNode.parentNode.replaceChild(newNode, existingNode);
+        messageNodeIndex.delete(oldKey);
+      } else {
+        renderAllMessages();
+      }
+    }
+
+    function renderAllMessages() {
+      const container = document.getElementById('messagesContainer');
+      container.innerHTML = '';
+      messageNodeIndex.clear();
+      for (const m of messages) renderMessage(m);
+    }
+
+    function addSystemMessage(content) {
+      // Used for non-moderation system info ("Connected", etc.)
+      addCenterText(content);
+    }
+
+    function markMessageFailed(tempId) {
+      const idx = messages.findIndex(m => String(m.id) === String(tempId));
+      if (idx === -1) return;
+      messages[idx].isSending = false;
+      messages[idx].isFailed = true;
+      messages[idx].timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      replaceRenderedMessage(tempId, messages[idx]);
+    }
+
+    function markMessageSent(tempId, serverIdMaybe = null, serverTsIsoMaybe = null) {
+      const idx = messages.findIndex(m => String(m.id) === String(tempId));
+      if (idx === -1) return;
+
+      const msg = messages[idx];
+      msg.isSending = false;
+      msg.isFailed = false;
+
+      if (serverIdMaybe !== null && serverIdMaybe !== undefined) msg.id = serverIdMaybe;
+
+      const ts = serverTsIsoMaybe ? new Date(serverTsIsoMaybe) : new Date();
+      msg.timestamp = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      seenSigs.add(makeSig(msg.username, msg.content));
+      replaceRenderedMessage(tempId, msg);
+    }
+
+    // ------------------------------
+    // Pending/outbox reconciliation
+    // ------------------------------
+    function addPending(tempId, name, text) {
+      pendingOutbox.push({ tempId, name, text, createdAtMs: Date.now() });
+      prunePending();
+    }
+
+    function prunePending() {
+      const cutoff = Date.now() - PENDING_MATCH_WINDOW_MS;
+      for (let i = pendingOutbox.length - 1; i >= 0; i--) {
+        if (pendingOutbox[i].createdAtMs < cutoff) pendingOutbox.splice(i, 1);
+      }
+    }
+
+    function findPendingMatch(name, text) {
+      prunePending();
+      const n = (name || '').trim();
+      const t = (text || '').trim();
+      for (let i = pendingOutbox.length - 1; i >= 0; i--) {
+        const p = pendingOutbox[i];
+        if (p.name === n && p.text === t) return { index: i, tempId: p.tempId };
+      }
+      return null;
+    }
+
+    function removePendingAt(index) {
+      if (index >= 0 && index < pendingOutbox.length) pendingOutbox.splice(index, 1);
+    }
+
+    // ------------------------------
+    // Message ingestion (normalize CF + SB formats)
+    // Includes moderation on incoming messages too
+    // ------------------------------
+    function appendIncomingMessage(raw, source) {
+      const rawUsername = raw.name || raw.username || 'Unknown';
+      const content = raw.text || raw.content || '';
+      const tsIso = raw.t || raw.created_at || null;
+
+      // Incoming moderation: hide bad content and show center text
+      const mod = classifyModeration(content);
+      if (!mod.ok && mod.kind !== "empty") {
+        const alertSig = `MOD|${mod.kind}|${rawUsername}|${makeSig(rawUsername, content)}`;
+        if (!seenSigs.has(alertSig)) {
+          seenSigs.add(alertSig);
+          postModerationCenter(mod.kind, getDisplayUsername(rawUsername));
+        }
         return;
       }
-      periodicNotificationsStarted = true;
-      setInterval(() => {
-        // Only show periodic notifications if they are enabled AND the chat window is closed
-        if (notificationsEnabled && !isChatWindowOpen) {
-          showChatNotification({
-            username: 'System',
-            content: 'There are new messages in Global Chat!'
-          });
-        }
-      }, 300000); // Every 5 minutes
-    }
 
-    // Initialize global chat client (adapted from NEBULO)
-    async function initGlobalChatClient() {
-      if (!CHAT_API_BASE) {
-        throw new Error('CHAT_API_BASE not configured');
+      // If this is our own message and it matches pending, confirm instead of duplicating
+      if ((rawUsername || '') === (currentUsername || '')) {
+        const pending = findPendingMatch(rawUsername, content);
+        if (pending) {
+          const serverId = raw.id ?? null;
+          markMessageSent(pending.tempId, serverId, tsIso);
+          removePendingAt(pending.index);
+          return;
+        }
       }
 
-      console.log(`✅ Chat initialized with Cloudflare Worker: ${CHAT_API_BASE}`);
+      // Dedup normal messages
+      const sig = makeSig(rawUsername, content);
+      if (seenSigs.has(sig)) return;
+      seenSigs.add(sig);
 
-      try {
-        // Load initial messages from server
-        if (!workerHistoryLoaded && !chatHistoryBootstrapped) {
-          const serverMessages = await requestServerSnapshot();
+      const displayTime = tsIso
+        ? new Date(tsIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-          if (serverMessages && serverMessages.length > 0) {
-            serverMessages.forEach(m => {
-              appendGlobalChatMessage(m);
-            });
-            console.log(`✅ Loaded ${serverMessages.length} messages from server`);
-            workerHistoryLoaded = true;
-          }
+      const msg = {
+        id: raw.id || `${source}_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        content,
+        username: rawUsername,
+        displayUsername: getDisplayUsername(rawUsername),
+        isOwner: isOwnerUser(rawUsername),
+        timestamp: displayTime,
+        isCurrentUser: rawUsername === currentUsername,
+        _source: source
+      };
+
+      messages.push(msg);
+      renderMessage(msg);
+
+      if (!msg.isCurrentUser && chatHistoryBootstrapped) {
+        if (!isChatWindowOpen) {
+          unreadMessageCount++;
+          updateUnreadBadge();
         }
-
-        chatHistoryBootstrapped = true;
-
-        // Start polling for new messages
-        startChatPolling();
-
-      } catch (error) {
-        console.error('Failed to initialize chat client:', error);
-        throw error;
+        // Normal notifications still allowed (NOT moderation notices)
+        if (notificationsEnabled) showChatNotification(msg);
       }
+
+      scrollToBottom();
     }
 
-    // Request server snapshot (adapted from NEBULO)
-    async function requestServerSnapshot() {
-      if (!CHAT_API_BASE) return null;
-
-      try {
-        const response = await fetch(`${CHAT_API_BASE}/chat/recent?limit=50&images=1`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          mode: 'cors'
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        return await response.json();
-      } catch (error) {
-        console.error('Failed to fetch server snapshot:', error);
-        return null;
+    // ------------------------------
+    // Bootstrap + polling
+    // ------------------------------
+    async function requestInitialSnapshot() {
+      const cfOk = await checkCloudflareHealthy();
+      if (cfOk) {
+        setBackendMode("cloudflare");
+        addSystemMessage("✅ Connected (Cloudflare).");
+        const cfMsgs = await cfFetchRecent(50);
+        (cfMsgs || []).forEach(m => appendIncomingMessage(m, "cloudflare"));
+        return;
       }
+
+      setBackendMode("supabase");
+      addSystemMessage("⚠️ Cloudflare unavailable/rate-limited. Using Supabase backup.");
+      const sbMsgs = await sbFetchRecent(50);
+      (sbMsgs || []).forEach(m => appendIncomingMessage(m, "supabase"));
     }
 
-    // Start polling for new messages
-    function startChatPolling() {
+    function startPolling() {
       setInterval(async () => {
-        if (!CHAT_API_BASE) return;
-
         try {
-          const response = await fetch(`${CHAT_API_BASE}/chat/recent?limit=10&images=1`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            mode: 'cors'
-          });
-
-          if (response.ok) {
-            const newMessages = await response.json();
-            newMessages.forEach(m => {
-              if (!globalChatSeen.has(m.id)) {
-                appendGlobalChatMessage(m);
-                globalChatSeen.add(m.id);
-              }
-            });
+          const cfOk = await checkCloudflareHealthy();
+          if (cfOk) {
+            setBackendMode("cloudflare");
+            const cfMsgs = await cfFetchRecent(10);
+            (cfMsgs || []).forEach(m => appendIncomingMessage(m, "cloudflare"));
+          } else {
+            setBackendMode("supabase");
+            const sbMsgs = await sbFetchRecent(10);
+            (sbMsgs || []).forEach(m => appendIncomingMessage(m, "supabase"));
           }
-        } catch (error) {
-          console.error('Failed to poll messages:', error);
+        } catch (err) {
+          console.error("Polling error:", err);
         }
-      }, 5000); // Poll every 5 seconds
+      }, 5000);
     }
 
-    // Send message (adapted from NEBULO)
+    function bootstrapChatExperience() {
+      if (chatBootstrapInFlight || chatHistoryBootstrapped) return;
+      chatBootstrapInFlight = true;
+
+      addSystemMessage("🔄 Connecting to chat service...");
+
+      requestInitialSnapshot()
+        .then(() => {
+          chatHistoryBootstrapped = true;
+          startPolling();
+          startPeriodicNotifications();
+          chatBootstrapInFlight = false;
+        })
+        .catch(err => {
+          console.error("Bootstrap failed:", err);
+          addSystemMessage("❌ Chat connection failed (both backends).");
+          chatHistoryBootstrapped = true;
+          startPeriodicNotifications();
+          chatBootstrapInFlight = false;
+        });
+    }
+
+    // ------------------------------
+    // Sending (CF first, SB fallback)
+    // Includes moderation BEFORE sending
+    // Moderation result is only a centered chat line (no popup notifications)
+    // ------------------------------
     async function sendMessage() {
       const input = document.getElementById('messageInput');
-      const text = input.value.trim();
-
+      const text = (input.value || '').trim();
       if (!text || globalChatSending) return;
 
-      // Ensure send button exists
-      const sendButtonIcon = document.querySelector('.send-button i');
-      if (!sendButtonIcon) {
-        console.error('Send button not found');
+      // MODERATION CHECK (on send)
+      const mod = classifyModeration(text);
+      if (!mod.ok && mod.kind !== "empty") {
+        // Center text saying they tried to post something bad
+        postModerationCenter(mod.kind, getDisplayUsername(currentUsername));
+        // Also give the sender a centered hint (not a popup)
+        addCenterText("🚫 Your message was blocked by moderation.");
+        input.focus();
         return;
       }
 
-      globalChatSending = true;
-
-      // Check message length
       if (text.length > 750) {
         addSystemMessage('❌ Message too long. Maximum 750 characters.');
-        globalChatSending = false;
         return;
       }
 
-      // Deduplication check
       const dedupSig = text.replace(/\s+/g, ' ').toLowerCase();
       if (dedupSig === lastGlobalChatMessageSig) {
         addSystemMessage('❌ Duplicate message blocked.');
-        globalChatSending = false;
         return;
       }
-
       lastGlobalChatMessageSig = dedupSig;
 
-      // Generate a temporary ID for this message
+      const sendButtonIcon = document.querySelector('.send-button i');
+      if (!sendButtonIcon) return;
+
+      globalChatSending = true;
+
       const tempMessageId = 'temp_' + Date.now();
 
-      // Clear input immediately for better UX
+      // clear input
       input.value = '';
       input.style.height = '44px';
 
-      // Show sending indicator
+      // spinner on send button
       const originalIcon = sendButtonIcon.className;
       sendButtonIcon.className = 'fas fa-spinner fa-spin';
 
-      // Add message immediately with "sending" state
+      // optimistic message bubble (shows sending animation)
       const sendingMessage = {
         id: tempMessageId,
         content: text,
@@ -806,237 +942,85 @@ let CHAT_API_BASE = null; // Will be set by parent window message
         isOwner: isOwnerUser(currentUsername),
         timestamp: 'Sending...',
         isCurrentUser: true,
-        isSending: true // Mark as sending
+        isSending: true,
+        isFailed: false
       };
 
       messages.push(sendingMessage);
       renderMessage(sendingMessage);
       scrollToBottom();
 
+      // track as pending so CF/SB echo confirms (no duplicate bubble)
+      addPending(tempMessageId, currentUsername, text);
+
       try {
-        // Send to server
-        if (CHAT_API_BASE) {
-          const messageData = {
-            name: currentUsername,
-            text: text
-          };
+        const cfOk = await checkCloudflareHealthy();
 
-          const response = await fetch(`${CHAT_API_BASE}/chat/send`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            mode: 'cors',
-            body: JSON.stringify(messageData)
-          });
+        if (cfOk) {
+          setBackendMode("cloudflare");
+          await cfSendMessage(currentUsername, text);
 
-          if (!response.ok) {
-            console.error('Server response not ok:', response.status);
-            throw new Error(`Server error: ${response.status}`);
-          }
+          // Stop spinner ONLY when echoed back via polling.
+          // Safety: if echo doesn't arrive fast, mark as sent locally after 8s.
+          setTimeout(() => {
+            const idx = messages.findIndex(m => String(m.id) === String(tempMessageId));
+            if (idx !== -1 && messages[idx].isSending) {
+              markMessageSent(tempMessageId, null, null);
+              const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
+              if (p !== -1) removePendingAt(p);
+            }
+          }, 8000);
 
         } else {
-          // No server configured - just mark as sent locally
-          updateMessageStatus(tempMessageId, false);
+          setBackendMode("supabase");
+          const row = await sbInsertMessage(currentUsername, text);
+
+          const serverId = row && row.id ? row.id : null;
+          const serverTs = (row && (row.t || row.created_at)) ? (row.t || row.created_at) : null;
+
+          markMessageSent(tempMessageId, serverId, serverTs);
+
+          const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
+          if (p !== -1) removePendingAt(p);
+
+          addSystemMessage('⚠️ Sent via Supabase backup (Cloudflare rate-limited/down).');
         }
-      } catch (error) {
-        console.error('Failed to send message:', error);
 
-        // Mark message as failed
-        updateMessageStatus(tempMessageId, false, true);
+      } catch (err) {
+        console.error("Send failed:", err);
 
-        // Show error notification
-        addSystemMessage('❌ Failed to send message');
+        try {
+          setBackendMode("supabase");
+          const row = await sbInsertMessage(currentUsername, text);
+
+          const serverId = row && row.id ? row.id : null;
+          const serverTs = (row && (row.t || row.created_at)) ? (row.t || row.created_at) : null;
+
+          markMessageSent(tempMessageId, serverId, serverTs);
+
+          const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
+          if (p !== -1) removePendingAt(p);
+
+          addSystemMessage('⚠️ Cloudflare send failed. Saved to Supabase backup.');
+        } catch (err2) {
+          console.error("Supabase fallback send failed:", err2);
+
+          markMessageFailed(tempMessageId);
+
+          const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
+          if (p !== -1) removePendingAt(p);
+
+          addSystemMessage('❌ Failed to send message (both backends).');
+        }
       } finally {
-        // Always restore send button icon
-        if (sendButtonIcon) {
-          sendButtonIcon.className = originalIcon;
-        }
-      }
-
-      globalChatSending = false;
-    }
-
-    // Append global chat message (adapted for your worker)
-    function appendGlobalChatMessage(message) {
-      // Check for duplicate messages
-      const messageId = message.id;
-      if (messageId && seenMessageIds.has(messageId)) {
-        return; // Skip duplicate
-      }
-
-      // Convert worker message format to our format
-      const rawUsername = message.name || message.username || 'Unknown';
-      const formattedMessage = {
-        id: messageId || Date.now(),
-        content: message.text || message.content || '',
-        username: rawUsername,
-        displayUsername: getDisplayUsername(rawUsername),
-        isOwner: isOwnerUser(rawUsername),
-        timestamp: message.t ?
-          new Date(message.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
-          new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isCurrentUser: rawUsername === currentUsername
-      };
-
-      // Check if this is a confirmation of our own message
-      const tempMessageIndex = messages.findIndex(m =>
-        m.isCurrentUser &&
-        m.isSending &&
-        m.content === formattedMessage.content &&
-        m.username === formattedMessage.username
-      );
-
-      if (tempMessageIndex !== -1) {
-        // This is a confirmation of our sent message - update the existing one
-        updateMessageStatus(messages[tempMessageIndex].id, false);
-        // Replace the temporary message with the server-confirmed one
-        messages[tempMessageIndex] = formattedMessage;
-        // Re-render the message list to show the updated message
-        renderAllMessages();
-        seenMessageIds.add(messageId);
-        return; // Don't add duplicate
-      }
-
-      // Mark as seen
-      if (messageId) {
-        seenMessageIds.add(messageId);
-      }
-
-      messages.push(formattedMessage);
-      renderMessage(formattedMessage);
-
-      // Only count unread for new messages from other users
-      // Don't count historical messages when initially loading history
-      if (!formattedMessage.isCurrentUser && chatHistoryBootstrapped) {
-        if (!isChatWindowOpen) {
-          unreadMessageCount++;
-          updateUnreadBadge();
-        }
-        // Only show visual notification if notifications are enabled
-        if (notificationsEnabled) {
-          showChatNotification(formattedMessage);
-        }
-      }
-
-      // Scroll to bottom
-      scrollToBottom();
-    }
-
-    // Add user message
-    function addUserMessage(content, username, isCurrentUser = false) {
-      const message = {
-        id: Date.now(),
-        content: content,
-        username: username,
-        displayUsername: getDisplayUsername(username),
-        isOwner: isOwnerUser(username),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isCurrentUser: isCurrentUser
-      };
-
-      messages.push(message);
-      renderMessage(message);
-      scrollToBottom();
-    }
-
-    // Add system message
-    function addSystemMessage(content) {
-      const message = {
-        id: Date.now(),
-        content: content,
-        type: 'system',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      messages.push(message);
-      renderMessage(message);
-      scrollToBottom();
-    }
-
-    // Update message status (for sending states)
-    function updateMessageStatus(tempId, isSending = false, isFailed = false) {
-      const messageIndex = messages.findIndex(m => m.id === tempId);
-      if (messageIndex === -1) return;
-
-      const message = messages[messageIndex];
-      message.isSending = isSending;
-      message.isFailed = isFailed;
-
-      // Update timestamp
-      if (!isSending) {
-        message.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      }
-
-      // Re-render this message
-      const container = document.getElementById('messagesContainer');
-      const messageElements = container.querySelectorAll('.message');
-      if (messageElements[messageIndex]) {
-        const updatedElement = renderMessageElement(message);
-        messageElements[messageIndex].replaceWith(updatedElement);
+        sendButtonIcon.className = originalIcon;
+        globalChatSending = false;
       }
     }
 
-    // Render message element
-    function renderMessageElement(message) {
-      const messageDiv = document.createElement('div');
-
-      if (message.type === 'system') {
-        messageDiv.className = 'message system';
-        messageDiv.innerHTML = `
-          <div class="message-content">${message.content}</div>
-        `;
-      } else {
-        const isOwner = message.isOwner || isOwnerUser(message.username);
-        const displayUsername = message.displayUsername || getDisplayUsername(message.username);
-        messageDiv.className = `message ${message.isCurrentUser ? 'user' : 'other'} ${message.isSending ? 'sending' : ''} ${message.isFailed ? 'failed' : ''} ${isOwner ? 'owner' : ''}`;
-        messageDiv.innerHTML = `
-          <div class="message-content">
-            <div class="message-header">
-              <span class="message-username">${displayUsername}</span>
-              <span class="message-timestamp">${message.timestamp}</span>
-              ${message.isSending ? '<span class="sending-indicator"><i class="fas fa-circle-notch fa-spin"></i> Sending...</span>' : ''}
-              ${message.isFailed ? '<span class="failed-indicator"><i class="fas fa-exclamation-triangle"></i> Failed</span>' : ''}
-            </div>
-            <div>${message.content}</div>
-          </div>
-        `;
-      }
-
-      return messageDiv;
-    }
-
-    // Render all messages (used when updating existing messages)
-    function renderAllMessages() {
-      const container = document.getElementById('messagesContainer');
-      container.innerHTML = '';
-      messages.forEach(message => {
-        renderMessage(message);
-      });
-    }
-
-    // Render message
-    function renderMessage(message) {
-      const container = document.getElementById('messagesContainer');
-      const messageElement = renderMessageElement(message);
-      container.appendChild(messageElement);
-    }
-
-
-    // Update online count with fake numbers (random 8-25, changes every 30 seconds)
-    function updateOnlineCount() {
-      // Generate fake online count: minimum 8, maximum 25
-      const fakeCount = Math.floor(Math.random() * 18) + 8; // 8-25 range
-      const onlineCountElement = document.querySelector('.online-count');
-      if (onlineCountElement) {
-        onlineCountElement.textContent = fakeCount;
-      }
-    }
-
-
-
-
-    // Scroll to bottom (only if shouldAutoScroll is true)
+    // ------------------------------
+    // UX utilities
+    // ------------------------------
     function scrollToBottom() {
       if (shouldAutoScroll) {
         const container = document.getElementById('messagesContainer');
@@ -1044,7 +1028,6 @@ let CHAT_API_BASE = null; // Will be set by parent window message
       }
     }
 
-    // Handle scroll events to detect user scrolling
     function handleScroll() {
       const container = document.getElementById('messagesContainer');
       if (!container) return;
@@ -1052,36 +1035,28 @@ let CHAT_API_BASE = null; // Will be set by parent window message
       const currentScrollTop = container.scrollTop;
       const maxScrollTop = container.scrollHeight - container.clientHeight;
 
-      // If user is near the bottom (within 50px), enable autoscroll
       if (currentScrollTop >= maxScrollTop - 50) {
         shouldAutoScroll = true;
-      }
-      // If user scrolled up significantly, disable autoscroll
-      else if (lastScrollTop > currentScrollTop && currentScrollTop < maxScrollTop - 100) {
+      } else if (lastScrollTop > currentScrollTop && currentScrollTop < maxScrollTop - 100) {
         shouldAutoScroll = false;
       }
 
       lastScrollTop = currentScrollTop;
     }
 
-    // Handle key press
     function handleKeyPress(event) {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         sendMessage();
       }
-
-      // Auto-resize textarea
       const textarea = event.target;
       textarea.style.height = '44px';
       textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
     }
 
-    // Toggle sound
     function toggleSound() {
       soundEnabled = !soundEnabled;
       const icon = document.getElementById('soundIcon');
-
       if (soundEnabled) {
         icon.className = 'fas fa-volume-up';
         addSystemMessage('🔊 Sound notifications enabled');
@@ -1091,77 +1066,119 @@ let CHAT_API_BASE = null; // Will be set by parent window message
       }
     }
 
-    // Clear messages
     function clearMessages() {
       if (confirm('Clear all messages?')) {
         messages = [];
-        document.getElementById('messagesContainer').innerHTML = '';
+        seenSigs.clear();
+        pendingOutbox.length = 0;
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = '';
+        messageNodeIndex.clear();
         addSystemMessage('🧹 Chat cleared');
       }
     }
 
-    // Update unread message badge (send unread count to parent)
     function updateUnreadBadge() {
-      // Notify parent window to update the unread badge count
       try {
         window.parent.postMessage({
           type: 'updateChatBadge',
           count: unreadMessageCount,
           show: unreadMessageCount > 0
         }, '*');
-      } catch (error) {
-        // Silently fail
-      }
+      } catch {}
     }
 
-    // Show chat notification using Nautilus OS notification system
+    // Normal chat notifications (NOT used for moderation notices)
     function showChatNotification(message) {
-      // Only show notifications if they are enabled AND the chat window is closed
       if (notificationsEnabled && !isChatWindowOpen) {
         try {
           window.parent.postMessage({
             type: 'showChatNotification',
             username: message.displayUsername || getDisplayUsername(message.username),
-            content: message.content.substring(0, 50) + (message.content.length > 50 ? '...' : '')
+            content: (message.content || '').substring(0, 50) + ((message.content || '').length > 50 ? '...' : '')
           }, '*');
-        } catch (error) {
-          // Silently fail
-        }
+        } catch {}
       }
     }
 
-    // Reset unread count (called when chat is opened)
     function resetUnreadCount() {
       unreadMessageCount = 0;
       updateUnreadBadge();
     }
 
+    function startPeriodicNotifications() {
+      if (periodicNotificationsStarted) return;
+      periodicNotificationsStarted = true;
 
+      setInterval(() => {
+        if (notificationsEnabled && !isChatWindowOpen) {
+          try {
+            window.parent.postMessage({
+              type: 'showChatNotification',
+              username: 'System',
+              content: 'There are new messages in Global Chat!'
+            }, '*');
+          } catch {}
+        }
+      }, 300000);
+    }
 
+    function updateOnlineCount() {
+      const fakeCount = Math.floor(Math.random() * 18) + 8;
+      const onlineCountElement = document.querySelector('.online-count');
+      if (onlineCountElement) onlineCountElement.textContent = fakeCount;
+    }
 
-    // Initialize when page loads
+    function getApiBaseFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlApiBase = urlParams.get('apiBase');
+      const urlUsername = urlParams.get('username');
+      if (urlApiBase) CHAT_API_BASE = urlApiBase;
+      if (urlUsername) currentUsername = urlUsername;
+    }
+
+    function initChat() {
+      getApiBaseFromUrl();
+
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'initChat') {
+          currentUsername = event.data.username || currentUsername || 'User';
+          if (event.data.chatApiBase) CHAT_API_BASE = event.data.chatApiBase;
+          bootstrapChatExperience();
+        } else if (event.data && event.data.type === 'chatOpened') {
+          resetUnreadCount();
+          isChatWindowOpen = true;
+
+          if (!onlineCountIntervalStarted) {
+            onlineCountIntervalStarted = true;
+            updateOnlineCount();
+            setInterval(updateOnlineCount, 30000);
+          }
+        } else if (event.data && event.data.type === 'chatClosed') {
+          isChatWindowOpen = false;
+        } else if (event.data && event.data.type === 'toggleNotifications') {
+          notificationsEnabled = !!event.data.enabled;
+          console.log('Chat notifications ' + (notificationsEnabled ? 'enabled' : 'disabled'));
+        }
+      });
+
+      setTimeout(() => {
+        bootstrapChatExperience();
+      }, 500);
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       console.log('Chat iframe DOM loaded, initializing...');
       initChat();
 
-      // Add scroll event listener for autoscroll detection
       const messagesContainer = document.getElementById('messagesContainer');
       if (messagesContainer) {
         messagesContainer.addEventListener('scroll', handleScroll);
-
-        // Initialize scroll position tracking
         lastScrollTop = messagesContainer.scrollTop;
-
-        // Scroll to bottom initially
-        setTimeout(() => {
-          scrollToBottom();
-        }, 500);
+        setTimeout(scrollToBottom, 500);
       }
 
-      // Show the pulsing badge indicator
-      setTimeout(() => {
-        updateUnreadBadge();
-      }, 1000);
+      setTimeout(updateUnreadBadge, 1000);
     });
   </script>
 </body>
