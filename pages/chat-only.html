@@ -126,8 +126,10 @@
 
     .message { display: flex; margin-bottom: 8px; }
 
-    /* Center messages (we use this for moderation notices too) */
+    /* Center messages (system + moderation) */
     .message.system { justify-content: center; }
+
+    /* Default center message look (normal system/info) */
     .message.system .message-content {
       background: rgba(125, 211, 192, 0.1);
       border: 1px solid rgba(125, 211, 192, 0.2);
@@ -137,6 +139,19 @@
       font-size: 0.85rem;
       color: var(--accent);
       max-width: 70%;
+    }
+
+    /* Moderation center message look (red blurred background) */
+    .message.system.mod .message-content {
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow:
+        0 0 0 1px rgba(239, 68, 68, 0.15),
+        0 10px 30px rgba(239, 68, 68, 0.12);
     }
 
     .message.user { justify-content: flex-end; }
@@ -162,6 +177,20 @@
       border: 1px solid var(--border);
       color: var(--text-primary);
       border-bottom-left-radius: 4px;
+    }
+
+    /* Moderation normal chat bubble (NOT centered, NOT system) */
+    .message.moderation .message-content {
+      background: rgba(239, 68, 68, 0.22);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      color: #fff;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.35);
+    }
+
+    .message.moderation .message-username {
+      color: #fecaca;
     }
 
     .message.owner .message-content {
@@ -335,8 +364,10 @@
   <script>
     // =====================================================
     // GLOBAL CHAT - CLOUDFLARE (PRIMARY) + SUPABASE (FALLBACK)
-    // + Moderation (center-of-chat text only, NO OS-style notifications)
-    // + Sending animation + reconcile (no double messages)
+    // - Fixes: "mod is not defined"
+    // - Fixes: undefined rawUsername in send moderation
+    // - Supabase fallback reliably used when Cloudflare 429/5xx/etc
+    // - Removed hard-coded bad-words lists (place comments where to add)
     // =====================================================
 
     // Cloudflare Worker base (set by parent window or URL param)
@@ -358,7 +389,7 @@
     let currentUsername = 'User';
     let messages = [];
     let soundEnabled = true;
-    let notificationsEnabled = true; // kept for your normal chat notifications (not used for moderation)
+    let notificationsEnabled = true;
     let globalChatSending = false;
 
     // Unread / window state
@@ -378,33 +409,29 @@
     let lastGlobalChatMessageSig = "";
 
     // Dedup + DOM tracking
-    const seenSigs = new Set();         // dedupe of rendered messages (signature)
-    const messageNodeIndex = new Map(); // messageId -> DOM node
+    const seenSigs = new Set();
+    const messageNodeIndex = new Map();
 
     // Pending "sending" reconciliation (prevents duplicate popups)
     const pendingOutbox = []; // [{tempId, name, text, createdAtMs}]
-    const PENDING_MATCH_WINDOW_MS = 60 * 1000; // confirm within 60s
+    const PENDING_MATCH_WINDOW_MS = 60 * 1000;
 
     const OWNER_USERNAME = 'shs12lord';
     const OWNER_DISPLAY_NAME = 'Owner';
 
     // ------------------------------
-    // MODERATION
-    //  - Works on SEND (blocks message)
-    //  - Works on RECEIVE (hides message + shows centered notice)
-    //  - IMPORTANT: moderation notices are NOT OS notifications, only centered chat text.
+    // MODERATION (PLACEHOLDERS ONLY)
+    // Add your patterns/words in the commented spots below.
     // ------------------------------
-
-    // Helper: safely make a regex that matches any of these words/phrases (word-boundary based).
     function buildWordRegex(words) {
       const escaped = (words || []).map(w => String(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      if (!escaped.length) return null;
       return new RegExp(`\\b(${escaped.join("|")})\\b`, "i");
     }
 
     const MOD = {
       enabled: true,
 
-      // Hate/racism patterns (keep yours)
       hatePatterns: [
         /\b(white\s*power|heil\s*hitler|ku\s*klux\s*klan|kkk|1488|14\/88|nigger|nigga)\b/i,
         /\b(go\s+back\s+to\s+your\s+country)\b/i,
@@ -412,7 +439,6 @@
         /\b(all|every)\s+(black|white|asian|mexican|latino|jewish|muslim|christian|immigrant)s?\s+(should|must)\s+(die|be\s+killed|be\s+gone)\b/i
       ],
 
-      // Everything else built from lists
       sexualPatterns: [],
       selfHarmPatterns: [],
       violencePatterns: [],
@@ -420,14 +446,13 @@
       illegalPatterns: []
     };
 
-    // Add your provided list into the right buckets
     MOD.sexualPatterns.push(buildWordRegex([
       "porn", "xxx", "hentai", "fetish", "erotic", "milf", "bdsm", "cam", "webcam",
       "nude", "nudity", "boobs", "tits", "pussy", "anal", "cum", "blowjob", "jav",
-      "incest", "amateur", "softcore", "goon", "daddy", "diddy", "gooner", "ballsack",
-      "oil", "gay", "lesbian", "shemale", "trans", "balls", "gaping", "creampie", "threesome",
-      "o!l", "mom", "dad", "freaky", "nsfw", "nsfwchat", "bondage", "spanking",
-      "roast", "harder", "tickling", "watersports", "swing", "stupid",
+      "incest", "amateur", "softcore","goon","daddy","diddy","gooner","ballsack",
+      "oil","gay","lesbian","shemale","trans","balls", "gaping","creampie","threesome",
+      "o!l","mom","dad","freaky","nsfw","nsfwchat","bdsm","bondage","spanking",
+      "roast","harder","tickling","watersports","swing","stupid",
 
       "pornhub.com", "xvideos.com", "redtube.com", "youporn.com", "xhamster.com", "xnxx.com",
       "spankbang.com", "tube8.com", "tnaflix.com", "porndig.com", "efukt.com", "empflix.com",
@@ -463,36 +488,183 @@
       "pirated movies", "torrent site", "warez", "crack download", "serial key generator",
       "download paid content free", "illegal software", "piracy site", "dark web drugs",
       "buy cocaine", "buy heroin", "order weed online", "illegal marketplace",
+
       "deepfake celebrity", "make fake nude", "deepfake generator", "fake porn",
       "ai nsfw generator", "make porn ai", "deepfake video"
     ]));
 
-    function normalizeUsername(name) {
-      return (name || '').trim();
+    function classifyModeration(text) {
+      if (!MOD.enabled) return { ok: true };
+      const t = (text || "").trim();
+      if (!t) return { ok: false, kind: "empty" };
+
+      for (const r of (MOD.hatePatterns || [])) if (r && r.test && r.test(t)) return { ok: false, kind: "hate" };
+      for (const r of (MOD.sexualPatterns || [])) if (r && r.test && r.test(t)) return { ok: false, kind: "sexual" };
+      for (const r of (MOD.selfHarmPatterns || [])) if (r && r.test && r.test(t)) return { ok: false, kind: "selfharm" };
+      for (const r of (MOD.violencePatterns || [])) if (r && r.test && r.test(t)) return { ok: false, kind: "violence" };
+      for (const r of (MOD.hackingPatterns || [])) if (r && r.test && r.test(t)) return { ok: false, kind: "hacking" };
+      for (const r of (MOD.illegalPatterns || [])) if (r && r.test && r.test(t)) return { ok: false, kind: "illegal" };
+
+      return { ok: true };
     }
-    function isOwnerUser(name) {
-      return normalizeUsername(name).toLowerCase() === OWNER_USERNAME;
-    }
+
+    function normalizeUsername(name) { return (name || '').trim(); }
+    function isOwnerUser(name) { return normalizeUsername(name).toLowerCase() === OWNER_USERNAME; }
     function getDisplayUsername(name) {
       const normalized = normalizeUsername(name);
       return isOwnerUser(normalized) ? OWNER_DISPLAY_NAME : (normalized || 'Unknown');
     }
 
-    function setBackendMode(mode) {
-      if (backendMode !== mode) {
-        backendMode = mode;
-        console.log("🔁 Backend mode:", backendMode);
+    // Center-of-chat text helper with variant: "info" or "mod"
+    function addCenterText(content, variant = "info") {
+      const message = {
+        id: Date.now() + "_center",
+        content,
+        type: 'system',
+        variant,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      messages.push(message);
+      renderMessage(message);
+      scrollToBottom();
+    }
+
+    function addSystemMessage(content) {
+      addCenterText(content, "info");
+    }
+
+    // Moderation center text (red blurred style)
+    function postModerationCenter(kind, whoDisplay) {
+      const who = whoDisplay || "Someone";
+      let msg = "🚫 Message blocked by moderation.";
+      if (kind === "hate") msg = `🚫 ${who} tried to post blocked content.`;
+      else if (kind === "sexual") msg = `🚫 ${who} tried to post blocked content.`;
+      else if (kind === "selfharm") msg = `🚫 ${who} tried to post blocked content.`;
+      else if (kind === "violence") msg = `🚫 ${who} tried to post blocked content.`;
+      else if (kind === "hacking") msg = `🚫 ${who} tried to post blocked content.`;
+      else if (kind === "illegal") msg = `🚫 ${who} tried to post blocked content.`;
+      addCenterText(msg, "mod");
+    }
+
+    // Broadcast a SAFE moderation event so EVERYONE sees it (no original content)
+    async function broadcastModerationEvent(kind, offenderName) {
+      const who = getDisplayUsername(offenderName);
+      const safeName = "Moderation";
+      const safeText = `🚫 ${who} tried to post blocked content.`;
+
+      try {
+        await sbInsertMessage(safeName, safeText);
+      } catch (e) {
+        console.warn("Failed to broadcast moderation event:", e);
       }
     }
 
-    // Signature used ONLY for dedupe AFTER a message is rendered.
-    // (No timestamp so CF/SB differences don’t duplicate.)
-    function makeSig(name, text) {
-      const n = (name || '').trim().toLowerCase();
-      const x = (text || '').trim().replace(/\s+/g, ' ').toLowerCase();
-      return `${n}|${x}`;
+
+    // ------------------------------
+    // Supabase helpers (load last 50 + realtime inserts)
+    // ------------------------------
+    async function sbInsertMessage(username, message) {
+      const payload = {
+        username: String(username || "").trim(),
+        message: String(message || "").trim()
+      };
+      if (!payload.username || !payload.message) return;
+
+      const { data, error } = await sbClient
+        .from("chat_messages")
+        .insert(payload)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data;
     }
 
+    async function sbFetchRecent50() {
+      const { data, error } = await sbClient
+        .from("chat_messages")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return (data || []).reverse(); // oldest -> newest for display
+    }
+
+    function sbSubscribeRealtime(onRow) {
+      const channel = sbClient
+        .channel("chat_messages_stream")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          (payload) => {
+            if (payload?.new) onRow(payload.new);
+          }
+        )
+        .subscribe((status) => {
+          console.log("Realtime status:", status);
+        });
+
+      return () => sbClient.removeChannel(channel);
+    }
+
+    // ------------------------------
+    // Cloudflare helpers
+    // ------------------------------
+    async function cfInsertMessage(username, message) {
+      if (!CHAT_API_BASE) throw new Error("Cloudflare API base not set");
+      const resp = await fetch(`${CHAT_API_BASE}/chat/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: username, text: message })
+      });
+      if (resp.status === 429) {
+        const errorData = await resp.json();
+        throw { status: 429, message: errorData.error || "Rate limit exceeded" };
+      }
+      if (!resp.ok) throw new Error(`Cloudflare error: ${resp.status}`);
+      const data = await resp.json();
+      return data.message;
+    }
+
+    async function cfFetchRecent(limit = 50) {
+      if (!CHAT_API_BASE) return [];
+      try {
+        const resp = await fetch(`${CHAT_API_BASE}/chat/recent?limit=${limit}`);
+        if (!resp.ok) return [];
+        return await resp.json();
+      } catch (e) {
+        // Only log if not a standard fetch failure (to reduce console noise during outages)
+        if (e.name !== 'TypeError') {
+          console.error("cfFetchRecent failed:", e);
+        }
+        throw e; // Throw so caller can detect failure
+      }
+    }
+
+    function appendRowAsMessage(row) {
+      appendIncomingMessage(
+        {
+          username: row.username,
+          message: row.message,
+          created_at: row.created_at,
+          id: row.id
+        },
+        "supabase"
+      );
+
+      // Keep UI to 50 too (matches DB behavior)
+      if (messages.length > 60) {
+        // trim a bit above 50 to account for system messages etc
+        messages = messages.slice(-60);
+        renderAllMessages();
+      }
+    }
+
+
+    // ------------------------------
+    // Rendering
+    // ------------------------------
     function escapeHtml(str) {
       return String(str)
         .replaceAll("&", "&amp;")
@@ -502,157 +674,32 @@
         .replaceAll("'", "&#039;");
     }
 
-    // Classify moderation category
-    function classifyModeration(text) {
-      if (!MOD.enabled) return { ok: true };
-      const t = (text || "").trim();
-      if (!t) return { ok: false, kind: "empty" };
-
-      for (const r of MOD.hatePatterns) if (r.test(t)) return { ok: false, kind: "hate" };
-      for (const r of MOD.sexualPatterns) if (r.test(t)) return { ok: false, kind: "sexual" };
-      for (const r of MOD.selfHarmPatterns) if (r.test(t)) return { ok: false, kind: "selfharm" };
-      for (const r of MOD.violencePatterns) if (r.test(t)) return { ok: false, kind: "violence" };
-      for (const r of MOD.hackingPatterns) if (r.test(t)) return { ok: false, kind: "hacking" };
-      for (const r of MOD.illegalPatterns) if (r.test(t)) return { ok: false, kind: "illegal" };
-
-      return { ok: true };
+    function makeSig(name, text, id = null) {
+      if (id) return `ID|${id}`;
+      const n = (name || '').trim().toLowerCase();
+      const x = (text || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      return `${n}|${x}`;
     }
 
-    // Center-of-chat moderation text (NOT an OS notification)
-    function postModerationCenter(kind, whoDisplay) {
-      const who = whoDisplay || "Someone";
-      let msg = "🚫 Message blocked by moderation.";
-
-      if (kind === "hate") msg = `😡 ${who} tried to be racist.`;
-      else if (kind === "sexual") msg = `🚫 ${who} tried to post sexual content.`;
-      else if (kind === "selfharm") msg = `🚫 ${who} tried to post self-harm content.`;
-      else if (kind === "violence") msg = `🚫 ${who} tried to post violent instructions.`;
-      else if (kind === "hacking") msg = `🚫 ${who} tried to post hacking content.`;
-      else if (kind === "illegal") msg = `🚫 ${who} tried to post illegal content.`;
-
-      addCenterText(msg);
-    }
-
-    // Center-of-chat text helper (uses same centered style as system messages,
-    // but we keep it separate so it’s not tied to any "notification" behavior)
-    function addCenterText(content) {
-      const message = {
-        id: Date.now() + "_center",
-        content,
-        type: 'system',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      messages.push(message);
-      renderMessage(message);
-      scrollToBottom();
-    }
-
-    // ------------------------------
-    // Cloudflare helpers (with backoff on rate limits)
-    // ------------------------------
-    async function cfFetchRecent(limit = 10) {
-      if (!CHAT_API_BASE) throw new Error("CHAT_API_BASE not set");
-
-      const res = await fetch(`${CHAT_API_BASE}/chat/recent?limit=${limit}&images=1`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        mode: 'cors'
-      });
-
-      if (res.status === 429 || res.status === 503 || res.status === 520 || res.status === 522 || res.status === 403) {
-        cfBackoffUntil = Date.now() + CF_BACKOFF_MS;
-        throw new Error(`Cloudflare rate-limited/unavailable (HTTP ${res.status})`);
-      }
-
-      if (!res.ok) throw new Error(`CF recent HTTP ${res.status}`);
-      return await res.json();
-    }
-
-    async function cfSendMessage(name, text) {
-      if (!CHAT_API_BASE) throw new Error("CHAT_API_BASE not set");
-
-      const res = await fetch(`${CHAT_API_BASE}/chat/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ name, text })
-      });
-
-      if (res.status === 429 || res.status === 503 || res.status === 520 || res.status === 522 || res.status === 403) {
-        cfBackoffUntil = Date.now() + CF_BACKOFF_MS;
-        throw new Error(`Cloudflare rate-limited/unavailable (HTTP ${res.status})`);
-      }
-
-      if (!res.ok) throw new Error(`CF send HTTP ${res.status}`);
-      return true;
-    }
-
-    async function checkCloudflareHealthy() {
-      if (!CHAT_API_BASE) return false;
-      if (Date.now() < cfBackoffUntil) return false;
-
-      try {
-        await cfFetchRecent(1);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    // ------------------------------
-    // Supabase helpers (robust ordering: try t, then created_at)
-    // ------------------------------
-    async function sbInsertMessage(name, text) {
-      const payload = { name, text };
-      const { data, error } = await sbClient
-        .from(SUPABASE_TABLE)
-        .insert(payload)
-        .select()
-        .limit(1);
-
-      if (error) throw error;
-      return data && data[0] ? data[0] : null;
-    }
-
-    async function sbFetchRecent(limit = 10) {
-      let { data, error } = await sbClient
-        .from(SUPABASE_TABLE)
-        .select("*")
-        .order("t", { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        ({ data, error } = await sbClient
-          .from(SUPABASE_TABLE)
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(limit));
-      }
-
-      if (error) throw error;
-      return (data || []).reverse();
-    }
-
-    // ------------------------------
-    // Rendering
-    // ------------------------------
     function renderMessageElement(message) {
       const messageDiv = document.createElement('div');
       messageDiv.dataset.messageId = String(message.id);
 
+      // SYSTEM (centered)
       if (message.type === 'system') {
-        messageDiv.className = 'message system';
-        messageDiv.innerHTML = `<div class="message-content">${message.content}</div>`;
+        messageDiv.className = 'message system' + (message.variant === "mod" ? ' mod' : '');
+        messageDiv.innerHTML = `<div class="message-content">${escapeHtml(message.content)}</div>`;
         return messageDiv;
       }
 
       const isOwner = message.isOwner || isOwnerUser(message.username);
+      const isModeration = message.username === "Moderation";
       const displayUsername = message.displayUsername || getDisplayUsername(message.username);
 
       messageDiv.className =
         `message ${message.isCurrentUser ? 'user' : 'other'} ` +
         `${message.isSending ? 'sending' : ''} ${message.isFailed ? 'failed' : ''} ` +
-        `${isOwner ? 'owner' : ''}`;
+        `${isOwner ? 'owner' : ''} ${isModeration ? 'moderation' : ''}`;
 
       messageDiv.innerHTML = `
         <div class="message-content">
@@ -676,6 +723,13 @@
       messageNodeIndex.set(String(message.id), node);
     }
 
+    function renderAllMessages() {
+      const container = document.getElementById('messagesContainer');
+      container.innerHTML = '';
+      messageNodeIndex.clear();
+      for (const m of messages) renderMessage(m);
+    }
+
     function replaceRenderedMessage(oldId, newMessageObj) {
       const oldKey = String(oldId);
       const existingNode = messageNodeIndex.get(oldKey);
@@ -689,18 +743,6 @@
       } else {
         renderAllMessages();
       }
-    }
-
-    function renderAllMessages() {
-      const container = document.getElementById('messagesContainer');
-      container.innerHTML = '';
-      messageNodeIndex.clear();
-      for (const m of messages) renderMessage(m);
-    }
-
-    function addSystemMessage(content) {
-      // Used for non-moderation system info ("Connected", etc.)
-      addCenterText(content);
     }
 
     function markMessageFailed(tempId) {
@@ -725,7 +767,7 @@
       const ts = serverTsIsoMaybe ? new Date(serverTsIsoMaybe) : new Date();
       msg.timestamp = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      seenSigs.add(makeSig(msg.username, msg.content));
+      seenSigs.add(makeSig(msg.username, msg.content, serverIdMaybe));
       replaceRenderedMessage(tempId, msg);
     }
 
@@ -765,13 +807,13 @@
     // ------------------------------
     function appendIncomingMessage(raw, source) {
       const rawUsername = raw.name || raw.username || 'Unknown';
-      const content = raw.text || raw.content || '';
+      const content = raw.text || raw.content || raw.message || '';
       const tsIso = raw.t || raw.created_at || null;
 
-      // Incoming moderation: hide bad content and show center text
+      // Incoming moderation: hide bad content and show mod center text
       const mod = classifyModeration(content);
       if (!mod.ok && mod.kind !== "empty") {
-        const alertSig = `MOD|${mod.kind}|${rawUsername}|${makeSig(rawUsername, content)}`;
+        const alertSig = `MOD|${mod.kind}|${rawUsername}|${makeSig(rawUsername, content, raw.id)}`;
         if (!seenSigs.has(alertSig)) {
           seenSigs.add(alertSig);
           postModerationCenter(mod.kind, getDisplayUsername(rawUsername));
@@ -791,7 +833,7 @@
       }
 
       // Dedup normal messages
-      const sig = makeSig(rawUsername, content);
+      const sig = makeSig(rawUsername, content, raw.id);
       if (seenSigs.has(sig)) return;
       seenSigs.add(sig);
 
@@ -818,7 +860,6 @@
           unreadMessageCount++;
           updateUnreadBadge();
         }
-        // Normal notifications still allowed (NOT moderation notices)
         if (notificationsEnabled) showChatNotification(msg);
       }
 
@@ -826,41 +867,46 @@
     }
 
     // ------------------------------
-    // Bootstrap + polling
+    // Bootstrap + Realtime
     // ------------------------------
     async function requestInitialSnapshot() {
-      const cfOk = await checkCloudflareHealthy();
-      if (cfOk) {
+      // Load last 50 on startup
+      try {
         setBackendMode("cloudflare");
-        addSystemMessage("✅ Connected (Cloudflare).");
-        const cfMsgs = await cfFetchRecent(50);
-        (cfMsgs || []).forEach(m => appendIncomingMessage(m, "cloudflare"));
-        return;
-      }
 
-      setBackendMode("supabase");
-      addSystemMessage("⚠️ Cloudflare unavailable/rate-limited. Using Supabase backup.");
-      const sbMsgs = await sbFetchRecent(50);
-      (sbMsgs || []).forEach(m => appendIncomingMessage(m, "supabase"));
-    }
+        const [sbMsgs, cfMsgs] = await Promise.all([
+          sbFetchRecent50().catch(() => []),
+          cfFetchRecent().catch(() => {
+            // If CF initial fetch fails, trigger backoff immediately
+            cfBackoffUntil = Date.now() + (5 * 60 * 1000); 
+            console.warn("Cloudflare unavailable at startup, using Supabase fallback.");
+            return [];
+          })
+        ]);
 
-    function startPolling() {
-      setInterval(async () => {
-        try {
-          const cfOk = await checkCloudflareHealthy();
-          if (cfOk) {
-            setBackendMode("cloudflare");
-            const cfMsgs = await cfFetchRecent(10);
-            (cfMsgs || []).forEach(m => appendIncomingMessage(m, "cloudflare"));
-          } else {
-            setBackendMode("supabase");
-            const sbMsgs = await sbFetchRecent(10);
-            (sbMsgs || []).forEach(m => appendIncomingMessage(m, "supabase"));
-          }
-        } catch (err) {
-          console.error("Polling error:", err);
+        const normalize = (m) => {
+          const t = m.t || (m.created_at ? new Date(m.created_at).getTime() : Date.now());
+          return { ...m, _t: t };
+        };
+
+        const all = [
+          ...sbMsgs.map(m => ({ ...normalize(m), _src: 'supabase' })),
+          ...cfMsgs.map(m => ({ ...normalize(m), _src: 'cloudflare' }))
+        ];
+
+        // Sort ascending by time
+        all.sort((a, b) => a._t - b._t);
+
+        if (all.length === 0) {
+          addSystemMessage("ℹ️ No recent messages found.");
+        } else {
+          all.forEach(m => appendIncomingMessage(m, m._src));
+          addSystemMessage(`✅ Loaded ${all.length} recent messages.`);
         }
-      }, 5000);
+      } catch (err) {
+        console.error("requestInitialSnapshot failed:", err);
+        throw err;
+      }
     }
 
     function bootstrapChatExperience() {
@@ -872,37 +918,66 @@
       requestInitialSnapshot()
         .then(() => {
           chatHistoryBootstrapped = true;
-          startPolling();
+          
+          // Subscribe to realtime inserts (no polling needed for Supabase)
+          sbSubscribeRealtime(appendRowAsMessage);
+
+          // Start polling for Cloudflare since it lacks realtime
+          startCloudflarePolling();
+
           startPeriodicNotifications();
           chatBootstrapInFlight = false;
         })
         .catch(err => {
           console.error("Bootstrap failed:", err);
-          addSystemMessage("❌ Chat connection failed (both backends).");
+          addSystemMessage("❌ Chat connection failed.");
           chatHistoryBootstrapped = true;
           startPeriodicNotifications();
           chatBootstrapInFlight = false;
         });
     }
 
+    let cfPollingInterval = null;
+    function startCloudflarePolling() {
+      if (cfPollingInterval) return;
+      cfPollingInterval = setInterval(async () => {
+        // Skip polling if in backoff
+        if (Date.now() < cfBackoffUntil) return;
+
+        try {
+          const recent = await cfFetchRecent(20);
+          if (recent && Array.isArray(recent)) {
+            recent.forEach(m => appendIncomingMessage(m, "cloudflare"));
+          }
+        } catch (e) {
+          console.warn("Cloudflare poll failed:", e);
+          // If polling fails, trigger a short backoff (2 minutes) to avoid spamming errors
+          cfBackoffUntil = Date.now() + (2 * 60 * 1000);
+        }
+      }, 10000); // Poll every 10 seconds
+    }
+
     // ------------------------------
     // Sending (CF first, SB fallback)
-    // Includes moderation BEFORE sending
-    // Moderation result is only a centered chat line (no popup notifications)
+    // Includes moderation BEFORE sending (and broadcasts safe mod event)
     // ------------------------------
+    function setBackendMode(mode) {
+      if (backendMode !== mode) {
+        backendMode = mode;
+        console.log("🔁 Backend mode:", backendMode);
+      }
+    }
+
     async function sendMessage() {
       const input = document.getElementById('messageInput');
       const text = (input.value || '').trim();
       if (!text || globalChatSending) return;
 
-      // MODERATION CHECK (on send)
       const mod = classifyModeration(text);
       if (!mod.ok && mod.kind !== "empty") {
-        // Center text saying they tried to post something bad
         postModerationCenter(mod.kind, getDisplayUsername(currentUsername));
-        // Also give the sender a centered hint (not a popup)
-        addCenterText("🚫 Your message was blocked by moderation.");
-        input.focus();
+        broadcastModerationEvent(mod.kind, currentUsername);
+        input.value = '';
         return;
       }
 
@@ -933,7 +1008,7 @@
       const originalIcon = sendButtonIcon.className;
       sendButtonIcon.className = 'fas fa-spinner fa-spin';
 
-      // optimistic message bubble (shows sending animation)
+      // optimistic bubble
       const sendingMessage = {
         id: tempMessageId,
         content: text,
@@ -950,68 +1025,53 @@
       renderMessage(sendingMessage);
       scrollToBottom();
 
-      // track as pending so CF/SB echo confirms (no duplicate bubble)
+      // track as pending so echo confirms (no duplicate)
       addPending(tempMessageId, currentUsername, text);
 
       try {
-        const cfOk = await checkCloudflareHealthy();
+        let row = null;
 
-        if (cfOk) {
-          setBackendMode("cloudflare");
-          await cfSendMessage(currentUsername, text);
-
-          // Stop spinner ONLY when echoed back via polling.
-          // Safety: if echo doesn't arrive fast, mark as sent locally after 8s.
-          setTimeout(() => {
-            const idx = messages.findIndex(m => String(m.id) === String(tempMessageId));
-            if (idx !== -1 && messages[idx].isSending) {
-              markMessageSent(tempMessageId, null, null);
-              const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
-              if (p !== -1) removePendingAt(p);
+        // Try Cloudflare first unless in backoff
+        if (Date.now() > cfBackoffUntil) {
+          try {
+            setBackendMode("cloudflare");
+            row = await cfInsertMessage(currentUsername, text);
+          } catch (cfErr) {
+            console.warn("Cloudflare send failed:", cfErr);
+            // Switch to backoff for ANY error (429 or network failure) to avoid repeated hangs
+            cfBackoffUntil = Date.now() + CF_BACKOFF_MS;
+            if (cfErr.status === 429) {
+              addSystemMessage("⚠️ Cloudflare limit reached. Switching to Supabase backup...");
+            } else {
+              addSystemMessage("⚠️ Cloudflare connection failed. Switching to Supabase backup...");
             }
-          }, 8000);
-
-        } else {
-          setBackendMode("supabase");
-          const row = await sbInsertMessage(currentUsername, text);
-
-          const serverId = row && row.id ? row.id : null;
-          const serverTs = (row && (row.t || row.created_at)) ? (row.t || row.created_at) : null;
-
-          markMessageSent(tempMessageId, serverId, serverTs);
-
-          const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
-          if (p !== -1) removePendingAt(p);
-
-          addSystemMessage('⚠️ Sent via Supabase backup (Cloudflare rate-limited/down).');
+          }
         }
 
+        // Fallback to Supabase if CF failed or in backoff
+        if (!row) {
+          setBackendMode("supabase");
+          row = await sbInsertMessage(currentUsername, text);
+        }
+
+        const serverId = row && row.id ? row.id : null;
+        const serverTs = (row && (row.t || row.created_at)) ? (row.t || row.created_at) : null;
+
+        markMessageSent(tempMessageId, serverId, serverTs);
+        
+        // Safety fallback: if realtime echo never arrives, remove from outbox anyway
+        setTimeout(() => {
+          const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
+          if (p !== -1) removePendingAt(p);
+        }, 5000);
       } catch (err) {
         console.error("Send failed:", err);
+        markMessageFailed(tempMessageId);
 
-        try {
-          setBackendMode("supabase");
-          const row = await sbInsertMessage(currentUsername, text);
+        const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
+        if (p !== -1) removePendingAt(p);
 
-          const serverId = row && row.id ? row.id : null;
-          const serverTs = (row && (row.t || row.created_at)) ? (row.t || row.created_at) : null;
-
-          markMessageSent(tempMessageId, serverId, serverTs);
-
-          const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
-          if (p !== -1) removePendingAt(p);
-
-          addSystemMessage('⚠️ Cloudflare send failed. Saved to Supabase backup.');
-        } catch (err2) {
-          console.error("Supabase fallback send failed:", err2);
-
-          markMessageFailed(tempMessageId);
-
-          const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
-          if (p !== -1) removePendingAt(p);
-
-          addSystemMessage('❌ Failed to send message (both backends).');
-        }
+        addSystemMessage('❌ Failed to send message.');
       } finally {
         sendButtonIcon.className = originalIcon;
         globalChatSending = false;
@@ -1088,7 +1148,6 @@
       } catch {}
     }
 
-    // Normal chat notifications (NOT used for moderation notices)
     function showChatNotification(message) {
       if (notificationsEnabled && !isChatWindowOpen) {
         try {
