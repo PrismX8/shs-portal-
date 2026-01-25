@@ -386,10 +386,54 @@
     const CF_BACKOFF_MS = 10 * 60 * 1000; // 10 minutes
 
     // Chat state
-    let currentUsername = 'User';
+    let currentUsername = 'User'; // placeholder until resolved
     let messages = [];
+
+    // --- Username resolution + persistence (fixes random "User") ---
+    const LS_USERNAME_KEY = "nebulo_chat_username_v1";
+
+    function sanitizeUsername(u) {
+      const s = String(u || "").trim();
+      if (!s) return "";
+      // optional: clamp length + remove weird control chars
+      return s.replace(/[\u0000-\u001F\u007F]/g, "").slice(0, 24);
+    }
+
+    function setCurrentUsername(next, source = "unknown") {
+      const clean = sanitizeUsername(next);
+      if (!clean) return false;
+
+      if (clean !== currentUsername) {
+        console.log(`👤 Username set (${source}):`, clean);
+        currentUsername = clean;
+        try {
+          localStorage.setItem(LS_USERNAME_KEY, clean);
+        } catch {}
+      }
+      return true;
+    }
+
+    function resolveUsernameNow() {
+      // 1) URL param
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUsername = urlParams.get("username");
+        if (setCurrentUsername(urlUsername, "url")) return true;
+      } catch {}
+
+      // 2) localStorage (last known)
+      try {
+        const saved = localStorage.getItem(LS_USERNAME_KEY);
+        if (setCurrentUsername(saved, "localStorage")) return true;
+      } catch {}
+
+      return false;
+    }
+
+    // try URL/localStorage immediately
+    resolveUsernameNow();
     let soundEnabled = true;
-    let notificationsEnabled = true;
+    let notificationsEnabled = false;
     let globalChatSending = false;
 
     // Unread / window state
@@ -973,6 +1017,13 @@
       const text = (input.value || '').trim();
       if (!text || globalChatSending) return;
 
+      // If username didn't arrive yet, refuse to send as "User"
+      resolveUsernameNow();
+      if (!currentUsername || currentUsername === "User") {
+        addSystemMessage("⚠️ Your username hasn't loaded yet. Close and reopen chat (or wait 1s).");
+        return;
+      }
+
       const mod = classifyModeration(text);
       if (!mod.ok && mod.kind !== "empty") {
         postModerationCenter(mod.kind, getDisplayUsername(currentUsername));
@@ -1199,11 +1250,16 @@
     function initChat() {
       getApiBaseFromUrl();
 
+      // Ask parent for init info (helps on fresh accounts / race conditions)
+      try {
+        window.parent.postMessage({ type: "requestInitChat" }, "*");
+      } catch {}
+
       window.addEventListener('message', function(event) {
         if (event.data && event.data.type === 'initChat') {
-          currentUsername = event.data.username || currentUsername || 'User';
+          setCurrentUsername(event.data.username, "parent:initChat");
           if (event.data.chatApiBase) CHAT_API_BASE = event.data.chatApiBase;
-          bootstrapChatExperience();
+          bootstrapChatExperience(); // safe; it won't double-run
         } else if (event.data && event.data.type === 'chatOpened') {
           resetUnreadCount();
           isChatWindowOpen = true;
@@ -1221,9 +1277,37 @@
         }
       });
 
-      setTimeout(() => {
-        bootstrapChatExperience();
-      }, 500);
+      // Bootstrap only after username is resolved, with a short fallback timeout
+      let booted = false;
+
+      function tryBootstrap(reason) {
+        if (booted) return;
+        if (currentUsername && currentUsername !== "User") {
+          booted = true;
+          bootstrapChatExperience();
+          return;
+        }
+        // If still not resolved, keep waiting (but not forever)
+      }
+
+      const start = Date.now();
+      const waitTimer = setInterval(() => {
+        resolveUsernameNow();
+        if (currentUsername && currentUsername !== "User") {
+          clearInterval(waitTimer);
+          tryBootstrap("resolved");
+          return;
+        }
+        // fallback after 2 seconds: still boot, but sending will be blocked until name arrives
+        if (Date.now() - start > 2000) {
+          clearInterval(waitTimer);
+          if (!booted) {
+            booted = true;
+            bootstrapChatExperience();
+            addSystemMessage("⚠️ Username not loaded yet — waiting for account name...");
+          }
+        }
+      }, 100);
     }
 
     document.addEventListener('DOMContentLoaded', function() {

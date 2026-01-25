@@ -13815,7 +13815,7 @@ document.addEventListener("keydown", (e) => {
 
 function checkNightOwl() {
   const hour = new Date().getHours();
-  if (hour >= 11 && hour < 3) {
+  if (hour >= 0 && hour < 3) {
     unlockEasterEgg("night-owl");
   }
 }
