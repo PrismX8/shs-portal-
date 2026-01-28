@@ -295,6 +295,431 @@ const SCRAMJET_REQUIRED_STORES = [
   "referrerPolicies",
   "publicSuffixList",
 ];
+
+const BROWSER_WISP_OPTIONS = [
+  {
+    id: "option1",
+    title: "Browser option 1",
+    summary: "Standard Scramjet host (default configuration).",
+    wisp: null,
+    badge: "Default",
+  },
+  {
+    id: "option2",
+    title: "Browser option 2",
+    summary: "Alternate host served from neutral-joan.",
+    wisp: "wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/",
+    badge: "Alt",
+  },
+  {
+    id: "option3",
+    title: "Browser option 3",
+    summary: "Fallback host at vapor.onl.",
+    wisp: "wss://vapor.onl/wisp/",
+    badge: "Fallback",
+  },
+];
+
+const ROBLOX_PROXY_OPTIONS = [
+  {
+    id: "nowgg",
+    title: "Now.gg option 1",
+    summary: "Roblox loaded through the now.gg proxy tunnel.",
+    wisp: null,
+    badge: "Now.gg",
+  },
+];
+
+function buildProxyLauncherMarkup(config = {}) {
+  const {
+    appId = "browser",
+    title = "If one is blocked, try another.",
+    description = "Pick a browser option and the window will reload inside the new proxy host.",
+    note = "You can reopen this screen later if a proxy stops working.",
+    options = [],
+  } = config;
+
+  const optionCards = (options || []).map((option) => {
+    const badge = option.badge
+      ? `<span class="browser-launcher-badge">${option.badge}</span>`
+      : "";
+    return `
+      <button class="browser-launcher-option" onclick="handleProxyLauncherSelection('${appId}', '${option.id}')">
+        <div class="browser-launcher-option-main">
+          <div class="browser-launcher-option-title">
+            ${option.title} ${badge}
+          </div>
+          <div class="browser-launcher-option-summary">${option.summary}</div>
+        </div>
+        <div class="browser-launcher-option-action">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </button>
+    `;
+  }).join("");
+
+  return `
+    <style>
+      .browser-launcher-shell {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem 2rem;
+        background: radial-gradient(circle at top, rgba(125,211,192,0.12), rgba(15,23,42,0.6));
+        color: #f8fafc;
+        align-items: center;
+        justify-content: center;
+      }
+      .browser-launcher-title {
+        font-size: 1.5rem;
+        margin: 0;
+        text-align: center;
+        font-weight: 600;
+      }
+      .browser-launcher-description {
+        text-align: center;
+        color: rgba(248,250,252,0.7);
+        margin-bottom: 0.5rem;
+        max-width: 480px;
+      }
+      .browser-launcher-options {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .browser-launcher-option {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        color: inherit;
+        cursor: pointer;
+        transition: border 0.2s ease, transform 0.2s ease;
+      }
+      .browser-launcher-option:hover {
+        border-color: rgba(125,211,192,0.5);
+        transform: translateY(-1px);
+      }
+      .browser-launcher-option-main {
+        text-align: left;
+      }
+      .browser-launcher-option-title {
+        font-size: 1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .browser-launcher-option-summary {
+        font-size: 0.9rem;
+        color: rgba(248,250,252,0.7);
+      }
+      .browser-launcher-badge {
+        font-size: 0.6rem;
+        background: rgba(125,211,192,0.2);
+        padding: 0.1rem 0.5rem;
+        border-radius: 999px;
+        color: #7dd3c0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .browser-launcher-option-action i {
+        color: rgba(125,211,192,0.9);
+      }
+      .browser-launcher-note {
+        font-size: 0.85rem;
+        color: rgba(248,250,252,0.65);
+        text-align: center;
+        max-width: 420px;
+      }
+    </style>
+
+    <div class="browser-launcher-shell">
+      <h1 class="browser-launcher-title">${title}</h1>
+      <p class="browser-launcher-description">${description}</p>
+      <div class="browser-launcher-options">
+        ${optionCards}
+      </div>
+      ${note ? `<p class="browser-launcher-note">${note}</p>` : ""}
+    </div>
+  `;
+}
+
+function applyProxyChoice(option) {
+  const targetWisp = option?.wisp || resolvePreferredWispUrl() || DEFAULT_SCRAMJET_WISP;
+  window.currentScramjetWispUrl = targetWisp;
+  persistWispUrl(targetWisp, { persist: targetWisp !== SCRAMJET_FALLBACK_WISP });
+  initScramjetProxy();
+  return targetWisp;
+}
+
+function buildBlooketBotContent() {
+  if (!checkFileProtocol("Blooket Bot")) {
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 3rem; background: rgba(10, 14, 26, 0.8);">
+        <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: var(--error-red); margin-bottom: 2rem;"></i>
+        <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Blooket Bot Unavailable</h2>
+        <p style="color: var(--text-secondary); text-align: center; max-width: 420px;">Blooket Bot doesn't work on file:// protocol. Please run Nebulo from a web server to use this feature.</p>
+      </div>
+    `;
+  }
+  const assetBasePath = new URL(".", window.location.href).pathname;
+  const blooketUrl = "https://blooketbot.schoolcheats.net/";
+  const scramjetUrl = encodeScramjetUrl(blooketUrl);
+  const fallbackProxy = `${assetBasePath}uv/nebulo.html?mode=games&url=${encodeURIComponent(blooketUrl)}`;
+  return `
+    <div class="browser-container" style="overflow: hidden; display: flex; flex-direction: column;">
+      <div style="padding: 0.8rem 1rem; background: rgba(125, 211, 192, 0.08); color: #7dd3c0; font-size: 0.85rem; border-bottom: 1px solid rgba(125, 211, 192, 0.2);">
+        Loaded through the Sail/Scramjet proxy to avoid Google iframe issues while keeping navigation locked inside the iframe.
+      </div>
+      <iframe
+        src="${scramjetUrl}"
+        allow="fullscreen; autoplay"
+        frameborder="0"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        style="width: 100%; height: calc(100vh - 40px); border-radius: 0px; margin: 0;"
+        onerror="this.src='${fallbackProxy}'">
+      </iframe>
+    </div>
+  `;
+}
+
+function buildMusicContent() {
+  const assetBasePath = new URL(".", window.location.href).pathname;
+  const targetUrl = "https://vapor.onl/page/music/index.html";
+  const scramjetUrl = encodeScramjetUrl(targetUrl);
+  const fallbackProxy = `${assetBasePath}uv/nebulo.html?mode=music&url=${encodeURIComponent(targetUrl)}`;
+  return `
+    <div class="music-proxy-shell" style="width: 100%; height: 100%; display: flex;">
+      <iframe
+        src="${scramjetUrl}"
+        allow="autoplay"
+        frameborder="0"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        style="width: 100%; height: 100%; border: none;"
+        onerror="this.src='${fallbackProxy}'"
+      ></iframe>
+    </div>
+  `;
+}
+
+function buildMoviesContent() {
+  const assetBasePath = new URL(".", window.location.href).pathname;
+  const targetUrl = "https://www.cineby.gd/";
+  const scramjetUrl = encodeScramjetUrl(targetUrl);
+  const fallbackProxy = `${assetBasePath}uv/nebulo.html?mode=games&url=${encodeURIComponent(targetUrl)}`;
+  return `
+    <div
+      class="proxy-shell"
+      style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
+    >
+      <div
+        style="padding: 0.5rem 1rem; background: rgba(125, 211, 192, 0.15); color: #7dd3c0; border-radius: 6px; text-align: center; font-size: 0.9rem;"
+      >
+        Cineby runs through the Scramjet/Sail proxy and keeps attempted redirects trapped inside the sandboxed iframe.
+      </div>
+      <div style="flex: 1;">
+        <iframe
+          src="${scramjetUrl}"
+          allow="fullscreen; autoplay"
+          frameborder="0"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          style="width: 100%; height: 100%; border: none;"
+          onerror="this.src='${fallbackProxy}'"
+        ></iframe>
+      </div>
+    </div>
+  `;
+}
+
+function buildRobloxContent() {
+  const targetUrl = "https://astra.pxi-fusion.com/embed/roblox";
+  return `
+    <div
+      class="proxy-shell"
+      style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
+    >
+      <div
+        style="padding: 0.5rem 1rem; background: rgba(255, 165, 0, 0.15); color: #ffc107; border-radius: 6px; text-align: center; font-size: 0.9rem;"
+      >
+        Roblox may refuse to load because no UV proxy is running on this host.
+      </div>
+      <div style="flex: 1;">
+        <iframe
+          src="${targetUrl}"
+          allow="fullscreen; autoplay"
+          frameborder="0"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          style="width: 100%; height: 100%; border: none;"
+        ></iframe>
+      </div>
+    </div>
+  `;
+}
+
+function buildMinecraftContent() {
+  if (!checkFileProtocol("Minecraft")) {
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 3rem; background: rgba(10, 14, 26, 0.8);">
+        <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: var(--error-red); margin-bottom: 2rem;"></i>
+        <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Minecraft Unavailable</h2>
+        <p style="color: var(--text-secondary); text-align: center; max-width: 420px;">Minecraft requires Nebulo to be served over HTTP/HTTPS. Please launch the site from a web server to play.</p>
+      </div>
+    `;
+  }
+  const assetBasePath = new URL(".", window.location.href).pathname;
+  const targetUrl = "https://eaglercraft1-8.github.io/";
+  const scramjetUrl = encodeScramjetUrl(targetUrl);
+  const fallbackProxy = `${assetBasePath}uv/nebulo.html?mode=games&url=${encodeURIComponent(targetUrl)}`;
+  return `
+    <div class="browser-container" style="overflow: hidden;">
+      <iframe
+        src="${scramjetUrl}"
+        frameborder="0"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+        allow="fullscreen; pointer-lock; gamepad; autoplay"
+        style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"
+        onerror="this.src='${fallbackProxy}'"
+      ></iframe>
+    </div>
+  `;
+}
+
+const PROXY_APP_LAUNCHERS = {
+  browser: {
+    title: "If one is blocked, try another.",
+    description: "Pick Browser option 1, 2, or 3 to try a different host.",
+    note: "You can reopen this screen later if a proxy stops working.",
+    options: BROWSER_WISP_OPTIONS,
+    onSelect: (option, windowEl) => {
+      const contentEl = windowEl.querySelector(".window-content");
+      if (!contentEl) return;
+      contentEl.innerHTML = buildBrowserIframeMarkup();
+      initializeBrowserWispControls(windowEl);
+      showToast(`Launching Browser via ${option.title}`, "fa-globe");
+    },
+  },
+  "blooket-bot": {
+    title: "If one is blocked, try another.",
+    description: "Pick Browser option 1, 2, or 3 before loading Blooket Bot.",
+    note: "You can reopen this screen later if a proxy stops working.",
+    options: BROWSER_WISP_OPTIONS,
+    onSelect: async (option, windowEl) => {
+      await showModal({
+        type: "info",
+        icon: "fa-hourglass-half",
+        title: "Please Wait",
+        message: "Blooket Bot may take a bit to load. Please be patient.",
+        confirm: false,
+      });
+      const contentEl = windowEl.querySelector(".window-content");
+      if (!contentEl) return;
+      contentEl.innerHTML = buildBlooketBotContent();
+      showToast(`Launching Blooket Bot via ${option.title}`, "fa-robot");
+    },
+  },
+  music: {
+    title: "If one is blocked, try another.",
+    description: "Pick Browser option 1, 2, or 3 to stream music through the proxy.",
+    note: "You can reopen this screen later if a proxy stops working.",
+    options: BROWSER_WISP_OPTIONS,
+    onSelect: (option, windowEl) => {
+      const contentEl = windowEl.querySelector(".window-content");
+      if (!contentEl) return;
+      contentEl.innerHTML = buildMusicContent();
+      showToast(`Launching Music via ${option.title}`, "fa-music");
+    },
+  },
+  movies: {
+    title: "If one is blocked, try another.",
+    description: "Pick Browser option 1, 2, or 3 to watch Cineby through the proxy.",
+    note: "You can reopen this screen later if a proxy stops working.",
+    options: BROWSER_WISP_OPTIONS,
+    onSelect: (option, windowEl) => {
+      const contentEl = windowEl.querySelector(".window-content");
+      if (!contentEl) return;
+      contentEl.innerHTML = buildMoviesContent();
+      showToast(`Launching Movies via ${option.title}`, "fa-film");
+    },
+  },
+  roblox: {
+    title: "If one is blocked, try another.",
+    description: "Launch Roblox through the Now.gg proxy tunnel.",
+    note: "You can reopen this screen later if a proxy stops working.",
+    options: ROBLOX_PROXY_OPTIONS,
+    onSelect: (option, windowEl) => {
+      const contentEl = windowEl.querySelector(".window-content");
+      if (!contentEl) return;
+      contentEl.innerHTML = buildRobloxContent();
+      showToast(`Launching Roblox via ${option.title}`, "fa-gamepad");
+    },
+  },
+  minecraft: {
+    title: "If one is blocked, try another.",
+    description: "Pick Browser option 1, 2, or 3 before loading Minecraft.",
+    note: "You can reopen this screen later if a proxy stops working.",
+    options: BROWSER_WISP_OPTIONS,
+    onSelect: (option, windowEl) => {
+      const contentEl = windowEl.querySelector(".window-content");
+      if (!contentEl) return;
+      contentEl.innerHTML = buildMinecraftContent();
+      showToast(`Launching Minecraft via ${option.title}`, "fa-cube");
+    },
+  },
+};
+
+function handleProxyLauncherSelection(appId, optionId) {
+  const config = PROXY_APP_LAUNCHERS[appId];
+  if (!config) return;
+  const option = (config.options || []).find((entry) => entry.id === optionId);
+  if (!option) return;
+  const windowEl = windows[appId];
+  if (!windowEl) return;
+
+  applyProxyChoice(option);
+
+  const result = config.onSelect(option, windowEl);
+  if (result && typeof result.then === "function") {
+    result.catch((err) => {
+      console.error("[Proxy Launcher] onSelect failed:", err);
+    });
+  }
+}
+
+function buildBrowserIframeMarkup() {
+  if (!checkFileProtocol("Browser")) {
+    return `
+      <div style="display:flex;align-items:center;justify-content:center;height:100%;background:rgba(10,14,26,0.9);color:var(--text-primary);font-size:1rem;">
+        <div style="max-width:420px;text-align:center;">
+          <i class="fas fa-exclamation-triangle" style="font-size:3rem;margin-bottom:1rem;color:var(--error-red);"></i>
+          <h2>Browser Unavailable</h2>
+          <p>The browser doesn't work on file:// protocol. Please run Nebulo from a web server to use this feature.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  const assetBasePath = new URL(".", window.location.href).pathname;
+  return `
+    <div class="browser-container" style="overflow:hidden;">
+      <iframe
+        id="browserUvIframe"
+        data-src="${assetBasePath}app/uv.html"
+        src="${assetBasePath}app/uv.html"
+        frameborder="0"
+        style="width:100%;height:100vh;border-radius:0;margin:0;"
+        allowfullscreen>
+      </iframe>
+    </div>
+  `;
+}
+
 let scramjetReadyPromise = null;
 function getStoredWispUrl() {
   if (typeof localStorage === "undefined") return null;
@@ -1511,6 +1936,11 @@ const appMetadata = {
     iconImage: "clash-royale.png",
     preinstalled: true,
   },
+  "issue-loading": {
+    name: "Issue loading a game?",
+    icon: "fa-triangle-exclamation",
+    preinstalled: true,
+  },
   cloaking: { name: "Cloaking", icon: "fa-mask", preinstalled: true },
   achievements: { name: "Achievements", icon: "fa-trophy", preinstalled: true },
   python: { name: "Python Interpreter", icon: "fa-code", preinstalled: true },
@@ -1657,6 +2087,7 @@ const POPULAR_PROXY_APPS = [
 const PRIMARY_DESKTOP_APPS = [
   "browser",
   "games",
+  "issue-loading",
   "blooket-bot",
   "music",
   "movies",
@@ -1670,7 +2101,7 @@ const PRIMARY_DESKTOP_APPS = [
 const DESKTOP_APP_ORDER_STORAGE_KEY = "nebulo_primaryDesktopAppOrder";
 const DESKTOP_APP_ORDER_VERSION_KEY = "nebulo_primaryDesktopAppOrderVersion";
 const DESKTOP_APP_ORDER_VERSION = 4;
-const APP_VERSION = "2026-01-27-01";
+const APP_VERSION = "5.1";
 const VERSION_METADATA_PATH = "version.json";
 const LEGACY_DESKTOP_ORDER_KEYS = [
   "nebulo_desktopIconOrder",
@@ -5167,6 +5598,12 @@ async function openApp(appName, editorContent = "", filename = "") {
     return;
   }
 
+  if (appName === "issue-loading") {
+    window.open("https://forms.gle/8cNaoaLLa2FXEwA78", "_blank");
+    showToast("Opened the issue form in a new tab", "fa-external-link");
+    return;
+  }
+
   if (appName === "blooket-bot") {
     await showModal({
       type: "info",
@@ -5183,17 +5620,12 @@ async function openApp(appName, editorContent = "", filename = "") {
       icon: "fa-lock",
       title: "Roblox requires a proxy",
       message:
-        "Roblox embeds are blocked without a live proxy. Choose one of the following fallbacks or cancel, then try again.",
+        "Roblox embeds are blocked without a live proxy. Choose Now.gg option 1, then try again.",
       buttons: [
         {
           label: "Now.gg option 1 (proxy)",
           value: "nowgg",
           className: "modal-btn-primary",
-        },
-        {
-          label: "Astra direct embed",
-          value: "embed",
-          className: "modal-btn-secondary",
         },
         {
           label: "Cancel",
@@ -5203,23 +5635,13 @@ async function openApp(appName, editorContent = "", filename = "") {
       ],
     });
 
-    if (!choice) {
+    if (choice !== "nowgg") {
       return;
     }
 
-    let targetUrl;
-    let warningText;
-    if (choice === "nowgg") {
-      targetUrl = toScramjetUrl("https://68.ip.nowgg.fun/apps/a/19900/b.html");
-      warningText =
-        "Now.gg option 1 runs through the remote Sail proxy, but availability still depends on the third-party service.";
-    } else if (choice === "embed") {
-      targetUrl = "https://astra.pxi-fusion.com/embed/roblox";
-      warningText =
-        "Direct embeds may be blocked without the UV/Sail proxy because Roblox actively prevents cross-origin framing.";
-    } else {
-      return;
-    }
+    const targetUrl = toScramjetUrl("https://68.ip.nowgg.fun/apps/a/19900/b.html");
+    const warningText =
+      "Now.gg option 1 runs through the remote Sail proxy, but availability still depends on the third-party service.";
 
     trackAppOpened("roblox");
     createWindow(
@@ -5392,29 +5814,10 @@ async function openApp(appName, editorContent = "", filename = "") {
     browser: {
       title: "Browser",
       icon: "fas fa-globe",
-      content: (() => {
-        if (!checkFileProtocol("Browser")) {
-          return `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 3rem; background: rgba(10, 14, 26, 0.8);">
-              <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: var(--error-red); margin-bottom: 2rem;"></i>
-              <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Browser Unavailable</h2>
-              <p style="color: var(--text-secondary); text-align: center; max-width: 400px;">The browser doesn't work on file:// protocol. Please run Nebulo from a web server to use this feature.</p>
-            </div>
-          `;
-        }
-        const assetBasePath = new URL(".", window.location.href).pathname;
-        return `
-        <div class="browser-container" style="overflow: hidden;">
-          <iframe
-            id="browserUvIframe"
-            data-src="${assetBasePath}app/uv.html"
-            src="${assetBasePath}app/uv.html"
-            frameborder="0"
-            style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;">
-          </iframe>
-        </div>
-      `;
-      })(),
+      content: buildProxyLauncherMarkup({
+        appId: "browser",
+        ...PROXY_APP_LAUNCHERS.browser,
+      }),
       noPadding: true,
       width: 900,
       height: 600,
@@ -5448,36 +5851,10 @@ async function openApp(appName, editorContent = "", filename = "") {
     "blooket-bot": {
       title: "Blooket Bot",
       icon: "fas fa-robot",
-      content: (() => {
-        if (!checkFileProtocol("Blooket Bot")) {
-          return `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 3rem; background: rgba(10, 14, 26, 0.8);">
-              <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: var(--error-red); margin-bottom: 2rem;"></i>
-              <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Blooket Bot Unavailable</h2>
-              <p style="color: var(--text-secondary); text-align: center; max-width: 420px;">Blooket Bot doesn't work on file:// protocol. Please run Nebulo from a web server to use this feature.</p>
-            </div>
-          `;
-        }
-        const assetBasePath = new URL(".", window.location.href).pathname;
-        const blooketUrl = "https://blooketbot.schoolcheats.net/";
-        const scramjetUrl = encodeScramjetUrl(blooketUrl);
-        const fallbackProxy = `${assetBasePath}uv/nebulo.html?mode=games&url=${encodeURIComponent(blooketUrl)}`;
-        return `
-        <div class="browser-container" style="overflow: hidden; display: flex; flex-direction: column;">
-          <div style="padding: 0.8rem 1rem; background: rgba(125, 211, 192, 0.08); color: #7dd3c0; font-size: 0.85rem; border-bottom: 1px solid rgba(125, 211, 192, 0.2);">
-            Loaded through the Sail/Scramjet proxy to avoid Google iframe issues while keeping navigation locked inside the iframe.
-          </div>
-          <iframe
-            src="${scramjetUrl}"
-            allow="fullscreen; autoplay"
-            frameborder="0"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            style="width: 100%; height: calc(100vh - 40px); border-radius: 0px; margin: 0;"
-            onerror="this.src='${fallbackProxy}'">
-          </iframe>
-        </div>
-      `;
-      })(),
+      content: buildProxyLauncherMarkup({
+        appId: "blooket-bot",
+        ...PROXY_APP_LAUNCHERS["blooket-bot"],
+      }),
       noPadding: true,
       width: 900,
       height: 600,
@@ -5485,33 +5862,10 @@ async function openApp(appName, editorContent = "", filename = "") {
     minecraft: {
       title: "Minecraft",
       icon: "fas fa-cube",
-      content: (() => {
-        if (!checkFileProtocol("Minecraft")) {
-          return `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 3rem; background: rgba(10, 14, 26, 0.8);">
-              <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: var(--error-red); margin-bottom: 2rem;"></i>
-              <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Minecraft Unavailable</h2>
-              <p style="color: var(--text-secondary); text-align: center; max-width: 420px;">Minecraft requires Nebulo to be served over HTTP/HTTPS. Please launch the site from a web server to play.</p>
-            </div>
-          `;
-        }
-        const assetBasePath = new URL(".", window.location.href).pathname;
-        const targetUrl = "https://eaglercraft1-8.github.io/";
-        const scramjetUrl = encodeScramjetUrl(targetUrl);
-        const fallbackProxy = `${assetBasePath}uv/nebulo.html?mode=games&url=${encodeURIComponent(targetUrl)}`;
-        return `
-          <div class="browser-container" style="overflow: hidden;">
-            <iframe
-              src="${scramjetUrl}"
-              frameborder="0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
-              allow="fullscreen; pointer-lock; gamepad; autoplay"
-              style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"
-              onerror="this.src='${fallbackProxy}'">
-            </iframe>
-          </div>
-        `;
-      })(),
+      content: buildProxyLauncherMarkup({
+        appId: "minecraft",
+        ...PROXY_APP_LAUNCHERS.minecraft,
+      }),
       noPadding: true,
       width: 1000,
       height: 700,
@@ -6536,23 +6890,10 @@ alt="favicon">
     music: {
       title: "Music",
       icon: "fas fa-music",
-      content: (() => {
-        const targetUrl = "https://vapor.onl/page/music/index.html";
-        const scramjetUrl = encodeScramjetUrl(targetUrl);
-        const fallbackProxy = `${new URL(".", window.location.href).pathname}uv/nebulo.html?mode=music&url=${encodeURIComponent(targetUrl)}`;
-        return `
-          <div class="music-proxy-shell" style="width: 100%; height: 100%; display: flex;">
-            <iframe
-              src="${scramjetUrl}"
-              allow="autoplay"
-              frameborder="0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              style="width: 100%; height: 100%; border: none;"
-              onerror="this.src='${fallbackProxy}'"
-            ></iframe>
-          </div>
-        `;
-      })(),
+      content: buildProxyLauncherMarkup({
+        appId: "music",
+        ...PROXY_APP_LAUNCHERS.music,
+      }),
       noPadding: true,
       width: 900,
       height: 600,
@@ -6594,30 +6935,10 @@ alt="favicon">
     roblox: {
       title: "Roblox",
       icon: "fas fa-gamepad",
-      content: (() => {
-        const targetUrl = "https://astra.pxi-fusion.com/embed/roblox";
-        return `
-          <div
-            class="proxy-shell"
-            style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
-          >
-            <div
-              style="padding: 0.5rem 1rem; background: rgba(255, 165, 0, 0.15); color: #ffc107; border-radius: 6px; text-align: center; font-size: 0.9rem;"
-            >
-              Roblox may refuse to load because no UV proxy is running on this host.
-            </div>
-            <div style="flex: 1;">
-              <iframe
-                src="${targetUrl}"
-                allow="fullscreen; autoplay"
-                frameborder="0"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                style="width: 100%; height: 100%; border: none;"
-              ></iframe>
-            </div>
-          </div>
-        `;
-      })(),
+      content: buildProxyLauncherMarkup({
+        appId: "roblox",
+        ...PROXY_APP_LAUNCHERS.roblox,
+      }),
       noPadding: true,
       width: 1200,
       height: 700,
@@ -6652,38 +6973,6 @@ alt="favicon">
       noPadding: true,
       width: 1200,
       height: 700,
-    },
-    movies: {
-      title: "Movies",
-      icon: "fas fa-film",
-      content: (() => {
-        const targetUrl = "https://www.cineby.gd/";
-        const encoded = encodeScramjetUrl(targetUrl);
-        return `
-          <div
-            class="proxy-shell"
-            style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
-          >
-            <div
-              style="padding: 0.5rem 1rem; background: rgba(125, 211, 192, 0.15); color: #7dd3c1; border-radius: 6px; text-align: center; font-size: 0.9rem;"
-            >
-              Cineby ships inside a sandbox; redirects are blocked and the stream stays inside the proxy.
-            </div>
-            <div style="flex: 1;">
-              <iframe
-                src="${encoded}"
-                allow="fullscreen; autoplay"
-                frameborder="0"
-                sandbox="allow-scripts allow-same-origin allow-forms"
-                style="width: 100%; height: 100%; border: none;"
-              ></iframe>
-            </div>
-          </div>
-        `;
-      })(),
-      noPadding: true,
-      width: 1200,
-      height: 750,
     },
     photos: {
       title: "Photos",
@@ -6802,7 +7091,7 @@ alt="favicon">
               <div class="whats-new-content">
                   <center>
                   <div class="whats-new-header">
-                      <h1 style="text-align: center !important; font-size: 2rem; margin-bottom: 0.5rem; line-height: 1.2;">Welcome to Nebulo <br>v5! What's new?<br> Movies • Roblox • UI polish</h1>
+                      <h1 style="text-align: center !important; font-size: 2rem; margin-bottom: 0.5rem; line-height: 1.2;">Welcome to Nebulo <br>v5.1! What's new?<br> Movies • Roblox • UI polish</h1>
                       <p>AI Assistant, Browser Updates, More Themes, VS Code, Window Snapping, Games, and more—now with Cineby streaming and clearer proxy choices.</p>
                   </div>
                   </center>
@@ -6816,13 +7105,13 @@ alt="favicon">
                                       <span style="padding: 0.35rem 1rem; border-radius: 999px; border: 1px solid rgba(248, 113, 113, 0.5); color: #f97316; font-size: 0.8rem;">Roblox</span>
                                       <span style="padding: 0.35rem 1rem; border-radius: 999px; border: 1px solid rgba(14, 165, 233, 0.5); color: #38bdf8; font-size: 0.8rem;">UI Refresh</span>
                                   </div>
-                                  <div style="width: 180px; height: 120px; border-radius: 16px; border: 2px solid rgba(125, 211, 192, 0.4); background: rgba(5, 10, 18, 0.85); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; color: #fff;">
-                                      V5
-                                  </div>
+                                      <div style="width: 180px; height: 120px; border-radius: 16px; border: 2px solid rgba(125, 211, 192, 0.4); background: rgba(5, 10, 18, 0.85); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; color: #fff;">
+                                          V5.1
+                                      </div>
                               </div>
                           </div>
                           <div class="carousel-content">
-                              <h2>Nebulo Update V5</h2>
+                              <h2>Nebulo Update V5.1</h2>
                               <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; text-align: center; align-items: center;">
                                   <li>Movies delivers Cineby through the Sail/Scramjet proxy while sandboxing redirects so the experience stays inside Nebulo.</li>
                                   <li>Roblox &amp; Clash Royale now offer explicit proxy choices (Now.gg option 1 or Astra) plus messaging about why a UV proxy is required.</li>
@@ -12065,6 +12354,7 @@ window.alert = async (message) => {
 };
 
 const VERSION_CHECK_INTERVAL_MS = 3 * 60 * 1000;
+const VERSION_STORAGE_KEY = "nebulo_latestVersionAvailable";
 let versionPromptedVersion = localStorage.getItem("nebulo_latestVersionPrompted") || APP_VERSION;
 
 async function showVersionUpdatePrompt(latestVersion, releaseNotes = "") {
@@ -12100,6 +12390,12 @@ async function checkForVersionUpdate() {
     const latestVersion = (payload.version || "").trim();
     if (!latestVersion) return;
 
+    try {
+      localStorage.setItem(VERSION_STORAGE_KEY, latestVersion);
+    } catch (error) {
+      // ignore
+    }
+
     if (latestVersion === APP_VERSION) {
       if (versionPromptedVersion !== APP_VERSION) {
         versionPromptedVersion = APP_VERSION;
@@ -12112,6 +12408,7 @@ async function checkForVersionUpdate() {
 
     versionPromptedVersion = latestVersion;
     localStorage.setItem("nebulo_latestVersionPrompted", latestVersion);
+    localStorage.setItem(VERSION_STORAGE_KEY, latestVersion);
 
     await showVersionUpdatePrompt(latestVersion, payload.notes || "");
   } catch (error) {
@@ -12121,6 +12418,20 @@ async function checkForVersionUpdate() {
 
 setTimeout(checkForVersionUpdate, 2500);
 setInterval(checkForVersionUpdate, VERSION_CHECK_INTERVAL_MS);
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== VERSION_STORAGE_KEY) return;
+  const latestVersion = event.newValue;
+  if (!latestVersion || latestVersion === APP_VERSION) return;
+  if (versionPromptedVersion === latestVersion) return;
+
+  versionPromptedVersion = latestVersion;
+  localStorage.setItem("nebulo_latestVersionPrompted", latestVersion);
+
+  showVersionUpdatePrompt(latestVersion).catch((err) => {
+    console.warn("Failed to show version prompt from storage event:", err);
+  });
+});
 
 window.confirm = async (message) => {
   return await showModal({

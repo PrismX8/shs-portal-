@@ -10,6 +10,8 @@ const CORS_HEADERS = {
 
 const MAX_MESSAGES = 50;
 const KV_KEY = "global_chat_messages_v2";
+const BAN_KV_KEY = "global_chat_bans_v1";
+const OWNER_USERNAME = "shs12lord";
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
@@ -67,9 +69,66 @@ function cleanupRateLimit() {
   return cleaned;
 }
 
+function normalizeBanName(name) {
+  if (!name) return "";
+  return String(name).trim().toLowerCase();
+}
+
+function clampHours(hours) {
+  if (!Number.isFinite(hours)) return 1;
+  return Math.max(0.25, hours);
+}
+
+function formatHoursLabel(hours) {
+  const safe = clampHours(hours);
+  const rounded = Number.isInteger(safe) ? safe : Number(safe.toFixed(1));
+  return `${rounded} hour${Math.abs(rounded) === 1 ? "" : "s"}`;
+}
+
+async function loadBanList(env) {
+  if (!env?.CHAT_KV) return [];
+  try {
+    const stored = await env.CHAT_KV.get(BAN_KV_KEY, { type: "json" });
+    if (!Array.isArray(stored)) return [];
+    const now = Date.now();
+    const filtered = stored
+      .map((entry) => {
+        const username = normalizeBanName(entry.username || entry.name || entry.target);
+        const expiresAt = Number(entry.expiresAt || 0);
+        return { username, expiresAt };
+      })
+      .filter((entry) => entry.username && entry.expiresAt > now);
+    return filtered;
+  } catch (error) {
+    console.warn("Failed to load ban list:", error);
+    return [];
+  }
+}
+
+async function persistBanList(env, list) {
+  if (!env?.CHAT_KV) return;
+  try {
+    await env.CHAT_KV.put(BAN_KV_KEY, JSON.stringify(list));
+  } catch (error) {
+    console.warn("Failed to persist ban list:", error);
+  }
+}
+
+function createJsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      ...CORS_HEADERS,
+      "content-type": "application/json"
+    }
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const pathname = url.pathname;
+    const method = request.method;
 
     // Handle CORS preflight
     if (request.method === "OPTIONS") {
@@ -93,8 +152,71 @@ export default {
         // Continue with empty messages array
       }
 
+      const banList = await loadBanList(env);
+      const banMap = new Map(banList.map((entry) => [entry.username, entry]));
+
+      if (pathname === "/chat/bans" && method === "GET") {
+        return createJsonResponse({ bans: banList });
+      }
+
+      if (pathname === "/chat/ban" && method === "POST") {
+        let payload;
+        try {
+          payload = await request.json();
+        } catch (parseError) {
+          return createJsonResponse({ error: "Invalid JSON" }, 400);
+        }
+
+        const owner = normalizeBanName(payload?.owner);
+        if (owner !== OWNER_USERNAME) {
+          return createJsonResponse({ error: "Forbidden" }, 403);
+        }
+
+        const targetRaw = String(payload?.target || "").trim();
+        const targetNormalized = normalizeBanName(targetRaw);
+        if (!targetNormalized) {
+          return createJsonResponse({ error: "Target username required" }, 400);
+        }
+
+        if (banMap.has(targetNormalized)) {
+          return createJsonResponse({ error: `${targetRaw || targetNormalized} is already banned.` }, 409);
+        }
+
+        const requestedHours = clampHours(Number(payload?.hours));
+        const expiresAt = Date.now() + requestedHours * 3600000;
+        const banRecord = {
+          username: targetNormalized,
+          expiresAt
+        };
+
+        const updatedBans = [...banList, banRecord];
+        await persistBanList(env, updatedBans);
+
+        const displayTarget = targetRaw || targetNormalized;
+        const banMessage = {
+          id: `ban_${Date.now()}_${targetNormalized}`,
+          t: Date.now(),
+          name: "Moderation",
+          text: `🟠 Owner banned ${displayTarget} for ${formatHoursLabel(requestedHours)}.`,
+          type: "system",
+          variant: "ban"
+        };
+
+        messages.push(banMessage);
+        if (messages.length > MAX_MESSAGES) {
+          messages = messages.slice(-MAX_MESSAGES);
+        }
+        try {
+          await env.CHAT_KV.put(KV_KEY, JSON.stringify(messages));
+        } catch (kvError) {
+          console.error('Failed to save ban message:', kvError);
+        }
+
+        return createJsonResponse({ ok: true, bans: updatedBans, message: banMessage, expiresAt, hours: requestedHours });
+      }
+
       // Get recent messages endpoint
-      if (url.pathname === "/chat/recent" && request.method === "GET") {
+      if (pathname === "/chat/recent" && method === "GET") {
         const limit = Math.min(
           Number(url.searchParams.get("limit")) || MAX_MESSAGES,
           MAX_MESSAGES
@@ -115,7 +237,7 @@ export default {
       }
 
       // Send message endpoint
-      if (url.pathname === "/chat/send" && request.method === "POST") {
+      if (pathname === "/chat/send" && method === "POST") {
         let data;
 
         // Parse JSON with error handling
@@ -140,6 +262,16 @@ export default {
         // Sanitize inputs
         const name = sanitizeInput(rawName).substring(0, 24) || "Anonymous";
         const text = sanitizeInput(rawText);
+        const normalizedName = normalizeBanName(name);
+        const banEntry = banMap.get(normalizedName);
+        if (banEntry && banEntry.expiresAt > Date.now()) {
+          const remainingHours = Math.max(1, Math.ceil((banEntry.expiresAt - Date.now()) / 3600000));
+          const response = {
+            error: "You are banned from chat.",
+            hoursRemaining: remainingHours
+          };
+          return createJsonResponse(response, 403);
+        }
 
         // Validate message content
         if (!text.trim()) {
@@ -221,7 +353,7 @@ export default {
       }
 
       // Health check endpoint
-      if (url.pathname === "/health" && request.method === "GET") {
+      if (pathname === "/health" && method === "GET") {
         return new Response(
           JSON.stringify({
             status: "healthy",
