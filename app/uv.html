@@ -159,7 +159,13 @@
         }
 
         body.games-mode .webcontrols,
-        body.games-mode .showcontrols {
+        body.games-mode .showcontrols,
+        body.music-mode .webcontrols,
+        body.music-mode .showcontrols,
+        body.music-mode .tabs,
+        body.music-mode .tab,
+        body.music-mode .maincontrols,
+        body.music-mode .backgroundtext {
             display: none !important;
         }
 
@@ -330,7 +336,7 @@
         const scramjetWorkerPath = `${scramjetBasePath}baremux/worker.js`
         const scramjetTransportPath = `${scramjetBasePath}libcurl/index.esm.js`
 
-        const scramjetWispUrl = localStorage.getItem("nOS_wispUrl") || "wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/"
+        const scramjetWispUrl = localStorage.getItem("nOS_wispUrl") || "wss://wisp.rhw.one/"
 
         const scramjetConnection = new BareMux.BareMuxConnection(scramjetWorkerPath)
         scramjetConnection
@@ -345,6 +351,8 @@
                 sync: `${scramjetScramPath}scramjet.sync.js`
             },
             prefix: scramjetPrefix
+            ,
+            wisp: scramjetWispUrl
         })
 
         const SCRAMJET_DB_NAME = "$scramjet"
@@ -471,11 +479,13 @@
 
         const gamesUrl = "https://www.msn.com/en-us/play"
         const urlParams = new URLSearchParams(window.location.search)
-        const isGamesMode = urlParams.get("mode") === "games"
-        const gamesStartUrl = urlParams.get("url") || gamesUrl
+        const mode = urlParams.get("mode")
+        const isGamesMode = mode === "games"
+        const isMusicMode = mode === "music"
+        const startUrl = urlParams.get("url") || gamesUrl
 
         // actual proxy handling
-        const loadTimeoutMs = 15000
+        const loadTimeoutMs = 60000
         let loadTimer = null
 
         const backgroundEl = document.querySelector(".backgroundtext")
@@ -586,9 +596,9 @@
         newTab()
         closeTab(0)
 
-        if (isGamesMode) {
-            document.body.classList.add("games-mode")
-            nav(gamesStartUrl)
+        if (isGamesMode || isMusicMode) {
+            document.body.classList.add(isMusicMode ? "music-mode" : "games-mode")
+            nav(startUrl)
         }
 
         function switchTab(tId) {

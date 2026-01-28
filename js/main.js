@@ -282,6 +282,11 @@ const SCRAMJET_SCRAM_PATH = `${SCRAMJET_ASSET_BASE}scram/`;
 const SCRAMJET_SW_PATH = `${SCRAMJET_ASSET_BASE}sw.js`;
 const SCRAMJET_BAREMUX_WORKER = `${SCRAMJET_ASSET_BASE}baremux/worker.js`;
 const SCRAMJET_LIBCURL = new URL("libcurl/index.esm.js", SCRAMJET_ASSET_BASE_URL).href;
+const SCRAMJET_PRIMARY_WISP = "wss://wisp.rhw.one/";
+const SCRAMJET_FALLBACK_WISP = "wss://wisp.rhw.one/";
+const SCRAMJET_LEGACY_WISP = "wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/";
+const DEFAULT_SCRAMJET_WISP = SCRAMJET_PRIMARY_WISP;
+const SCRAMJET_WISP_STORAGE_KEY = "nOS_wispUrl";
 const SCRAMJET_DB_NAME = "$scramjet";
 const SCRAMJET_REQUIRED_STORES = [
   "config",
@@ -290,8 +295,54 @@ const SCRAMJET_REQUIRED_STORES = [
   "referrerPolicies",
   "publicSuffixList",
 ];
-
 let scramjetReadyPromise = null;
+function getStoredWispUrl() {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(SCRAMJET_WISP_STORAGE_KEY);
+    return stored && stored.trim() ? stored : null;
+  } catch (error) {
+    console.warn("[SCRAMJET] Unable to read stored wisp url:", error);
+    return null;
+  }
+}
+
+function persistWispUrl(url, { persist = true } = {}) {
+  if (!url || typeof localStorage === "undefined" || !persist) return;
+  try {
+    localStorage.setItem(SCRAMJET_WISP_STORAGE_KEY, url);
+  } catch (error) {
+    console.warn("[SCRAMJET] Unable to persist wisp url:", error);
+  }
+}
+
+function clearStoredWispUrl() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.removeItem(SCRAMJET_WISP_STORAGE_KEY);
+  } catch (error) {
+    console.warn("[SCRAMJET] Unable to clear stored wisp url:", error);
+  }
+}
+
+function resolvePreferredWispUrl() {
+  const stored = getStoredWispUrl();
+  if (stored === SCRAMJET_LEGACY_WISP) {
+    persistWispUrl(SCRAMJET_PRIMARY_WISP);
+    return SCRAMJET_PRIMARY_WISP;
+  }
+  if (stored && stored !== SCRAMJET_FALLBACK_WISP) {
+    return stored;
+  }
+
+  if (stored === SCRAMJET_FALLBACK_WISP) {
+    clearStoredWispUrl();
+  }
+
+  return DEFAULT_SCRAMJET_WISP;
+}
+
+window.currentScramjetWispUrl = resolvePreferredWispUrl();
 
 async function ensureScramjetDbHealthy() {
   if (!("indexedDB" in window)) return;
@@ -352,19 +403,39 @@ function initScramjetProxy() {
       return null;
     }
 
-    if (typeof BareMux === "undefined" || typeof $scramjetLoadController !== "function") {
-      console.warn("[SCRAMJET] Proxy libraries not loaded.");
-      return null;
-    }
+  if (typeof $scramjetLoadController !== "function") {
+    console.warn("[SCRAMJET] Controller factory not available.");
+    return null;
+  }
 
     await ensureScramjetDbHealthy();
 
-    const wispUrl = localStorage.getItem("nOS_wispUrl") || "wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/";
-    try {
-      const connection = new BareMux.BareMuxConnection(SCRAMJET_BAREMUX_WORKER);
-      await connection.setTransport(SCRAMJET_LIBCURL, [{ websocket: wispUrl }]);
-    } catch (error) {
-      console.warn("[SCRAMJET] Failed to configure transport:", error);
+    let wispUrl = window.currentScramjetWispUrl || resolvePreferredWispUrl();
+
+    console.log(`[Nebulo] Scramjet proxy initializing with WISP ${wispUrl}`);
+
+    if (typeof BareMux !== "undefined") {
+      const configureTransport = async (url) => {
+        const connection = new BareMux.BareMuxConnection(SCRAMJET_BAREMUX_WORKER);
+        await connection.setTransport(SCRAMJET_LIBCURL, [{ websocket: url }]);
+        window.currentScramjetWispUrl = url;
+        persistWispUrl(url, { persist: url !== SCRAMJET_FALLBACK_WISP });
+      };
+
+      try {
+        await configureTransport(wispUrl);
+        } catch (error) {
+          console.warn(`[SCRAMJET] Failed to configure transport for ${wispUrl}:`, error);
+        if (wispUrl !== SCRAMJET_FALLBACK_WISP) {
+          try {
+            await configureTransport(SCRAMJET_FALLBACK_WISP);
+            wispUrl = SCRAMJET_FALLBACK_WISP;
+            console.warn(`[SCRAMJET] Repointed to fallback WISP ${SCRAMJET_FALLBACK_WISP}`);
+          } catch (fallbackError) {
+            console.error("[SCRAMJET] Fallback transport failed:", fallbackError);
+          }
+        }
+      }
     }
 
     let controller = null;
@@ -690,8 +761,9 @@ class encryption {
 }
 const idb = new db("asdfsdff", "sdffjdk");
 let windows = {};
-let zIndexCounter = 100;
+let zIndexCounter = 1200;
 let currentUsername = localStorage.getItem("nebulo_username") || "User";
+let currentUserAccount = null;
 let focusedWindow = null;
 
 function removeIdRecursively(obj) {
@@ -928,7 +1000,20 @@ class UserAccount {
     this.createdAt = Date.now();
     this.allowedApps = []; // Empty means all apps allowed
     this.customAvatar = null;
+    this.displayName = username;
+    this.hasAccount = true;
   }
+}
+
+function ensureAccountFlags(account) {
+  if (!account) return account;
+  if (account.hasAccount === undefined) {
+    account.hasAccount = true;
+  }
+  if (!Array.isArray(account.allowedApps)) {
+    account.allowedApps = account.allowedApps || [];
+  }
+  return account;
 }
 
 // Get all accounts from localStorage
@@ -938,7 +1023,12 @@ function getAllAccounts() {
     return [];
   }
   try {
-    return JSON.parse(accountsData);
+    const parsed = JSON.parse(accountsData);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    parsed.forEach(ensureAccountFlags);
+    return parsed;
   } catch (e) {
     console.error("Error parsing accounts:", e);
     return [];
@@ -948,8 +1038,10 @@ function getAllAccounts() {
 // Save all accounts to localStorage
 function saveAllAccounts(accounts) {
   console.log(`💾 Saving ${accounts.length} accounts to localStorage`);
+  accounts.forEach(ensureAccountFlags);
   localStorage.setItem("nebulo_accounts", JSON.stringify(accounts));
   console.log('💾 Accounts saved to localStorage successfully');
+  refreshMentionCacheFromAccounts(true);
 
   // Notify chat iframes of the update
   setTimeout(() => {
@@ -958,6 +1050,7 @@ function saveAllAccounts(accounts) {
 
     if (iframes.length > 0) {
       const onlineUsers = getOnlineUsers();
+      addUsersToMentionCache(onlineUsers);
       const usersWithAvatars = onlineUsers.map(user => ({
         ...user,
         avatar: getUserProfilePicture(user.username)
@@ -965,22 +1058,83 @@ function saveAllAccounts(accounts) {
 
       console.log(`📊 Notifying ${iframes.length} iframe(s) of ${onlineUsers.length} online users`);
 
-      iframes.forEach((iframe, i) => {
-        if (iframe.contentWindow) {
-          iframe.contentWindow.postMessage({
-            type: 'onlineUsers',
-            users: usersWithAvatars
-          }, '*');
-          console.log(`📤 Notified chat iframe ${i} of account changes`);
-        } else {
-          console.log(`❌ Chat iframe ${i} has no contentWindow`);
-        }
-      });
-    } else {
-      console.log('ℹ️ No chat iframes open to notify');
-    }
+    iframes.forEach((iframe, i) => {
+      if (iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'onlineUsers',
+          users: usersWithAvatars
+        }, '*');
+        console.log(`📤 Notified chat iframe ${i} of account changes`);
+      } else {
+        console.log(`❌ Chat iframe ${i} has no contentWindow`);
+      }
+    });
+  } else {
+    console.log('ℹ️ No chat iframes open to notify');
+  }
   }, 100); // Small delay to ensure localStorage is updated
+  syncAccountsArrayToSupabase(accounts);
 }
+
+const SUPABASE_URL = "https://qpgfdmritcpbrhefiwvj.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwZ2RkbXJpdGNwYnJoZWZpd3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1MDEzMjIsImV4cCI6MjA4NTA3NzMyMn0.UNpBCE2y5BmvHum5Em2t2EgJwAcRdt5vojz4kHc88gI";
+let supabaseClient = null;
+
+function initSupabaseClient() {
+  if (supabaseClient) return;
+  if (!window || !window.supabase) {
+    console.warn("[Supabase] supabase.js is not loaded yet");
+    return;
+  }
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false }
+    });
+    console.log("[Supabase] Client initialized");
+  } catch (error) {
+    console.warn("[Supabase] Failed to initialize Supabase client:", error);
+    supabaseClient = null;
+  }
+}
+
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    initSupabaseClient();
+  }
+  return supabaseClient;
+}
+
+async function syncAccountToSupabase(account) {
+  const client = getSupabaseClient();
+  if (!client || !account?.username) return;
+  try {
+    await client
+      .from("nebulo_accounts")
+      .upsert({
+        username: account.username.trim(),
+        display_name: account.displayName || account.username,
+        role: account.role || "standard",
+        is_online: Boolean(account.isOnline),
+        last_seen: account.lastOnline ? new Date(account.lastOnline).toISOString() : new Date().toISOString(),
+        has_account: account.hasAccount === undefined ? true : Boolean(account.hasAccount)
+      }, { onConflict: "username" });
+    console.log(`[Supabase] Synced account ${account.username}`);
+  } catch (error) {
+    console.warn("[Supabase] Failed to sync account:", account.username, error);
+  }
+}
+
+function syncAccountsArrayToSupabase(accounts = []) {
+  if (!accounts.length) return;
+  accounts.forEach(account => syncAccountToSupabase(account));
+}
+
+function syncAllLocalAccountsToSupabase() {
+  syncAccountsArrayToSupabase(getAllAccounts());
+}
+
+initSupabaseClient();
+syncAllLocalAccountsToSupabase();
 
 // Get account by username
 function getAccountByUsername(username) {
@@ -1237,6 +1391,19 @@ function showToast(message, icon = "fa-info-circle") {
   addNotificationToHistory(message, icon);
 }
 
+function updateUsernameBadges(username) {
+  const display = document.getElementById("displayUsername");
+  if (display) display.textContent = username || "Guest";
+  const startMenuDisplay = document.getElementById("startMenuUsername");
+  if (startMenuDisplay) startMenuDisplay.textContent = username || "User";
+}
+
+function updateAccountStatusBadge(statusText) {
+  const statusElement = document.getElementById("userAccountStatus");
+  if (!statusElement) return;
+  statusElement.textContent = statusText || "";
+}
+
 function showBootNoticeModal(message) {
   const bootloader = document.getElementById("bootloader");
   if (!bootloader) return;
@@ -1279,6 +1446,9 @@ function showBootNoticeModal(message) {
 
   bootloader.classList.add("notice-active");
   bootNoticeOpen = true;
+
+  // Auto-close update notice after a brief pause so it doesn't block the UI
+  setTimeout(closeNotice, 2500);
 }
 function closeToast(btn) {
   const toast = btn.closest(".toast");
@@ -1297,17 +1467,11 @@ window.addEventListener("DOMContentLoaded", () => {
     !bootloader.classList.contains("hidden") &&
     localStorage.getItem(bootNoticeKey) !== "true";
 
-  const savedBootChoice = localStorage.getItem("nebulo_bootChoice");
-  if (savedBootChoice !== null) {
-    bootSelectedIndex = parseInt(savedBootChoice, 10);
-    // Add a small delay to ensure all elements are rendered
-    setTimeout(() => {
-      if (document.getElementById("bootOptions")) {
-        if (!shouldShowBootNotice) {
-          selectBoot();
-        }
-      }
-    }, 100);
+  // Always start the boot sequence immediately
+  if (!shouldShowBootNotice) {
+    selectBoot();
+  } else {
+    selectBoot();
   }
 
   if (shouldShowBootNotice) {
@@ -1318,23 +1482,33 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 const appMetadata = {
-  files: { name: "Files", icon: "fa-folder", preinstalled: true },
-  terminal: { name: "Terminal", icon: "fa-terminal", preinstalled: true },
   settings: { name: "Settings", icon: "fa-cog", preinstalled: true },
-  editor: { name: "Text Editor", icon: "fa-edit", preinstalled: true },
   music: { name: "Music", icon: "fa-music", preinstalled: true },
-  photos: { name: "Photos", icon: "fa-images", preinstalled: true },
+  movies: { name: "Movies", icon: "fa-film", preinstalled: true },
   help: { name: "Help", icon: "fa-question-circle", preinstalled: true },
   whatsnew: { name: "What's New", icon: "fa-star", preinstalled: true },
   appstore: { name: "App Store", icon: "fa-store", preinstalled: true },
-  calculator: { name: "Calculator", icon: "fa-calculator", preinstalled: true },
   browser: { name: "Browser", icon: "fa-globe", preinstalled: true },
   games: { name: "Games", icon: "fa-gamepad", preinstalled: true },
   "blooket-bot": { name: "Blooket Bot", icon: "fa-robot", preinstalled: true },
+  links: { name: "Links", icon: "fa-link", preinstalled: true },
+  "popular-apps": { name: "Popular Apps", icon: "fa-th-large", preinstalled: true },
   minecraft: {
     name: "Minecraft",
     icon: "fa-cube",
     iconImage: "Minecraft/Minecraft-Grass-Block.jpg",
+    preinstalled: true,
+  },
+  roblox: {
+    name: "Roblox",
+    icon: "fa-gamepad",
+    iconImage: "roblox.png",
+    preinstalled: true,
+  },
+  "clash-royale": {
+    name: "Clash Royale",
+    icon: "fa-shield-alt",
+    iconImage: "clash-royale.png",
     preinstalled: true,
   },
   cloaking: { name: "Cloaking", icon: "fa-mask", preinstalled: true },
@@ -1397,6 +1571,370 @@ const appMetadata = {
   },
 };
 
+const POPULAR_PROXY_APPS = [
+  {
+    id: "chatgpt",
+    name: "ChatGPT",
+    url: "https://chat.openai.com/",
+    icon: "fas fa-brain",
+    image:
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSkjcFoADXGfO6r-rGC_LSR-dw_YmwoYjgjuQ&s",
+  },
+  {
+    id: "geforce-now",
+    name: "GeForce NOW",
+    url: "https://play.geforcenow.com/",
+    icon: "fab fa-nvidia",
+    image:
+      "https://cdn-1.webcatalog.io/catalog/nvidia-geforce-now/nvidia-geforce-now-icon-filled-256.png?v=1714775303603",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    url: "https://www.instagram.com/",
+    icon: "fab fa-instagram",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/512px-Instagram_logo_2016.svg.png",
+  },
+  {
+    id: "youtube",
+    name: "YouTube",
+    url: "https://vapor.onl/page/media/index.html",
+    icon: "fab fa-youtube",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/YouTube_icon_%282013-2017%29.png/480px-YouTube_icon_%282013-2017%29.png",
+  },
+  {
+    id: "tiktok",
+    name: "TikTok",
+    url: "https://www.tiktok.com/",
+    icon: "fab fa-tiktok",
+    image:
+      "https://play-lh.googleusercontent.com/BmUViDVOKNJe0GYJe22hsr7juFndRVbvr1fGmHGXqHfJjNAXjd26bfuGRQpVrpJ6YbA=w240-h480-rw",
+  },
+  {
+    id: "crazygames",
+    name: "CrazyGames",
+    url: "https://www.crazygames.com/",
+    icon: "fas fa-gamepad",
+    image:
+      "https://play-lh.googleusercontent.com/zGvYCipVc-uIpRVf6P5maUThHJyuNE35Y-tQCQz6tYigWuxlZThhQh0Te8G0SlLi1j8PAgHds8EkL2KXkKPG",
+  },
+  {
+    id: "polybuzz-ai",
+    name: "PolyBuzz AI",
+    url: "https://polybuzz.ai/",
+    icon: "fas fa-ghost",
+    image:
+      "https://cdn.polyspeak.ai/polyai/3fcc829d0dba45ebe56006536e076609.jpeg",
+  },
+  {
+    id: "character-ai",
+    name: "Character.AI",
+    url: "https://c.ai/",
+    icon: "fas fa-robot",
+    image:
+      "https://yt3.googleusercontent.com/Rm5s6zGR1uQuG4eIysBEwxDevo-cmZlsyb50tcQeC9xgVeNatlPtp45ag-8vqrKWmulYx1r_pQ=s900-c-k-c0x00ffffff-no-rj",
+  },
+  {
+    id: "twitch",
+    name: "Twitch",
+    url: "https://www.twitch.tv/",
+    icon: "fab fa-twitch",
+    image:
+      "https://media.licdn.com/dms/image/v2/D560BAQHbYCvrNGC17g/company-logo_200_200/company-logo_200_200/0/1695062101897/twitch_tv_logo?e=2147483647&v=beta&t=7voMKuewlnZeIkFZxnDfg3YdLaO99dV5rLDh54A9rUM",
+  },
+  {
+    id: "y8-games",
+    name: "Y8 Games",
+    url: "https://www.y8.com/",
+    icon: "fas fa-gamepad",
+    image:
+      "https://play-lh.googleusercontent.com/rrFtf3hQpmMUmwHdcsvsV6vNpjMP9wsbvt6PpVg6sUleu0iJrlqVQizckc49dNkFQho",
+  },
+];
+
+const PRIMARY_DESKTOP_APPS = [
+  "browser",
+  "games",
+  "blooket-bot",
+  "music",
+  "movies",
+  "roblox",
+  "clash-royale",
+  "minecraft",
+  "global-chat",
+  "links",
+  "popular-apps",
+];
+const DESKTOP_APP_ORDER_STORAGE_KEY = "nebulo_primaryDesktopAppOrder";
+const DESKTOP_APP_ORDER_VERSION_KEY = "nebulo_primaryDesktopAppOrderVersion";
+const DESKTOP_APP_ORDER_VERSION = 4;
+const APP_VERSION = "2026-01-27-01";
+const VERSION_METADATA_PATH = "version.json";
+const LEGACY_DESKTOP_ORDER_KEYS = [
+  "nebulo_desktopIconOrder",
+  "nebulo_desktopIconPositions",
+  "nebulo_desktopAppOrder",
+];
+
+function resetDesktopAppOrderStorage() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const serialized = JSON.stringify(PRIMARY_DESKTOP_APPS);
+    const storedVersion = localStorage.getItem(DESKTOP_APP_ORDER_VERSION_KEY);
+    const storedOrder = localStorage.getItem(DESKTOP_APP_ORDER_STORAGE_KEY);
+    if (
+      storedVersion !== String(DESKTOP_APP_ORDER_VERSION) ||
+      storedOrder !== serialized
+    ) {
+      localStorage.setItem(DESKTOP_APP_ORDER_STORAGE_KEY, serialized);
+      localStorage.setItem(
+        DESKTOP_APP_ORDER_VERSION_KEY,
+        String(DESKTOP_APP_ORDER_VERSION)
+      );
+    }
+    LEGACY_DESKTOP_ORDER_KEYS.forEach((key) => localStorage.removeItem(key));
+  } catch (error) {
+    console.warn("[DESKTOP ORDER] Unable to refresh stored order:", error);
+  }
+}
+
+function getDesktopAppOrder() {
+  if (typeof localStorage === "undefined") return [...PRIMARY_DESKTOP_APPS];
+  try {
+    const stored = localStorage.getItem(DESKTOP_APP_ORDER_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (
+        Array.isArray(parsed) &&
+        parsed.length === PRIMARY_DESKTOP_APPS.length
+      ) {
+        return parsed.slice();
+      }
+    }
+  } catch (error) {
+    console.warn("[DESKTOP ORDER] Unable to read stored order:", error);
+  }
+  return [...PRIMARY_DESKTOP_APPS];
+}
+const APP_FOLDER_ORDER = [
+  "settings",
+  "help",
+  "whatsnew",
+  "appstore",
+  "web-app-creator",
+  "cloaking",
+  "achievements",
+  "credits",
+  "nebulo-ai",
+  "ai-snake",
+  "python",
+  "startup-apps",
+  "task-manager",
+  "snap-manager",
+  "v86-emulator",
+  "helios",
+  "vsc",
+];
+
+const hiddenAppIds = new Set(["files", "terminal", "editor", "calculator", "photos"]);
+
+function buildAppLibraryEntries() {
+  const seenIds = new Set();
+  const result = [];
+  const customApps = getCustomWebApps();
+  const customMap = {};
+  customApps.forEach((app) => {
+    if (app.id) {
+      customMap[app.id] = app;
+    }
+  });
+
+  const addApp = (appId) => {
+    if (!appId) return;
+    if (seenIds.has(appId)) return;
+    if (PRIMARY_DESKTOP_APPS.includes(appId)) return;
+    if (hiddenAppIds.has(appId)) return;
+    if (!hasAppPermission(appId)) return;
+    let metadata = appMetadata[appId];
+    if (!metadata && customMap[appId]) {
+      metadata = {
+        name: customMap[appId].name,
+        icon: customMap[appId].icon || "fa-box",
+        iconImage: customMap[appId].iconImage || null,
+      };
+    }
+    if (!metadata) return;
+    seenIds.add(appId);
+    result.push({
+      id: appId,
+      name: metadata.name,
+      icon: metadata.icon,
+      iconImage: metadata.iconImage,
+    });
+  };
+
+  APP_FOLDER_ORDER.forEach(addApp);
+  installedApps.forEach(addApp);
+  installedGames.forEach(addApp);
+  Object.keys(appMetadata).forEach(addApp);
+  Object.keys(customMap).forEach(addApp);
+  return result;
+}
+
+function renderAppFolderLibrary() {
+  const grid = document.getElementById("appFolderGrid");
+  if (!grid) return;
+  const entries = buildAppLibraryEntries();
+  grid.innerHTML = entries
+    .map((app) => {
+      const iconMarkup = app.iconImage
+        ? `<img src="${app.iconImage}" alt="${app.name}">`
+        : `<i class="fas ${app.icon || "fa-box"}"></i>`;
+      return `
+        <div class="app-folder-item" data-app="${app.id}" tabindex="0" role="button" aria-label="Launch ${app.name}">
+          ${iconMarkup}
+          <span>${app.name}</span>
+        </div>
+      `;
+    })
+    .join("");
+  grid.querySelectorAll(".app-folder-item").forEach((item) => {
+    const open = () => openAppFromFolder(item.dataset.app);
+    item.addEventListener("click", open);
+    item.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        open();
+      }
+    });
+  });
+}
+
+function openAppFromFolder(appId) {
+  toggleAppFolder(false);
+  openApp(appId);
+}
+
+function toggleAppFolder(show) {
+  const overlay = document.getElementById("appFolderOverlay");
+  if (!overlay) return;
+  const isActive = Boolean(show);
+  overlay.classList.toggle("active", isActive);
+  overlay.setAttribute("aria-hidden", isActive ? "false" : "true");
+  if (isActive) {
+    renderAppFolderLibrary();
+    const firstItem = overlay.querySelector(".app-folder-item");
+    if (firstItem) {
+      firstItem.focus();
+    }
+  }
+}
+
+function createAppFolderIcon(container) {
+  if (!container) return;
+  const existing = container.querySelector(".desktop-icon.folder-app");
+  if (existing) existing.remove();
+  const folderEl = document.createElement("div");
+  folderEl.className = "desktop-icon folder-app";
+  folderEl.setAttribute("data-app", "app-library");
+  folderEl.setAttribute("aria-label", "Open App Library");
+  folderEl.setAttribute("tabindex", "0");
+  folderEl.innerHTML = `
+    <i class="fas fa-folder-open"></i>
+    <span>More Apps</span>
+  `;
+  folderEl.addEventListener("dblclick", () => toggleAppFolder(true));
+  folderEl.addEventListener("click", () => toggleAppFolder(true));
+  folderEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      toggleAppFolder(true);
+    }
+  });
+  container.appendChild(folderEl);
+}
+
+function renderDesktopPrimaryIcons() {
+  const iconsContainer = document.getElementById("desktopIcons");
+  if (!iconsContainer) return;
+  resetDesktopAppOrderStorage();
+  iconsContainer.innerHTML = "";
+  const desktopOrder = getDesktopAppOrder();
+  desktopOrder.forEach((appId) => {
+    if (hiddenAppIds.has(appId) || !hasAppPermission(appId)) return;
+    const metadata = appMetadata[appId];
+    if (!metadata) return;
+    const iconEl = document.createElement("div");
+    iconEl.className = "desktop-icon";
+    if (appId === "browser" || appId === "games") {
+      iconEl.classList.add("desktop-icon-gold-ring");
+    }
+    if (appId === "blooket-bot") {
+      iconEl.classList.add("desktop-icon-red-ring");
+    }
+    if (appId === "links") {
+      iconEl.classList.add("links-app-icon");
+    }
+    iconEl.setAttribute("data-app", appId);
+    iconEl.setAttribute("title", metadata.name);
+    iconEl.innerHTML = metadata.iconImage
+      ? `<img src="${metadata.iconImage}" alt="${metadata.name}"><span>${metadata.name}</span>`
+      : `<i class="fas ${metadata.icon}"></i><span>${metadata.name}</span>`;
+    iconEl.addEventListener("dblclick", () => openApp(appId));
+    iconEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        openApp(appId);
+      }
+    });
+    iconsContainer.appendChild(iconEl);
+  });
+  createAppFolderIcon(iconsContainer);
+  initDesktopIconDragging();
+  reorderStartMenuApps();
+}
+
+function reorderStartMenuApps() {
+  const grid = document.querySelector(".app-grid");
+  if (!grid) return;
+  const order = [...PRIMARY_DESKTOP_APPS, "chat"];
+  order.forEach((appId) => {
+    const selector = `.app-item[onclick*="openApp('${appId}')"]`;
+    const item = grid.querySelector(selector);
+    if (item) {
+      grid.appendChild(item);
+    }
+  });
+  const more = grid.querySelector("#appFolderToggle");
+  if (more) {
+    grid.appendChild(more);
+  }
+}
+
+function initAppFolderOverlay() {
+  const overlay = document.getElementById("appFolderOverlay");
+  if (!overlay || overlay.dataset.folderInit === "true") return;
+  overlay.dataset.folderInit = "true";
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      toggleAppFolder(false);
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && overlay.classList.contains("active")) {
+      toggleAppFolder(false);
+    }
+  });
+}
+
+function isVisibleApp(appName) {
+  return !hiddenAppIds.has(appName);
+}
+
+function filterVisibleApps(list) {
+  if (!Array.isArray(list)) return [];
+  return list.filter(isVisibleApp);
+}
 function getDefaultSnapSettings() {
   return {
     enabled: false,
@@ -2349,6 +2887,10 @@ document.addEventListener("keydown", function (e) {
   ) {
     const options = document.querySelectorAll(".boot-option");
 
+    if (!options.length) {
+      return;
+    }
+
     if (e.key === "ArrowDown") {
       e.preventDefault();
       options[bootSelectedIndex].classList.remove("selected");
@@ -2398,37 +2940,22 @@ function selectBoot() {
 
 function startBootSequence() {
   console.log(`[BOOT LOG] ${new Date().toISOString()}: Starting boot sequence, bootSelectedIndex = ${bootSelectedIndex}`);
-  let messages;
 
-  if (bootSelectedIndex === 1) {
-    messages = [
-      "Starting boot sequence for Nebulo (Command Line)...",
-      "Initializing command-line interface...",
-      "Loading system utilities...",
-      "- bash shell v5.1",
-      "- core utilities",
-      "- network stack",
-      "Mounting file systems...",
-      "Starting command-line interface...",
-      "System ready! :D",
-    ];
-  } else {
-    messages = [
-      "Starting boot sequence for Nebulo...",
-      "Running startup functions...",
-      "- startLoginClock()",
-      "- updateLoginClock()",
-      "- displayBrowserInfo()",
-      "- updateUptime()",
-      "- updateLoginGreeting()",
-      "- registerSW()",
-      "- ./build.py",
-      "Finished running startup functions.",
-      "Fetching icons from https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
-      "Starting graphical user interface...",
-      "System ready! :D",
-    ];
-  }
+  const messages = [
+    "Starting boot sequence for Nebulo...",
+    "Running startup functions...",
+    "- startLoginClock()",
+    "- updateLoginClock()",
+    "- displayBrowserInfo()",
+    "- updateUptime()",
+    "- updateLoginGreeting()",
+    "- registerSW()",
+    "- ./build.py",
+    "Finished running startup functions.",
+    "Fetching icons from https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
+    "Starting graphical user interface...",
+    "System ready! :D",
+  ];
 
   const messagesContainer = document.getElementById("bootMessages");
   const loadingBar = document.getElementById("loadingBar");
@@ -2450,64 +2977,50 @@ function startBootSequence() {
           const bootloader = document.getElementById("bootloader");
           bootloader.classList.add("hidden");
 
-          if (bootSelectedIndex === 1) {
-            console.log(`[BOOT LOG] ${new Date().toISOString()}: Showing command line mode`);
+          const setupComplete = localStorage.getItem("nebulo_setupComplete");
+
+          // Allow bypassing setup with URL parameter or force setup complete for testing
+          const urlParams = new URLSearchParams(window.location.search);
+          const skipSetup = urlParams.get("skipSetup") === "true";
+
+          if (!setupComplete && !skipSetup) {
+            console.log(
+              `[BOOT LOG] ${new Date().toISOString()}: Setup not complete, showing setup screen`
+            );
             setTimeout(() => {
-              const cliMode = document.getElementById("commandLineMode");
-              if (cliMode) {
-                cliMode.classList.add("active");
-                const cliInput = document.getElementById("cliInput");
-                if (cliInput) cliInput.focus();
+              const setup = document.getElementById("setup");
+              if (setup) {
+                setup.style.display = "flex";
+                setTimeout(() => {
+                  setup.style.opacity = "1";
+                }, 50);
               } else {
-                console.error("[BOOT LOG] Command line mode element not found!");
+                console.error("[BOOT LOG] Setup element not found!");
               }
             }, 500);
           } else {
-            const setupComplete = localStorage.getItem(
-              "nebulo_setupComplete"
+            console.log(
+              `[BOOT LOG] ${new Date().toISOString()}: Setup complete, showing login screen`
             );
-
-            // Allow bypassing setup with URL parameter or force setup complete for testing
-            const urlParams = new URLSearchParams(window.location.search);
-            const skipSetup = urlParams.get('skipSetup') === 'true';
-
-            if (!setupComplete && !skipSetup) {
-              console.log(`[BOOT LOG] ${new Date().toISOString()}: Setup not complete, showing setup screen`);
-              setTimeout(() => {
-                const setup = document.getElementById("setup");
-                if (setup) {
-                  setup.style.display = "flex";
-                  setTimeout(() => {
-                    setup.style.opacity = "1";
-                  }, 50);
-                } else {
-                  console.error("[BOOT LOG] Setup element not found!");
+            setTimeout(() => {
+              const savedUsername = localStorage.getItem("nebulo_username");
+              if (savedUsername) {
+                const usernameInput = document.getElementById("username");
+                if (usernameInput) {
+                  usernameInput.value = savedUsername;
                 }
-              }, 500);
-            } else {
-              console.log(`[BOOT LOG] ${new Date().toISOString()}: Setup complete, showing login screen`);
-              setTimeout(() => {
-                const savedUsername = localStorage.getItem(
-                  "nebulo_username"
-                );
-                if (savedUsername) {
-                  const usernameInput = document.getElementById("username");
-                  if (usernameInput) {
-                    usernameInput.value = savedUsername;
-                  }
-                }
-                const login = document.getElementById("login");
-                if (login) {
-                  login.classList.add("active");
-                  startLoginClock();
-                  displayBrowserInfo();
-                  updateLoginGreeting();
-                  updateLoginScreen();
-                } else {
-                  console.error("[BOOT LOG] Login element not found!");
-                }
-              }, 500);
-            }
+              }
+              const login = document.getElementById("login");
+              if (login) {
+                login.classList.add("active");
+                startLoginClock();
+                displayBrowserInfo();
+                updateLoginGreeting();
+                updateLoginScreen();
+              } else {
+                console.error("[BOOT LOG] Login element not found!");
+              }
+            }, 500);
           }
 
           // Fallback: If no screen is shown after 3 seconds, show desktop
@@ -2518,9 +3031,11 @@ function startBootSequence() {
             const desktop = document.getElementById("desktop");
 
             const loginVisible = login && login.classList.contains("active");
-            const setupVisible = setup && setup.style.display === "flex";
+            const setupVisible =
+              setup && window.getComputedStyle(setup).display !== "none";
             const cliVisible = cliMode && cliMode.classList.contains("active");
-            const desktopVisible = desktop && desktop.style.display !== "none";
+            const desktopVisible =
+              desktop && window.getComputedStyle(desktop).display !== "none";
 
             if (!loginVisible && !setupVisible && !cliVisible && !desktopVisible) {
               console.log(`[BOOT LOG] ${new Date().toISOString()}: No screen visible, showing desktop as fallback`);
@@ -2792,7 +3307,12 @@ function login() {
   currentUsername = username;
   currentUserAccount = account;
 
-  document.getElementById("displayUsername").textContent = username;
+  updateUsernameBadges(username);
+  const statusLabel = document.getElementById("dashboardStatus");
+  if (statusLabel) {
+    statusLabel.textContent = username ? `Logged in as ${username}` : "Global chat ready";
+  }
+  updateAccountStatusBadge("Signed in");
 
   if (username.toLowerCase() === "prismx" || username.toLowerCase() === "$xor" || username.toLowerCase() === "lanefiedler-731") {
     unlockEasterEgg("dev-mode");
@@ -2826,37 +3346,8 @@ function login() {
       console.log(`[LOGIN LOG] ${new Date().toISOString()}: Desktop active, starting clock and initialization`);
       startClock();
 
-      const iconsContainer = document.getElementById("desktopIcons");
-      if (iconsContainer) {
-        const installedIcons = iconsContainer.querySelectorAll(
-          ".desktop-icon[data-app]"
-        );
-        installedIcons.forEach((icon) => {
-          const appName = icon.getAttribute("data-app");
-          if (installedApps.includes(appName)) {
-            icon.remove();
-          }
-        });
-
-        installedApps.forEach((appName) => {
-          addDesktopIcon(appName);
-        });
-
-        // Bloatless mode: hide all pre-installed apps except App Store, Settings, Files, About, and Terminal
-        if (bloatlessMode) {
-          const bloatlessKeep = ["appstore", "settings", "files", "about", "terminal", "credits"];
-          const allIcons = iconsContainer.querySelectorAll(".desktop-icon[data-app]");
-          allIcons.forEach((icon) => {
-            const appName = icon.getAttribute("data-app");
-            // Keep only appstore, settings, and any user-installed apps
-            if (!bloatlessKeep.includes(appName) && !installedApps.includes(appName)) {
-              icon.style.display = "none";
-            }
-          });
-        }
-      }
-
-      initDesktopIconDragging();
+      renderDesktopPrimaryIcons();
+      renderAppFolderLibrary();
       initContextMenu();
       initScrollIndicator();
 
@@ -2900,7 +3391,38 @@ function startClock() {
       if (settings.showSeconds) timeStr += `:${seconds}`;
     }
 
-    document.getElementById("clock").textContent = timeStr;
+    const clockEl = document.getElementById("clock");
+    if (clockEl) clockEl.textContent = timeStr;
+    const dashboardTime = document.getElementById("dashboardTime");
+    if (dashboardTime) dashboardTime.textContent = timeStr;
+    const dashboardDate = document.getElementById("dashboardDate");
+    if (dashboardDate) {
+      const days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      const dateLabel = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+      dashboardDate.textContent = dateLabel;
+    }
   }
   updateClock();
   setInterval(updateClock, 1000);
@@ -2943,7 +3465,7 @@ function addDynamicTaskbarIcon(appName, icon) {
   );
   if (existingIcon) return;
 
-  const pinnedApps = ["files", "terminal", "browser", "settings"];
+  const pinnedApps = ["files", "terminal", "browser", "settings"].filter((app) => !hiddenAppIds.has(app));
   if (pinnedApps.includes(appName)) return;
 
   const taskbar = document.querySelector(".taskbar");
@@ -2982,7 +3504,7 @@ function addDynamicTaskbarIcon(appName, icon) {
 }
 
 function removeDynamicTaskbarIcon(appName) {
-  const pinnedApps = ["files", "terminal", "browser", "settings"];
+  const pinnedApps = ["files", "terminal", "browser", "settings"].filter((app) => !hiddenAppIds.has(app));
   if (pinnedApps.includes(appName)) return;
 
   const icon = document.querySelector(
@@ -3106,7 +3628,9 @@ function initDesktopIconDragging() {
     let hasMoved = false;
     let originalX, originalY;
     let startX, startY;
-    let dragTimeout;
+    let pendingMoveFrame = null;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
 
     icon.addEventListener("mousedown", (e) => {
       if (e.button !== 0) return;
@@ -3124,41 +3648,63 @@ function initDesktopIconDragging() {
       offsetX = e.clientX - rect.left;
       offsetY = e.clientY - rect.top;
 
-      dragTimeout = setTimeout(() => {
-        if (!hasMoved) return;
-
+      const beginDrag = () => {
+        if (isDragging) return;
         occupiedGridCells.delete(`${originalX},${originalY}`);
         icon.classList.add("dragging");
         icon.style.position = "absolute";
         icon.style.zIndex = "1000";
         isDragging = true;
-      }, 150);
+        document.body.style.userSelect = "none";
+      };
 
       document.onmousemove = (ev) => {
         const deltaX = Math.abs(ev.clientX - startX);
         const deltaY = Math.abs(ev.clientY - startY);
 
-        if (deltaX > 5 || deltaY > 5) {
+        if (deltaX > 4 || deltaY > 4) {
           hasMoved = true;
         }
 
+        if (!hasMoved) return;
+
+        beginDrag();
+
         if (!isDragging) return;
 
-        const containerRect = getContainerRect();
-        let x = ev.clientX - containerRect.left - offsetX;
-        let y = ev.clientY - containerRect.top - offsetY;
-        const maxX = Math.max(0, containerRect.width - icon.offsetWidth);
-        const maxY = Math.max(0, containerRect.height - icon.offsetHeight);
+        lastMouseX = ev.clientX;
+        lastMouseY = ev.clientY;
+        if (pendingMoveFrame) return;
 
-        x = clamp(x, 0, maxX);
-        y = clamp(y, 0, maxY);
+        pendingMoveFrame = requestAnimationFrame(() => {
+          pendingMoveFrame = null;
+          const containerRect = getContainerRect();
+          let x =
+            lastMouseX -
+            containerRect.left -
+            offsetX;
+          let y =
+            lastMouseY -
+            containerRect.top -
+            offsetY;
+          const maxX = Math.max(0, containerRect.width - icon.offsetWidth);
+          const maxY = Math.max(0, containerRect.height - icon.offsetHeight);
 
-        icon.style.left = x + "px";
-        icon.style.top = y + "px";
+          x = clamp(x, 0, maxX);
+          y = clamp(y, 0, maxY);
+
+          icon.style.left = x + "px";
+          icon.style.top = y + "px";
+        });
+
       };
 
       document.onmouseup = () => {
-        clearTimeout(dragTimeout);
+        document.body.style.userSelect = "";
+        if (pendingMoveFrame) {
+          cancelAnimationFrame(pendingMoveFrame);
+          pendingMoveFrame = null;
+        }
 
         if (isDragging) {
           const gridSize = getGridSize();
@@ -3211,6 +3757,7 @@ function initDesktopIconDragging() {
 
           icon.classList.remove("dragging");
           icon.style.zIndex = "";
+          document.body.style.userSelect = "";
         } else if (!hasMoved) {
           if (!occupiedGridCells.has(`${originalX},${originalY}`)) {
             occupiedGridCells.add(`${originalX},${originalY}`);
@@ -3612,6 +4159,10 @@ function makeDraggable(element) {
     pos3 = 0,
     pos4 = 0;
   let dragging = false;
+  let pendingDragFrame = null;
+  let pendingTop = 0;
+  let pendingLeft = 0;
+  let lastDragEvent = null;
 
   header.onmousedown = dragMouseDown;
 
@@ -3639,20 +4190,40 @@ function makeDraggable(element) {
     const newTop = element.offsetTop - pos2;
     const newLeft = element.offsetLeft - pos1;
 
-    element.style.top =
-      Math.max(0, Math.min(window.innerHeight - element.offsetHeight, newTop)) +
-      "px";
-    element.style.left =
-      Math.max(0, Math.min(window.innerWidth - element.offsetWidth, newLeft)) +
-      "px";
-    if (dragging) {
-      updateSnapPreview(e.clientX, e.clientY, element);
+    pendingTop = Math.max(
+      0,
+      Math.min(window.innerHeight - element.offsetHeight, newTop)
+    );
+    pendingLeft = Math.max(
+      0,
+      Math.min(window.innerWidth - element.offsetWidth, newLeft)
+    );
+    lastDragEvent = e;
+
+    if (!pendingDragFrame) {
+      pendingDragFrame = requestAnimationFrame(() => {
+        pendingDragFrame = null;
+        element.style.top = pendingTop + "px";
+        element.style.left = pendingLeft + "px";
+        if (dragging && lastDragEvent) {
+          updateSnapPreview(
+            lastDragEvent.clientX,
+            lastDragEvent.clientY,
+            element
+          );
+        }
+      });
     }
   }
 
   function closeDragElement() {
     document.onmouseup = null;
     document.onmousemove = null;
+    if (pendingDragFrame) {
+      cancelAnimationFrame(pendingDragFrame);
+      pendingDragFrame = null;
+    }
+    lastDragEvent = null;
     if (dragging) {
       finalizeSnap(element);
     }
@@ -4036,12 +4607,24 @@ function initSecureChat() {
         font-size: 0.85rem;
         color: #7dd3c0;
       }
+      .chat-message.mention {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+      }
+      .chat-mention-tag {
+        color: #86efac;
+        font-weight: 600;
+      }
       .chat-input-area {
         padding: 15px;
         background: rgba(30, 35, 48, 0.9);
         border-top: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
         gap: 10px;
+      }
+      .chat-input-wrapper {
+        flex: 1;
+        position: relative;
       }
       .chat-input {
         flex: 1;
@@ -4060,6 +4643,48 @@ function initSecureChat() {
         padding: 8px 15px;
         cursor: pointer;
         font-weight: 600;
+      }
+      .mention-suggestions {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: calc(100% + 10px);
+        display: none;
+        flex-direction: column;
+        gap: 2px;
+        background: rgba(15, 18, 25, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 6px 0;
+        max-height: 220px;
+        overflow-y: auto;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.75);
+        z-index: 12;
+        backdrop-filter: blur(6px);
+      }
+      .mention-suggestions.visible {
+        display: flex;
+      }
+      .mention-suggestion-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: #e2e8f0;
+        transition: background 0.2s ease;
+        border-radius: 8px;
+      }
+      .mention-suggestion-item.active,
+      .mention-suggestion-item:hover {
+        background: rgba(125, 211, 192, 0.18);
+      }
+      .mention-suggestion-meta {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.55);
+        white-space: nowrap;
       }
       .chat-message-header {
         display: flex;
@@ -4103,10 +4728,13 @@ function initSecureChat() {
         </div>
         
         <div class="chat-input-area">
-            <input type="text" 
-                   class="chat-input" 
-                   id="chatInput" 
-                   placeholder="Type your message...">
+            <div class="chat-input-wrapper">
+                <input type="text" 
+                       class="chat-input" 
+                       id="chatInput" 
+                       placeholder="Type your message...">
+                <div id="mentionSuggestions" class="mention-suggestions" role="listbox" aria-label="Mention suggestions"></div>
+            </div>
             <button class="chat-send-btn" id="sendChatBtn">
                 Send
             </button>
@@ -4123,6 +4751,10 @@ function initSecureChat() {
   shadow.getElementById('chatInput').onkeypress = (e) => {
     if (e.key === 'Enter') sendChatMessage();
   };
+  setupChatMentionSuggestions(
+    shadow.getElementById('chatInput'),
+    shadow.getElementById('mentionSuggestions')
+  );
 
   // Store shadow root reference
   window.chatShadowRoot = shadowRoot;
@@ -4138,10 +4770,19 @@ function toggleChatWindow() {
     if (badge) {
       if (chatWindow.classList.contains('open')) {
         badge.classList.add('active');
+        clearChatPingsForCurrentUser();
       } else {
         badge.classList.remove('active');
       }
     }
+  }
+}
+
+function clearChatPingsForCurrentUser() {
+  updateGlobalChatBadge(0);
+  const badge = document.getElementById('chatNotificationBadge');
+  if (badge) {
+    badge.classList.remove('active');
   }
 }
 
@@ -4176,15 +4817,20 @@ function sendChatMessage() {
   const chatMessages = chatContainer.querySelector('#chatMessages');
 
   if (chatMessages) {
+    const { html: messageHtml, mentions } = parseChatMessageForMentions(message);
     const messageEl = document.createElement('div');
     messageEl.className = 'chat-message user';
+    if (mentions.length) {
+      messageEl.classList.add('chat-mention');
+    }
     messageEl.innerHTML = `
       <div class="chat-message-header">
         <span class="chat-username">You</span>
         <span class="chat-timestamp">${new Date().toLocaleTimeString()}</span>
       </div>
-      <div class="chat-content">${message}</div>
+      <div class="chat-content">${messageHtml}</div>
     `;
+    const senderName = currentUsername || 'User';
     chatMessages.appendChild(messageEl);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -4198,9 +4844,321 @@ function handleChatInput(event) {
   }
 }
 
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function normalizeChatUsername(name) {
+  if (!name) return '';
+  return name.trim().toLowerCase();
+}
+
+const mentionAliasMap = new Map([
+  ['owner', 'shs12lord'],
+]);
+
+const mentionUserCache = new Set();
+let remoteMentionAccounts = [];
+
+function refreshMentionCacheFromAccounts(options = { replace: true }) {
+  const mergedAccounts = getMergedAccountList();
+  addUsersToMentionCache(
+    mergedAccounts.map(acc => ({ username: acc.username })),
+    { replace: options.replace }
+  );
+}
+
+function addUsersToMentionCache(users = [], options = {}) {
+  const { replace = false } = options;
+  if (replace) mentionUserCache.clear();
+  if (!Array.isArray(users)) return;
+  users.forEach((user) => {
+    if (user && user.username) {
+      mentionUserCache.add(user.username.trim());
+    }
+  });
+}
+
+function parseChatMessageForMentions(rawMessage) {
+  const usernameMap = new Map();
+  const accounts = getMergedAccountList();
+  accounts.forEach((acc) => {
+    if (acc && acc.username) {
+      usernameMap.set(acc.username.trim().toLowerCase(), acc.username.trim());
+    }
+  });
+  if (currentUsername) {
+    usernameMap.set(currentUsername.trim().toLowerCase(), currentUsername.trim());
+  }
+  mentionAliasMap.forEach((target, alias) => {
+    if (target) {
+      usernameMap.set(alias.toLowerCase(), target.trim());
+    }
+  });
+  mentionUserCache.forEach((username) => {
+    const normalized = username.trim().toLowerCase();
+    if (normalized) {
+      usernameMap.set(normalized, username.trim());
+    }
+  });
+  usernameMap.set('user', 'User');
+  usernameMap.set('guest', 'Guest');
+  const mentionTargets = new Set();
+  const sanitized = escapeHtml(rawMessage);
+  const highlighted = sanitized.replace(/@([a-zA-Z0-9_-]+)/g, (match, name) => {
+    const actual = usernameMap.get(name.toLowerCase());
+    if (actual) {
+      mentionTargets.add(actual);
+      return `<span class="chat-mention-tag">@${actual}</span>`;
+    }
+    return match;
+  });
+  return {
+    html: highlighted,
+    mentions: Array.from(mentionTargets),
+  };
+}
+
+function getMentionAliasForTarget(target) {
+  if (!target) return null;
+  const normalizedTarget = target.trim().toLowerCase();
+  for (const [alias, value] of mentionAliasMap.entries()) {
+    if (value && value.trim().toLowerCase() === normalizedTarget) {
+      return alias;
+    }
+  }
+  return null;
+}
+
+function getMergedAccountList() {
+  const accountsMap = new Map();
+  getAllAccounts().forEach(acc => {
+    if (!acc || !acc.username) return;
+    const trimmed = acc.username.trim();
+    if (!trimmed) return;
+    accountsMap.set(trimmed.toLowerCase(), acc);
+  });
+  remoteMentionAccounts.forEach((acc) => {
+    if (!acc || !acc.username) return;
+    const trimmed = acc.username.trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (!accountsMap.has(key)) {
+      accountsMap.set(key, acc);
+    }
+  });
+  return Array.from(accountsMap.values());
+}
+
+function updateRemoteMentionAccounts(accounts = []) {
+  remoteMentionAccounts = (Array.isArray(accounts) ? accounts : [])
+    .map(acc => ({
+      username: (acc.username || '').trim(),
+      displayName: acc.display_name || acc.displayName || null,
+      isOnline: Boolean(acc.is_online || acc.isOnline)
+    }))
+    .filter(acc => acc.username);
+  refreshMentionCacheFromAccounts({ replace: false });
+}
+
+function getMentionCandidates(query = '') {
+  const normalizedQuery = query.trim().toLowerCase();
+  const resolved = [];
+  const seen = new Set();
+
+  const addEntry = (name) => {
+    if (!name) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    resolved.push({
+      username: trimmed,
+      alias: getMentionAliasForTarget(trimmed),
+    });
+  };
+
+  const accounts = getMergedAccountList();
+  accounts.forEach((acc) => addEntry(acc.username));
+  if (currentUsername) {
+    addEntry(currentUsername);
+  }
+  ['User', 'Guest'].forEach(addEntry);
+  mentionAliasMap.forEach((target) => addEntry(target));
+  mentionUserCache.forEach((username) => addEntry(username));
+  mentionUserCache.forEach((username) => addEntry(username));
+
+  if (!normalizedQuery) {
+    return resolved.slice(0, 7);
+  }
+
+  return resolved
+    .filter((entry) => {
+      const lower = entry.username.toLowerCase();
+      const alias = entry.alias ? entry.alias.toLowerCase() : '';
+      return lower.startsWith(normalizedQuery) || alias.startsWith(normalizedQuery);
+    })
+    .slice(0, 7);
+}
+
+function getActiveMentionMatch(text, cursorPos) {
+  if (!text || cursorPos == null) return null;
+  const before = text.slice(0, cursorPos);
+  const match = before.match(/@([a-zA-Z0-9_-]*)$/);
+  if (!match) return null;
+  return {
+    query: match[1],
+    start: cursorPos - match[0].length,
+    end: cursorPos,
+  };
+}
+
+refreshMentionCacheFromAccounts(true);
+
+function applyMentionToInput(inputEl, mentionMatch, username) {
+  if (!inputEl || !mentionMatch || !username) return;
+  const value = inputEl.value;
+  const prefix = value.slice(0, mentionMatch.start);
+  const suffix = value.slice(mentionMatch.end);
+  const mentionText = `@${username}`;
+  const needsSpace = suffix && !/^\s/.test(suffix);
+  const newValue = prefix + mentionText + (needsSpace ? ' ' : '') + suffix;
+  const caretPosition = prefix.length + mentionText.length + (needsSpace ? 1 : 0);
+  inputEl.value = newValue;
+  inputEl.setSelectionRange(caretPosition, caretPosition);
+  inputEl.focus();
+}
+
+function setupChatMentionSuggestions(inputEl, container) {
+  if (!inputEl || !container) return;
+  let mentionMatch = null;
+  let candidates = [];
+  let selectedIndex = 0;
+  let blurTimer = null;
+
+  const hide = () => {
+    container.classList.remove('visible');
+    container.innerHTML = '';
+    candidates = [];
+    selectedIndex = 0;
+  };
+
+  const show = () => {
+    container.classList.add('visible');
+  };
+
+  const render = () => {
+    container.innerHTML = candidates
+      .map((entry, index) => {
+        const isActive = index === selectedIndex ? ' active' : '';
+        const meta = entry.alias ? `alias: ${entry.alias}` : '';
+        return `
+          <div class="mention-suggestion-item${isActive}" data-index="${index}" data-username="${entry.username}">
+            <span>${entry.username}</span>
+            ${meta ? `<span class="mention-suggestion-meta">${meta}</span>` : ''}
+          </div>
+        `;
+      })
+      .join('');
+  };
+
+  const update = () => {
+    mentionMatch = getActiveMentionMatch(inputEl.value, inputEl.selectionStart);
+    if (!mentionMatch) {
+      hide();
+      return;
+    }
+    candidates = getMentionCandidates(mentionMatch.query);
+    if (!candidates.length) {
+      hide();
+      return;
+    }
+    selectedIndex = 0;
+    if (selectedIndex >= candidates.length) {
+      selectedIndex = candidates.length - 1;
+    }
+    render();
+    show();
+  };
+
+  const selectCandidate = (index) => {
+    const candidate = candidates[index];
+    if (!candidate || !mentionMatch) return;
+    applyMentionToInput(inputEl, mentionMatch, candidate.username);
+    hide();
+    mentionMatch = null;
+  };
+
+  const handleKeyDown = (event) => {
+    if (!container.classList.contains('visible') || !candidates.length) return;
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        selectedIndex = (selectedIndex + 1) % candidates.length;
+        render();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        selectedIndex =
+          (selectedIndex - 1 + candidates.length) % candidates.length;
+        render();
+        break;
+      case 'Enter':
+        event.preventDefault();
+        selectCandidate(selectedIndex);
+        break;
+      case 'Escape':
+        event.preventDefault();
+        hide();
+        break;
+      default:
+        return;
+    }
+  };
+
+  inputEl.addEventListener('input', update);
+  inputEl.addEventListener('click', update);
+  inputEl.addEventListener('focus', update);
+  inputEl.addEventListener('keydown', handleKeyDown);
+  inputEl.addEventListener('blur', () => {
+    if (blurTimer) window.clearTimeout(blurTimer);
+    blurTimer = window.setTimeout(() => hide(), 120);
+  });
+
+  container.addEventListener('mousedown', (event) => {
+    if (blurTimer) {
+      window.clearTimeout(blurTimer);
+      blurTimer = null;
+    }
+    const targetItem = event.target.closest('.mention-suggestion-item');
+    if (!targetItem) return;
+    event.preventDefault();
+    const index = Number(targetItem.dataset.index);
+    if (!Number.isNaN(index)) {
+      selectCandidate(index);
+    }
+  });
+
+  return {
+    update,
+    hide,
+  };
+}
+
 async function openApp(appName, editorContent = "", filename = "") {
   if (appName === 'chat') {
-    openGlobalChatWindow();
+    openGlobalChat();
+    return;
+  }
+  if (hiddenAppIds.has(appName)) {
+    showToast("That app has been removed.", "fa-ban");
     return;
   }
   // Check app permissions
@@ -4217,6 +5175,63 @@ async function openApp(appName, editorContent = "", filename = "") {
       message: "Blooket Bot may take a bit to load. Please be patient.",
       confirm: false,
     });
+  }
+
+  if (appName === "roblox") {
+    const choice = await showModal({
+      type: "warning",
+      icon: "fa-lock",
+      title: "Roblox requires a proxy",
+      message:
+        "Roblox embeds are blocked without a live proxy. Choose one of the following fallbacks or cancel, then try again.",
+      buttons: [
+        {
+          label: "Now.gg option 1 (proxy)",
+          value: "nowgg",
+          className: "modal-btn-primary",
+        },
+        {
+          label: "Astra direct embed",
+          value: "embed",
+          className: "modal-btn-secondary",
+        },
+        {
+          label: "Cancel",
+          value: null,
+          className: "modal-btn",
+        },
+      ],
+    });
+
+    if (!choice) {
+      return;
+    }
+
+    let targetUrl;
+    let warningText;
+    if (choice === "nowgg") {
+      targetUrl = toScramjetUrl("https://68.ip.nowgg.fun/apps/a/19900/b.html");
+      warningText =
+        "Now.gg option 1 runs through the remote Sail proxy, but availability still depends on the third-party service.";
+    } else if (choice === "embed") {
+      targetUrl = "https://astra.pxi-fusion.com/embed/roblox";
+      warningText =
+        "Direct embeds may be blocked without the UV/Sail proxy because Roblox actively prevents cross-origin framing.";
+    } else {
+      return;
+    }
+
+    trackAppOpened("roblox");
+    createWindow(
+      "Roblox",
+      "fas fa-gamepad",
+      buildProxyEmbedContent(targetUrl, warningText),
+      1200,
+      700,
+      "roblox",
+      true
+    );
+    return;
   }
 
   // Handle custom web apps
@@ -4390,8 +5405,14 @@ async function openApp(appName, editorContent = "", filename = "") {
         const assetBasePath = new URL(".", window.location.href).pathname;
         return `
         <div class="browser-container" style="overflow: hidden;">
-                      <iframe src="${assetBasePath}app/uv.html" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"></iframe>
-              </div>
+          <iframe
+            id="browserUvIframe"
+            data-src="${assetBasePath}app/uv.html"
+            src="${assetBasePath}app/uv.html"
+            frameborder="0"
+            style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;">
+          </iframe>
+        </div>
       `;
       })(),
       noPadding: true,
@@ -4414,7 +5435,8 @@ async function openApp(appName, editorContent = "", filename = "") {
         const assetBasePath = new URL(".", window.location.href).pathname;
         return `
         <div class="browser-container" style="overflow: hidden;">
-                      <iframe src="${assetBasePath}games.html" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"></iframe>
+                      <iframe src="${assetBasePath}games.html" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" allow="fullscreen; autoplay">
+                      </iframe>
               </div>
       `;
       })(),
@@ -4438,10 +5460,22 @@ async function openApp(appName, editorContent = "", filename = "") {
         }
         const assetBasePath = new URL(".", window.location.href).pathname;
         const blooketUrl = "https://blooketbot.schoolcheats.net/";
+        const scramjetUrl = encodeScramjetUrl(blooketUrl);
+        const fallbackProxy = `${assetBasePath}uv/nebulo.html?mode=games&url=${encodeURIComponent(blooketUrl)}`;
         return `
-        <div class="browser-container" style="overflow: hidden;">
-                      <iframe src="${assetBasePath}app/uv.html?mode=games&url=${encodeURIComponent(blooketUrl)}" frameborder="0" style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"></iframe>
-              </div>
+        <div class="browser-container" style="overflow: hidden; display: flex; flex-direction: column;">
+          <div style="padding: 0.8rem 1rem; background: rgba(125, 211, 192, 0.08); color: #7dd3c0; font-size: 0.85rem; border-bottom: 1px solid rgba(125, 211, 192, 0.2);">
+            Loaded through the Sail/Scramjet proxy to avoid Google iframe issues while keeping navigation locked inside the iframe.
+          </div>
+          <iframe
+            src="${scramjetUrl}"
+            allow="fullscreen; autoplay"
+            frameborder="0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            style="width: 100%; height: calc(100vh - 40px); border-radius: 0px; margin: 0;"
+            onerror="this.src='${fallbackProxy}'">
+          </iframe>
+        </div>
       `;
       })(),
       noPadding: true,
@@ -4452,14 +5486,230 @@ async function openApp(appName, editorContent = "", filename = "") {
       title: "Minecraft",
       icon: "fas fa-cube",
       content: (() => {
+        if (!checkFileProtocol("Minecraft")) {
+          return `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 3rem; background: rgba(10, 14, 26, 0.8);">
+              <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: var(--error-red); margin-bottom: 2rem;"></i>
+              <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Minecraft Unavailable</h2>
+              <p style="color: var(--text-secondary); text-align: center; max-width: 420px;">Minecraft requires Nebulo to be served over HTTP/HTTPS. Please launch the site from a web server to play.</p>
+            </div>
+          `;
+        }
         const assetBasePath = new URL(".", window.location.href).pathname;
+        const targetUrl = "https://eaglercraft1-8.github.io/";
+        const scramjetUrl = encodeScramjetUrl(targetUrl);
+        const fallbackProxy = `${assetBasePath}uv/nebulo.html?mode=games&url=${encodeURIComponent(targetUrl)}`;
         return `
-          <iframe src="${assetBasePath}Minecraft/EaglercraftX_1.8_u53_Offline_Signed.html" allow="fullscreen; pointer-lock; gamepad"></iframe>
+          <div class="browser-container" style="overflow: hidden;">
+            <iframe
+              src="${scramjetUrl}"
+              frameborder="0"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+              allow="fullscreen; pointer-lock; gamepad; autoplay"
+              style="width: 100%; height: 100vh; border-radius: 0px; margin: 0;"
+              onerror="this.src='${fallbackProxy}'">
+            </iframe>
+          </div>
         `;
       })(),
       noPadding: true,
       width: 1000,
       height: 700,
+    },
+    links: {
+      title: "Links",
+      icon: "fas fa-link",
+      content: `
+        <div class="links-app-window">
+          <div class="links-app-hero">
+            <div class="links-app-hero-icon">
+              <i class="fas fa-link"></i>
+            </div>
+            <div>
+              <p class="links-app-hero-label">Quick shortcuts</p>
+              <h2>Link Library</h2>
+              <p>Curated dashboards, learning portals, and the Nebulo Discord. Tap a tile, open it in a new tab, and explore.</p>
+            </div>
+          </div>
+          <div class="links-app-section links-app-discord">
+            <h3>Discord</h3>
+            <p>
+              Discord: <a href="https://discord.gg/ezgfEWd7d2" target="_blank" rel="noopener">https://discord.gg/ezgfEWd7d2</a><br />
+              ⚠️ (better generator coming soon) JOIN FOR INFINITE LINKS (create your own with 1 command). Joining unlocks special perks.
+            </p>
+            <a class="links-app-link-btn" href="https://discord.gg/ezgfEWd7d2" target="_blank" rel="noopener">
+              Open Discord
+            </a>
+          </div>
+          <div class="links-app-section">
+            <h3>Site Links</h3>
+            <div class="links-link-grid">
+              ${[
+                { label: "SHS Portal", url: "https://shsportal.vercel.app/" },
+                { label: "Advanced Calculator", url: "https://sites.google.com/view/advancedcalculator2/home" },
+                { label: "Nebulo CodeHS", url: "https://nebulo-17133372.codehs.me/index.html" },
+                { label: "Intelleducation", url: "https://intelleducation.netlify.app/" },
+                { label: "Learn 2 Code", url: "https://learn-2code.surge.sh/" },
+                { label: "Edu Book", url: "https://edu-book.pages.dev/" },
+                { label: "Documentary Portal", url: "https://documentary.surge.sh/" },
+                { label: "Booksmarts", url: "https://booksmarts.vercel.app/" },
+                { label: "Neb School", url: "https://neb.school.dovereducation.org", badge: "NEW" },
+                { label: "ABC School", url: "https://abc.school.dovereducation.org", badge: "NEW" },
+                { label: "Nebulo Global", url: "https://nebulo.global.ssl.fastly.net/", badge: "NEW" },
+              ]
+                .map(
+                  (link) => `
+                    <a class="links-link-card" href="${link.url}" target="_blank" rel="noopener">
+                      <div class="links-link-icon">
+                        <i class="fas fa-link"></i>
+                      </div>
+                      <div class="links-link-content">
+                        <span class="links-link-label">${link.label}</span>
+                        <span class="links-link-url">${link.url}</span>
+                      </div>
+                      ${link.badge ? `<span class="links-link-badge">${link.badge}</span>` : ""}
+                    </a>
+                  `
+                )
+                .join("")}
+            </div>
+          </div>
+          <div class="links-app-section links-app-footer">
+            <p>
+              Rate my site on <a href="https://ubghub.org/?site=Nebulo" target="_blank" rel="noopener">https://ubghub.org/?site=Nebulo</a>.
+              Send proof in Discord for extra motivation.
+            </p>
+            <a class="links-app-link-btn secondary" href="https://ubghub.org/?site=Nebulo" target="_blank" rel="noopener">
+              Rate Nebulo
+            </a>
+          </div>
+        </div>
+      `,
+      noPadding: true,
+      width: 900,
+      height: 640,
+    },
+    "suggestion-board": {
+      title: "Suggestion Board",
+      icon: "fas fa-lightbulb",
+      content: `
+        <div class="suggestion-board-app">
+          <div class="suggestion-board-header">
+            <div>
+              <p class="suggestion-board-label">Share your ideas</p>
+              <h2>Suggestion Board</h2>
+            </div>
+            <span class="suggestion-board-count" id="suggestionBoardCount">0 ideas</span>
+          </div>
+          <form id="suggestionBoardForm" class="suggestion-board-form">
+            <input type="text" id="suggestionBoardTitle" class="suggestion-board-input" maxlength="64" placeholder="Idea title (required)" required>
+            <textarea id="suggestionBoardDetails" class="suggestion-board-textarea" rows="4" maxlength="400" placeholder="Describe your idea and why it matters (required)" required></textarea>
+            <input type="text" id="suggestionBoardAuthor" class="suggestion-board-input" maxlength="32" placeholder="Your name (optional)">
+            <div class="suggestion-board-actions">
+              <button class="suggestion-board-btn" type="submit">Submit suggestion</button>
+            </div>
+          </form>
+          <div class="suggestion-board-list" id="suggestionBoardList"></div>
+        </div>
+        <script>
+          (function() {
+            const STORAGE_KEY = "nebulo_suggestions";
+            const form = document.getElementById("suggestionBoardForm");
+            const listEl = document.getElementById("suggestionBoardList");
+            const countEl = document.getElementById("suggestionBoardCount");
+            if (!form || !listEl) return;
+
+            const escapeHtml = (value = "") =>
+              value
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+
+            const loadSuggestions = () => {
+              const raw = localStorage.getItem(STORAGE_KEY);
+              if (!raw) return [];
+              try {
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed;
+              } catch (e) {
+                console.warn("[Suggestion Board] Failed to parse stored suggestions", e);
+                return [];
+              }
+            };
+
+            const saveSuggestions = (items) => {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+            };
+
+            const render = () => {
+              const suggestions = loadSuggestions();
+              if (countEl) {
+                countEl.textContent = suggestions.length === 0
+                  ? "0 ideas"
+                  : \`\${suggestions.length} idea\${suggestions.length === 1 ? "" : "s"}\`;
+              }
+
+              if (!listEl) return;
+              if (suggestions.length === 0) {
+                listEl.innerHTML = '<div class="suggestion-board-empty">No suggestions yet. Share the next improvement.</div>';
+                return;
+              }
+
+              listEl.innerHTML = suggestions
+                .map((suggestion) => {
+                  const when = new Date(suggestion.createdAt).toLocaleString();
+                  return \`
+                    <div class="suggestion-card">
+                      <div class="suggestion-card-title">\${escapeHtml(suggestion.title)}</div>
+                      <div class="suggestion-card-details">\${escapeHtml(suggestion.details)}</div>
+                      <div class="suggestion-card-meta">
+                        <span>\${escapeHtml(suggestion.author || "Anonymous")}</span>
+                        <span>\${when}</span>
+                      </div>
+                    </div>
+                  \`;
+                })
+                .join("");
+            };
+
+            form.addEventListener("submit", (event) => {
+              event.preventDefault();
+              const titleInput = document.getElementById("suggestionBoardTitle");
+              const detailsInput = document.getElementById("suggestionBoardDetails");
+              const authorInput = document.getElementById("suggestionBoardAuthor");
+              if (!titleInput || !detailsInput) return;
+              const title = titleInput.value.trim();
+              const details = detailsInput.value.trim();
+              if (!title || !details) {
+                showToast("Please add both a title and details before sharing.", "fa-exclamation-circle");
+                return;
+              }
+              const suggestions = loadSuggestions();
+              suggestions.unshift({
+                id: Date.now(),
+                title,
+                details,
+                author: authorInput?.value.trim(),
+                createdAt: Date.now(),
+              });
+              saveSuggestions(suggestions.slice(0, 60));
+              titleInput.value = "";
+              detailsInput.value = "";
+              if (authorInput) authorInput.value = "";
+              render();
+              showToast("Suggestion submitted to the board!", "fa-check-circle");
+            });
+
+            render();
+          })();
+        </script>
+      `,
+      noPadding: true,
+      width: 900,
+      height: 620,
     },
     cloaking: {
       title: "Cloaking",
@@ -4821,6 +6071,14 @@ alt="favicon">
                             <div class="cloaking-preset-name">GitHub</div>
                             <div class="cloaking-preset-url">github.com</div>
                         </div>
+
+                        <div class="cloaking-preset-card" onclick="applyPreset('aboutBlank')">
+                            <div class="cloaking-preset-icon" style="background: linear-gradient(135deg, #1f2937, #374151);">
+                                <i class="fas fa-window-restore"></i>
+                            </div>
+                            <div class="cloaking-preset-name">About:blank</div>
+                            <div class="cloaking-preset-url">about:blank</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -5096,7 +6354,7 @@ alt="favicon">
                                     class="searchEngineI" 
                                     style="margin-left: 0; width: 100%;" 
                                     id="wispUrlInput" 
-                                    value="${localStorage.getItem('nOS_wispUrl') || 'wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/'}"
+                                    value="${localStorage.getItem('nOS_wispUrl') || 'wss://wisp.rhw.one/'}"
                                     placeholder="wss://..."
                                     onchange="changeWispUrl(this.value)">
                                 <button class="settings-action-btn" onclick="resetWispUrl()" style="padding: 0 1rem; margin-left: 0.5rem;">
@@ -5278,62 +6536,154 @@ alt="favicon">
     music: {
       title: "Music",
       icon: "fas fa-music",
-      content: `
-          <div class="music-player">
-              <div class="music-header">
-                  <div class="music-artwork">
-                      <i class="fas fa-music"></i>
-                  </div>
-                  <div class="music-info">
-                      <div class="music-title" id="musicTitle">No Track Loaded</div>
-                      <div class="music-artist" id="musicArtist">Select a music file to play</div>
-                  </div>
-                  <div class="music-load-section">
-                      <label for="musicFileInput" class="music-load-btn">
-                          <i class="fas fa-folder-open"></i> Load Music
-                          <input type="file" id="musicFileInput" accept="audio/*" onchange="loadMusicFile(event)" style="display: none;">
-                      </label>
-                  </div>
-              </div>
-
-              <div class="music-progress-section">
-                  <div class="music-time" id="currentTime">0:00</div>
-                  <div class="music-progress-bar" onclick="seekMusic(event)">
-                      <div class="music-progress-fill" id="progressFill"></div>
-                  </div>
-                  <div class="music-time" id="totalTime">0:00</div>
-              </div>
-
-              <div class="music-controls">
-                  <button class="music-control-btn" onclick="restartMusic()" title="Restart">
-                      <i class="fas fa-redo"></i>
-                  </button>
-                  <button class="music-control-btn" onclick="skipBackward()" title="Skip Back 10s">
-                      <i class="fas fa-backward"></i>
-                  </button>
-                  <button class="music-control-btn play-btn" id="playPauseBtn" onclick="togglePlayPause()">
-                      <i class="fas fa-play"></i>
-                  </button>
-                  <button class="music-control-btn" onclick="skipForward()" title="Skip Forward 10s">
-                      <i class="fas fa-forward"></i>
-                  </button>
-                  <button class="music-control-btn" id="loopBtn" onclick="toggleLoop()" title="Loop">
-                      <i class="fas fa-repeat"></i>
-                  </button>
-              </div>
-
-              <div class="music-volume-section">
-                  <i class="fas fa-volume-up"></i>
-                  <input type="range" class="music-volume-slider" id="volumeSlider" min="0" max="100" value="70" oninput="changeVolume(this.value)">
-                  <span id="volumePercent">70%</span>
-              </div>
-
-              <audio id="audioPlayer" style="display: none;"></audio>
+      content: (() => {
+        const targetUrl = "https://vapor.onl/page/music/index.html";
+        const scramjetUrl = encodeScramjetUrl(targetUrl);
+        const fallbackProxy = `${new URL(".", window.location.href).pathname}uv/nebulo.html?mode=music&url=${encodeURIComponent(targetUrl)}`;
+        return `
+          <div class="music-proxy-shell" style="width: 100%; height: 100%; display: flex;">
+            <iframe
+              src="${scramjetUrl}"
+              allow="autoplay"
+              frameborder="0"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              style="width: 100%; height: 100%; border: none;"
+              onerror="this.src='${fallbackProxy}'"
+            ></iframe>
           </div>
-      `,
+        `;
+      })(),
       noPadding: true,
       width: 900,
       height: 600,
+    },
+    movies: {
+      title: "Movies",
+      icon: "fas fa-film",
+      content: (() => {
+        const targetUrl = "https://www.cineby.gd/";
+        const scramjetUrl = encodeScramjetUrl(targetUrl);
+        const fallbackProxy = `${new URL(".", window.location.href).pathname}uv/nebulo.html?mode=games&url=${encodeURIComponent(targetUrl)}`;
+        return `
+          <div
+            class="proxy-shell"
+            style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
+          >
+            <div
+              style="padding: 0.85rem 1rem; background: rgba(125, 211, 192, 0.15); color: #7dd3c0; border-radius: 6px; text-align: center; font-size: 0.9rem;"
+            >
+              Cineby runs through the Scramjet/Sail proxy and keeps attempted redirects trapped inside the sandboxed iframe.
+            </div>
+            <div style="flex: 1;">
+              <iframe
+                src="${scramjetUrl}"
+                allow="fullscreen; autoplay"
+                frameborder="0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                style="width: 100%; height: 100%; border: none;"
+                onerror="this.src='${fallbackProxy}'"
+              ></iframe>
+            </div>
+          </div>
+        `;
+      })(),
+      noPadding: true,
+      width: 1000,
+      height: 650,
+    },
+    roblox: {
+      title: "Roblox",
+      icon: "fas fa-gamepad",
+      content: (() => {
+        const targetUrl = "https://astra.pxi-fusion.com/embed/roblox";
+        return `
+          <div
+            class="proxy-shell"
+            style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
+          >
+            <div
+              style="padding: 0.5rem 1rem; background: rgba(255, 165, 0, 0.15); color: #ffc107; border-radius: 6px; text-align: center; font-size: 0.9rem;"
+            >
+              Roblox may refuse to load because no UV proxy is running on this host.
+            </div>
+            <div style="flex: 1;">
+              <iframe
+                src="${targetUrl}"
+                allow="fullscreen; autoplay"
+                frameborder="0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                style="width: 100%; height: 100%; border: none;"
+              ></iframe>
+            </div>
+          </div>
+        `;
+      })(),
+      noPadding: true,
+      width: 1200,
+      height: 700,
+    },
+    "clash-royale": {
+      title: "Clash Royale",
+      icon: "fas fa-shield-alt",
+      content: (() => {
+        const targetUrl = "https://astra.pxi-fusion.com/embed/clash-royale";
+        return `
+          <div
+            class="proxy-shell"
+            style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
+          >
+            <div
+              style="padding: 0.5rem 1rem; background: rgba(255, 165, 0, 0.15); color: #ffc107; border-radius: 6px; text-align: center; font-size: 0.9rem;"
+            >
+              Clash Royale may refuse to load because no UV proxy is running on this host.
+            </div>
+            <div style="flex: 1;">
+              <iframe
+                src="${targetUrl}"
+                allow="fullscreen; autoplay"
+                frameborder="0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                style="width: 100%; height: 100%; border: none;"
+              ></iframe>
+            </div>
+          </div>
+        `;
+      })(),
+      noPadding: true,
+      width: 1200,
+      height: 700,
+    },
+    movies: {
+      title: "Movies",
+      icon: "fas fa-film",
+      content: (() => {
+        const targetUrl = "https://www.cineby.gd/";
+        const encoded = encodeScramjetUrl(targetUrl);
+        return `
+          <div
+            class="proxy-shell"
+            style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
+          >
+            <div
+              style="padding: 0.5rem 1rem; background: rgba(125, 211, 192, 0.15); color: #7dd3c1; border-radius: 6px; text-align: center; font-size: 0.9rem;"
+            >
+              Cineby ships inside a sandbox; redirects are blocked and the stream stays inside the proxy.
+            </div>
+            <div style="flex: 1;">
+              <iframe
+                src="${encoded}"
+                allow="fullscreen; autoplay"
+                frameborder="0"
+                sandbox="allow-scripts allow-same-origin allow-forms"
+                style="width: 100%; height: 100%; border: none;"
+              ></iframe>
+            </div>
+          </div>
+        `;
+      })(),
+      noPadding: true,
+      width: 1200,
+      height: 750,
     },
     photos: {
       title: "Photos",
@@ -5452,13 +6802,69 @@ alt="favicon">
               <div class="whats-new-content">
                   <center>
                   <div class="whats-new-header">
-                      <h1 style="text-align: center !important; font-size: 2rem; margin-bottom: 0.5rem; line-height: 1.2;">Welcome to Nebulo <br>v4! What's new?<br> Brand NEW UI + a LOT more</h1>
-                      <p>AI Assistant, Browser Updates, More Themes, VS Code, Window Snapping, Games, and more!</p>
+                      <h1 style="text-align: center !important; font-size: 2rem; margin-bottom: 0.5rem; line-height: 1.2;">Welcome to Nebulo <br>v5! What's new?<br> Movies • Roblox • UI polish</h1>
+                      <p>AI Assistant, Browser Updates, More Themes, VS Code, Window Snapping, Games, and more—now with Cineby streaming and clearer proxy choices.</p>
                   </div>
                   </center>
 
                   <div class="carousel-container">
-                      <div class="carousel-slide active" data-slide="0">
+                      <div class="carousel-slide active" data-slide="0" style="text-align: center;">
+                          <div class="carousel-illustration">
+                              <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                                  <div style="display: flex; flex-wrap: wrap; gap: 0.65rem; justify-content: center;">
+                                      <span style="padding: 0.35rem 1rem; border-radius: 999px; border: 1px solid rgba(125, 211, 192, 0.5); color: #7dd3c0; font-size: 0.8rem;">Movies</span>
+                                      <span style="padding: 0.35rem 1rem; border-radius: 999px; border: 1px solid rgba(248, 113, 113, 0.5); color: #f97316; font-size: 0.8rem;">Roblox</span>
+                                      <span style="padding: 0.35rem 1rem; border-radius: 999px; border: 1px solid rgba(14, 165, 233, 0.5); color: #38bdf8; font-size: 0.8rem;">UI Refresh</span>
+                                  </div>
+                                  <div style="width: 180px; height: 120px; border-radius: 16px; border: 2px solid rgba(125, 211, 192, 0.4); background: rgba(5, 10, 18, 0.85); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; color: #fff;">
+                                      V5
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="carousel-content">
+                              <h2>Nebulo Update V5</h2>
+                              <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; text-align: center; align-items: center;">
+                                  <li>Movies delivers Cineby through the Sail/Scramjet proxy while sandboxing redirects so the experience stays inside Nebulo.</li>
+                                  <li>Roblox &amp; Clash Royale now offer explicit proxy choices (Now.gg option 1 or Astra) plus messaging about why a UV proxy is required.</li>
+                                  <li>The login card, global chat button, notification badge, and user badge received a professional polish for a cohesive desktop feel.</li>
+                              </ul>
+                          </div>
+                      </div>
+                      <div class="carousel-slide" data-slide="1">
+                          <div class="carousel-illustration">
+                              <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                                  <div style="width: 220px; height: 130px; border-radius: 16px; border: 2px solid rgba(125, 211, 192, 0.4); background: rgba(5, 10, 18, 0.9); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff;">
+                                      Cineby
+                                  </div>
+                                  <div style="width: 210px; height: 18px; border-radius: 10px; display: flex; gap: 6px;">
+                                      <div style="flex:1; background: rgba(125, 211, 192, 0.3); border-radius: 6px;"></div>
+                                      <div style="flex:1; background: rgba(125, 211, 192, 0.4); border-radius: 6px;"></div>
+                                      <div style="flex:1; background: rgba(125, 211, 192, 0.2); border-radius: 6px;"></div>
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="carousel-content">
+                              <h2>Movies App</h2>
+                              <p>Stream Cineby through the Scramjet proxy with a sandbox that blocks any redirects the site tries. Autoplay and fullscreen links stay inside the frame while the Sail/Scramjet worker keeps the remote content flowing.</p>
+                          </div>
+                      </div>
+                      <div class="carousel-slide" data-slide="2">
+                          <div class="carousel-illustration">
+                              <div style="display: flex; gap: 1rem; align-items: center; justify-content: center;">
+                                  <div style="width: 70px; height: 70px; border-radius: 12px; border: 2px solid #f97316; display: flex; align-items: center; justify-content: center; color: #f97316; background: rgba(255, 255, 255, 0.05);">
+                                      <i class="fas fa-dice"></i>
+                                  </div>
+                                  <div style="width: 70px; height: 70px; border-radius: 12px; border: 2px solid #ef4444; display: flex; align-items: center; justify-content: center; color: #ef4444; background: rgba(255, 255, 255, 0.05);">
+                                      <i class="fas fa-shield-alt"></i>
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="carousel-content">
+                              <h2>Roblox &amp; Clash Royale</h2>
+                              <p>Roblox now prompts for Now.gg option 1 or Astra embed so you can choose the remote proxy. Clash Royale continues to load the Astra embed while clearly noting why the UV proxy is needed, so there are no surprise failures.</p>
+                          </div>
+                      </div>
+                      <div class="carousel-slide" data-slide="0">
                           <div class="carousel-illustration">
                               <div class="illustration-folder"></div>
                           </div>
@@ -5603,10 +7009,10 @@ alt="favicon">
                                   <div class="illustration-input"></div>
                               </div>
                           </div>
-                          <div class="carousel-content">
-                              <h2>Secure Login Screen</h2>
-                              <p>Beautiful login interface with system information, real-time clock, and smooth transitions. Your personalized workspace awaits behind a polished authentication screen.</p>
-                          </div>
+                            <div class="carousel-content">
+                                <h2>Secure Login Screen</h2>
+                                <p>The refreshed sign-in card now highlights system stats, supports passwordless accounts, and keeps the form compact so you enter your credentials without scrolling.</p>
+                            </div>
                       </div>
 
                       <div class="carousel-slide" data-slide="8">
@@ -5926,6 +7332,8 @@ alt="favicon">
           <div class="carousel-dot" onclick="goToSlide(19)"></div>
           <div class="carousel-dot" onclick="goToSlide(20)"></div>
           <div class="carousel-dot" onclick="goToSlide(21)"></div>
+          <div class="carousel-dot" onclick="goToSlide(22)"></div>
+          <div class="carousel-dot" onclick="goToSlide(23)"></div>
 
       </div>
                           </div>
@@ -7003,6 +8411,46 @@ print(f'Sum: {sum(numbers)}')
     },
   };
 
+  apps["popular-apps"] = {
+    title: "Popular Apps",
+    icon: "fas fa-th-large",
+    content: `
+      <div class="popular-apps-window">
+        <header>
+          <div>
+            <p class="popular-apps-label">Always available</p>
+            <h2>Apps</h2>
+          </div>
+          <p class="popular-apps-subtext">Click any card to load it safely inside Nebulo’s Scramjet proxy.</p>
+        </header>
+      <div class="popular-apps-grid">
+        ${POPULAR_PROXY_APPS.map((app) => `
+          <div
+            class="popular-app-card"
+            tabindex="0"
+            role="button"
+            data-app-id="${app.id}"
+            data-app-url="${app.url}"
+            data-app-name="${app.name}"
+            data-app-icon="${app.icon}"
+            onclick="handlePopularAppCardActivation(this)"
+            onkeydown="if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') { event.preventDefault(); handlePopularAppCardActivation(this); }">
+            <figure class="popular-app-card-art">
+              <img loading="lazy" src="${app.image}" alt="${app.name} logo">
+            </figure>
+    <span class="popular-app-label">${app.name}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `,
+  noPadding: true,
+  width: 980,
+  height: 660,
+};
+
+  delete apps["suggestion-board"];
+
   if (appName === "achievements") {
     openAchievements();
     return;
@@ -7011,6 +8459,17 @@ print(f'Sum: {sum(numbers)}')
   if (apps[appName]) {
     const app = apps[appName];
     trackAppOpened(appName);
+    if (appName === "clash-royale") {
+      await showModal({
+        type: "warning",
+        icon: "fa-exclamation-triangle",
+        title: "Proxy Unavailable",
+        message:
+          "Proxy access for Clash Royale is not available here. The game may be blocked on your network. Click OK to continue.",
+        confirm: true,
+        confirmText: "OK",
+      });
+    }
     const windowEl = createWindow(
       app.title,
       app.icon,
@@ -7074,6 +8533,7 @@ print(f'Sum: {sum(numbers)}')
       }, 100);
     }
     if (appName === "browser") {
+      initializeBrowserWispControls(windowEl);
       setTimeout(() => {
         showToast(
           "Want a different experience? Try Helios Browser in the App Store!",
@@ -9043,6 +10503,8 @@ function navigateBrowser(input) {
   currentTab.url = url;
 
   const finalUrl = url;
+  const wispInfo = window.currentScramjetWispUrl || SCRAMJET_PRIMARY_WISP;
+  console.log(`[Nebulo] Browser navigation triggered; using WISP ${wispInfo} for ${finalUrl}`);
 
   loadBrowserPage(finalUrl);
 }
@@ -9148,6 +10610,9 @@ async function loadBrowserPage(url) {
     console.log('[DEBUG] No view element found');
     return;
   }
+
+  const wispInUse = window.currentScramjetWispUrl || resolvePreferredWispUrl();
+  console.log(`[Nebulo] Browser load will use WISP ${wispInUse}`);
 
   const urlInput = document.getElementById("browserUrlInput");
   if (urlInput) urlInput.value = url;
@@ -9997,7 +11462,6 @@ document.addEventListener("click", (e) => {
 function setupStep1Next() {
   const username = document.getElementById("setupUsername").value.trim();
   const isPasswordless = document.getElementById("setupPasswordless").checked;
-  const isBloatless = document.getElementById("setupBloatless").checked;
 
   if (!username) {
     showToast("Please enter a username", "fa-exclamation-circle");
@@ -10013,7 +11477,6 @@ function setupStep1Next() {
   }
 
   window.setupIsPasswordless = isPasswordless;
-  window.setupIsBloatless = isBloatless;
 
   document.getElementById("setupStep1").style.display = "none";
 
@@ -10075,7 +11538,7 @@ function togglePasswordless() {
 function setupComplete() {
   const username = document.getElementById("setupUsername").value.trim();
   const isPasswordless = window.setupIsPasswordless || false;
-  const isBloatless = window.setupIsBloatless || false;
+  const isBloatless = false;
   const password = isPasswordless
     ? ""
     : document.getElementById("setupPassword").value;
@@ -10111,7 +11574,7 @@ function setupComplete() {
     localStorage.setItem("nebulo_isPasswordless", "false");
   }
   localStorage.setItem("nebulo_setupComplete", "true");
-  localStorage.setItem("nebulo_bloatlessMode", isBloatless ? "true" : "false");
+  localStorage.setItem("nebulo_bloatlessMode", "false");
   localStorage.setItem(
     "nebulo_installedThemes",
     JSON.stringify(installedThemes)
@@ -10131,7 +11594,7 @@ function setupComplete() {
   // Set global bloatlessMode and apply filtering immediately
   bloatlessMode = isBloatless;
   if (bloatlessMode) {
-    const bloatlessKeep = ["appstore", "settings", "files", "about", "terminal"];
+    const bloatlessKeep = ["appstore", "settings", "files", "about", "terminal"].filter((app) => !hiddenAppIds.has(app));
     const iconsContainer = document.getElementById("desktopIcons");
     if (iconsContainer) {
       const allIcons = iconsContainer.querySelectorAll(".desktop-icon[data-app]");
@@ -10342,13 +11805,6 @@ window.addEventListener("DOMContentLoaded", () => {
   updateSnapOverlayStyles();
   document.addEventListener("keydown", handleSnapHotkeys);
 
-  installedApps.forEach((appName) => {
-    addDesktopIcon(appName);
-  });
-  installedGames.forEach((gameName) => {
-    addDesktopIcon(gameName);
-  });
-
   // Restore Community Apps
   const savedCommunityApps = JSON.parse(localStorage.getItem('nebulo_communityApps') || '{}');
   Object.keys(savedCommunityApps).forEach(appId => {
@@ -10356,9 +11812,12 @@ window.addEventListener("DOMContentLoaded", () => {
     createDesktopIcon(appId, appData.name, appData.icon || 'fas fa-box');
   });
 
+  initAppFolderOverlay();
+  renderAppFolderLibrary();
+
   // Apply bloatless mode: hide pre-installed desktop icons except App Store, Settings, Files, About, and Terminal
   if (bloatlessMode) {
-    const bloatlessKeep = ["appstore", "settings", "files", "about", "terminal"];
+    const bloatlessKeep = ["appstore", "settings", "files", "about", "terminal"].filter((app) => !hiddenAppIds.has(app));
     const iconsContainer = document.getElementById("desktopIcons");
     if (iconsContainer) {
       const allIcons = iconsContainer.querySelectorAll(".desktop-icon[data-app]");
@@ -10383,6 +11842,11 @@ async function signOutToLogin() {
   if (currentUsername) {
     markUserOffline(currentUsername);
   }
+  currentUsername = "";
+  currentUserAccount = null;
+  updateUsernameBadges("");
+  updateAccountStatusBadge("");
+  isSystemLoggedIn = false;
 
   const startMenu = document.getElementById("startMenu");
   if (startMenu) startMenu.classList.remove("active");
@@ -10515,19 +11979,36 @@ function showModal(options) {
       setTimeout(() => document.getElementById("modalInput").focus(), 100);
     }
 
-    if (options.confirm) {
-      buttons.innerHTML = `
-                      <button class="modal-btn modal-btn-secondary" onclick="closeModal(false)">Cancel</button>
-                      <button class="modal-btn ${options.danger
-          ? "modal-btn-danger"
-          : "modal-btn-primary"
-        }" onclick="confirmModal()">${options.confirmText || "OK"
-        }</button>
-                  `;
+    const renderButton = (label, clickHandler, className = "modal-btn modal-btn-primary") => {
+      const button = document.createElement("button");
+      button.className = className;
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", clickHandler);
+      buttons.appendChild(button);
+    };
+
+    buttons.innerHTML = "";
+    if (Array.isArray(options.buttons) && options.buttons.length > 0) {
+      options.buttons.forEach((btn) => {
+        const valueToReturn = Object.prototype.hasOwnProperty.call(btn, "value")
+          ? btn.value
+          : btn.label;
+        renderButton(
+          btn.label,
+          () => closeModal(valueToReturn),
+          `modal-btn ${btn.className || "modal-btn-primary"}`
+        );
+      });
+    } else if (options.confirm) {
+      renderButton("Cancel", () => closeModal(false), "modal-btn modal-btn-secondary");
+      renderButton(
+        options.confirmText || "OK",
+        () => confirmModal(),
+        `modal-btn ${options.danger ? "modal-btn-danger" : "modal-btn-primary"}`
+      );
     } else {
-      buttons.innerHTML = `
-                      <button class="modal-btn modal-btn-primary" onclick="closeModal(true)">OK</button>
-                  `;
+      renderButton("OK", () => closeModal(true), "modal-btn modal-btn-primary");
     }
 
     modal.classList.add("active");
@@ -10549,6 +12030,30 @@ function confirmModal() {
   closeModal(result);
 }
 
+function buildProxyEmbedContent(targetUrl, warningText) {
+  return `
+    <div
+      class="proxy-shell"
+      style="width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;"
+    >
+      <div
+        style="padding: 0.85rem 1rem; background: rgba(255, 165, 0, 0.15); color: #ffc107; border-radius: 6px; text-align: center; font-size: 0.95rem;"
+      >
+        ${warningText}
+      </div>
+      <div style="flex: 1;">
+        <iframe
+          src="${targetUrl}"
+          allow="fullscreen; autoplay"
+          frameborder="0"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          style="width: 100%; height: 100%; border: none;"
+        ></iframe>
+      </div>
+    </div>
+  `;
+}
+
 window.alert = async (message) => {
   await showModal({
     type: "info",
@@ -10558,6 +12063,64 @@ window.alert = async (message) => {
     confirm: false,
   });
 };
+
+const VERSION_CHECK_INTERVAL_MS = 3 * 60 * 1000;
+let versionPromptedVersion = localStorage.getItem("nebulo_latestVersionPrompted") || APP_VERSION;
+
+async function showVersionUpdatePrompt(latestVersion, releaseNotes = "") {
+  const message = releaseNotes
+    ? `Nebulo ${latestVersion} is live. ${releaseNotes}`
+    : `Nebulo ${latestVersion} is live with fresh updates. Refresh to load the latest build.`;
+
+  const confirmed = await showModal({
+    type: "info",
+    icon: "fa-sync-alt",
+    title: "Update available",
+    message,
+    confirm: true,
+    confirmText: "Refresh now",
+  });
+
+  if (confirmed) {
+    location.reload();
+  }
+}
+
+async function checkForVersionUpdate() {
+  try {
+    const response = await fetch(`${VERSION_METADATA_PATH}?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      console.warn("[VERSION CHECK] Skipping version check (status not OK)");
+      return;
+    }
+
+    const payload = await response.json();
+    const latestVersion = (payload.version || "").trim();
+    if (!latestVersion) return;
+
+    if (latestVersion === APP_VERSION) {
+      if (versionPromptedVersion !== APP_VERSION) {
+        versionPromptedVersion = APP_VERSION;
+        localStorage.setItem("nebulo_latestVersionPrompted", APP_VERSION);
+      }
+      return;
+    }
+
+    if (versionPromptedVersion === latestVersion) return;
+
+    versionPromptedVersion = latestVersion;
+    localStorage.setItem("nebulo_latestVersionPrompted", latestVersion);
+
+    await showVersionUpdatePrompt(latestVersion, payload.notes || "");
+  } catch (error) {
+    console.warn("[VERSION CHECK] Unable to fetch version metadata:", error);
+  }
+}
+
+setTimeout(checkForVersionUpdate, 2500);
+setInterval(checkForVersionUpdate, VERSION_CHECK_INTERVAL_MS);
 
 window.confirm = async (message) => {
   return await showModal({
@@ -10617,11 +12180,20 @@ function loadInstalledApps() {
     }
   }
 
+  installedApps = filterVisibleApps(installedApps);
+  startupApps = filterVisibleApps(startupApps);
+  localStorage.setItem("nebulo_installedApps", JSON.stringify(installedApps));
+  localStorage.setItem("nebulo_startupApps", JSON.stringify(startupApps));
+
   // Load bloatless mode setting
   bloatlessMode = localStorage.getItem("nebulo_bloatlessMode") === "true";
 }
 
 function installApp(appName) {
+  if (hiddenAppIds.has(appName)) {
+    showToast("That app is no longer available.", "fa-ban");
+    return;
+  }
   if (installedApps.includes(appName)) {
     showToast("App already installed", "fa-info-circle");
     return;
@@ -10633,9 +12205,8 @@ function installApp(appName) {
     JSON.stringify(installedApps)
   );
 
-  addDesktopIcon(appName);
-
   updateStartMenu();
+  renderAppFolderLibrary();
 
   if (appName === "snap-manager") {
     ensureSnapSettingsDefaults();
@@ -10663,9 +12234,8 @@ function uninstallApp(appName) {
       JSON.stringify(installedApps)
     );
 
-    removeDesktopIcon(appName);
-
     updateStartMenu();
+    renderAppFolderLibrary();
 
     if (windows[appName]) {
       closeWindowByAppName(appName);
@@ -10700,8 +12270,8 @@ function installGame(gameName) {
     JSON.stringify(installedGames)
   );
 
-  addDesktopIcon(gameName);
   updateStartMenu();
+  renderAppFolderLibrary();
 
   showToast(
     "Game installed! Check your desktop and start menu to launch it.",
@@ -10719,8 +12289,8 @@ function uninstallGame(gameName) {
       JSON.stringify(installedGames)
     );
 
-    removeDesktopIcon(gameName);
     updateStartMenu();
+    renderAppFolderLibrary();
 
     if (windows[gameName]) {
       closeWindowByAppName(gameName);
@@ -11658,81 +13228,6 @@ function loadAISnakeState() {
 }
 
 
-function addDesktopIcon(appName) {
-  const iconsContainer = document.getElementById("desktopIcons");
-  if (!iconsContainer) {
-    return;
-  }
-
-  if (document.querySelector(`.desktop-icon[data-app="${appName}"]`)) return;
-
-  let iconConfig = {};
-  if (appName === "startup-apps") {
-    iconConfig = { icon: "fa-rocket", label: "Startup Apps" };
-  } else if (appName === "task-manager") {
-    iconConfig = { icon: "fa-tasks", label: "Task Manager" };
-  } else if (appName === "snap-manager") {
-    iconConfig = { icon: "fa-border-all", label: "Snap Manager" };
-  } else if (appName === "snake") {
-    iconConfig = { icon: "fa-gamepad", label: "Snake" };
-  } else if (appName === "2048") {
-    iconConfig = { icon: "fa-th", label: "2048" };
-  } else if (appName === "tictactoe") {
-    iconConfig = { icon: "fa-circle", label: "Tic-Tac-Toe" };
-  } else if (appName === "helios") {
-    iconConfig = { icon: "fa-globe", label: "Helios" };
-  } else if (appName === "vsc") {
-    iconConfig = { icon: "fa-code", label: "Visual Studio Code" };
-  } else if (appName === "v86-emulator") {
-    iconConfig = { icon: "fa-microchip", label: "V86 Emulator" };
-  } else if (appName === "ai-snake") {
-    iconConfig = { icon: "fa-brain", label: "AI Snake Learning" };
-  } else if (appName === "nebulo-ai") {
-    iconConfig = { icon: "fa-robot", label: "Nebulo AI Assistant" };
-  } else {
-    // Try to get from appMetadata
-    const metadata = appMetadata[appName];
-    if (metadata) {
-      iconConfig = {
-        icon: metadata.icon,
-        label: metadata.name,
-        image: metadata.iconImage,
-      };
-    } else {
-      return;
-    }
-  }
-
-  const iconEl = document.createElement("div");
-  iconEl.className = "desktop-icon";
-  if (appName === "browser" || appName === "games") {
-    iconEl.classList.add("desktop-icon-gold-ring");
-  }
-  if (appName === "blooket-bot") {
-    iconEl.classList.add("desktop-icon-red-ring");
-  }
-  iconEl.setAttribute("data-app", appName);
-  const iconMarkup = iconConfig.image
-    ? `<img src="${iconConfig.image}" alt="${iconConfig.label}">`
-    : `<i class="fas ${iconConfig.icon}"></i>`;
-  iconEl.innerHTML = `
-        ${iconMarkup}
-        <span>${iconConfig.label}</span>
-    `;
-  iconEl.ondblclick = () => openApp(appName);
-
-  iconsContainer.appendChild(iconEl);
-
-  initDesktopIconDragging();
-}
-
-function removeDesktopIcon(appName) {
-  const icon = document.querySelector(`.desktop-icon[data-app="${appName}"]`);
-  if (icon) {
-    icon.remove();
-  }
-}
-
 function openStartupApps() {
   const preinstalledApps = [
     { id: "files", name: "Files", icon: "fa-folder" },
@@ -11752,7 +13247,7 @@ function openStartupApps() {
     { id: "cloaking", name: "Cloaking", icon: "fa-mask" },
     { id: "achievements", name: "Achievements", icon: "fa-trophy" },
     { id: "credits", name: "Credits", icon: "fa-heart" },
-  ];
+  ].filter((app) => !hiddenAppIds.has(app.id));
 
   const installedAppsData = [];
   installedApps.forEach((appName) => {
@@ -11877,7 +13372,7 @@ function toggleStartupApp(appId) {
         { id: "calculator", name: "Calculator", icon: "fa-calculator" },
         { id: "cloaking", name: "Cloaking", icon: "fa-mask" },
         { id: "achievements", name: "Achievements", icon: "fa-trophy" },
-      ];
+      ].filter((app) => !hiddenAppIds.has(app.id));
 
       const installedAppsData = [];
       installedApps.forEach((appName) => {
@@ -12275,7 +13770,7 @@ function initBackgroundChatIframe() {
   ensureBackgroundChatIframe();
 }
 
-function openGlobalChatWindow() {
+function openGlobalChat() {
   console.log('🗣️ openGlobalChat() called');
   // Check if chat window is already open
   if (windows['global-chat']) {
@@ -12351,6 +13846,7 @@ function openGlobalChatWindow() {
     }, '*');
   }
   window.chatWindowOpen = true;
+  clearChatPingsForCurrentUser();
   makeDraggable(windowEl);
   makeResizable(windowEl);
 
@@ -12726,7 +14222,7 @@ function initStartMenuSearch() {
   searchInput.dataset.listenerAdded = 'true';
   searchInput.addEventListener('input', function () {
     const searchTerm = this.value.toLowerCase();
-    const appItems = document.querySelectorAll('.app-item');
+    const appItems = document.querySelectorAll('.folder-app-item');
 
     appItems.forEach(item => {
       const appName = item.textContent.toLowerCase();
@@ -12739,57 +14235,49 @@ function initStartMenuSearch() {
   });
 }
 
-function updateStartMenu() {
-  const appGrid = document.querySelector(".app-grid");
-  if (!appGrid) return;
+const essentialStartApps = new Set(["browser", "games", "blooket-bot", "minecraft"]);
 
-  const existingInstalledApps = appGrid.querySelectorAll(
-    '.app-item[data-installed="true"]'
-  );
-  existingInstalledApps.forEach((el) => el.remove());
+function getFolderAppList() {
+  const folderSet = new Set();
 
-  const existingInstalledGames = appGrid.querySelectorAll(
-    '.app-item[data-installed-game="true"]'
-  );
-  existingInstalledGames.forEach((el) => el.remove());
-
-  // Bloatless mode: hide pre-installed apps except App Store, Settings, Files, About, and Terminal in start menu
-  if (bloatlessMode) {
-    const bloatlessKeep = ["appstore", "settings", "files", "about", "terminal"];
-    const allAppItems = appGrid.querySelectorAll(".app-item");
-    allAppItems.forEach((item) => {
-      const onclickAttr = item.getAttribute("onclick");
-      if (onclickAttr) {
-        // Extract app name from onclick="openApp('appname')"
-        const match = onclickAttr.match(/openApp\(['"]([^'"]+)['"]\)/);
-        if (match) {
-          const appName = match[1];
-          // Hide pre-installed apps not in bloatlessKeep and not user-installed
-          if (!bloatlessKeep.includes(appName) && !installedApps.includes(appName) && !installedGames.includes(appName)) {
-            item.style.display = "none";
-          } else {
-            item.style.display = "";
-          }
-        }
-      }
-    });
-  } else {
-    // Reset visibility for non-bloatless mode
-    const allAppItems = appGrid.querySelectorAll(".app-item");
-    allAppItems.forEach((item) => {
-      item.style.display = "";
-    });
-  }
+  Object.keys(appMetadata).forEach((appName) => {
+    if (!isVisibleApp(appName)) return;
+    if (essentialStartApps.has(appName)) return;
+    folderSet.add(appName);
+  });
 
   installedApps.forEach((appName) => {
-    // Get app metadata
+    if (!isVisibleApp(appName)) return;
+    if (essentialStartApps.has(appName)) return;
+    folderSet.add(appName);
+  });
+
+  installedGames.forEach((gameName) => {
+    if (!isVisibleApp(gameName)) return;
+    if (essentialStartApps.has(gameName)) return;
+    folderSet.add(gameName);
+  });
+
+  return Array.from(folderSet);
+}
+
+function updateStartMenu() {
+  const folderGrid = document.querySelector(".folder-grid");
+  if (!folderGrid) return;
+
+  folderGrid.innerHTML = "";
+
+  const appsToShow = getFolderAppList();
+  appsToShow.forEach((appName) => {
     const metadata = appMetadata[appName];
     if (!metadata) return;
 
     const appItem = document.createElement("div");
-    appItem.className = "app-item";
-    appItem.setAttribute("data-installed", "true");
-    appItem.onclick = () => openApp(appName);
+    appItem.className = "folder-app-item";
+    appItem.onclick = () => {
+      toggleAppFolder(false);
+      openApp(appName);
+    };
     const iconMarkup = metadata.iconImage
       ? `<img src="${metadata.iconImage}" alt="${metadata.name}">`
       : `<i class="fas ${metadata.icon}"></i>`;
@@ -12798,31 +14286,7 @@ function updateStartMenu() {
             <span>${metadata.name}</span>
         `;
 
-    appGrid.appendChild(appItem);
-  });
-
-  installedGames.forEach((gameName) => {
-    let gameConfig = {};
-    if (gameName === "snake") {
-      gameConfig = { icon: "fa-gamepad", label: "Snake" };
-    } else if (gameName === "2048") {
-      gameConfig = { icon: "fa-th", label: "2048" };
-    } else if (gameName === "tictactoe") {
-      gameConfig = { icon: "fa-circle", label: "Tic-Tac-Toe" };
-    } else {
-      return;
-    }
-
-    const appItem = document.createElement("div");
-    appItem.className = "app-item";
-    appItem.setAttribute("data-installed-game", "true");
-    appItem.onclick = () => openApp(gameName);
-    appItem.innerHTML = `
-            <i class="fas ${gameConfig.icon}"></i>
-            <span>${gameConfig.label}</span>
-        `;
-
-    appGrid.appendChild(appItem);
+    folderGrid.appendChild(appItem);
   });
 
   initStartMenuSearch();
@@ -13214,6 +14678,9 @@ async function importProfile(event) {
 
   reader.readAsText(file);
 }
+const DEFAULT_CLOAK_TITLE = "Google Docs";
+const DEFAULT_CLOAK_FAVICON_URL = "https://google-docs.en.softonic.com/";
+
 let cloakingConfig = {
   autoRotate: false,
   rotateSpeed: 10,
@@ -13230,6 +14697,9 @@ let cloakingConfig = {
   antiMonitorDelay: 1000,
   useAntiMonitorDelay: false,
   confirmPageClosing: true,
+  cloakActive: false,
+  cloakTitle: DEFAULT_CLOAK_TITLE,
+  cloakFaviconUrl: DEFAULT_CLOAK_FAVICON_URL,
 };
 let rotationInterval = null;
 const originalTitle = document.title;
@@ -13605,7 +15075,7 @@ function trackAppOpened(appName) {
     "appstore",
     "calculator",
     "cloaking",
-  ];
+  ].filter((app) => !hiddenAppIds.has(app));
 
   if (preinstalledApps.includes(appName)) {
     achievementsData.openedApps.add(appName);
@@ -13829,10 +15299,16 @@ function loadCloakingConfig() {
       cloakingConfig = {
         ...cloakingConfig,
         ...parsed,
-        panicKeyEnabled: parsed.panicKeyEnabled || false,
-        panicKey: parsed.panicKey || "Escape",
-        panicUrl: parsed.panicUrl || "https://classroom.google.com",
       };
+      cloakingConfig.panicKeyEnabled = parsed.panicKeyEnabled ?? false;
+      cloakingConfig.panicKey = parsed.panicKey ?? "Escape";
+      cloakingConfig.panicUrl = parsed.panicUrl ?? "https://classroom.google.com";
+      cloakingConfig.cloakActive =
+        parsed.cloakActive ?? cloakingConfig.cloakActive;
+      cloakingConfig.cloakTitle =
+        parsed.cloakTitle ?? cloakingConfig.cloakTitle;
+      cloakingConfig.cloakFaviconUrl =
+        parsed.cloakFaviconUrl ?? cloakingConfig.cloakFaviconUrl;
     } catch (e) {
       console.error("Failed to load cloaking config:", e);
     }
@@ -13848,24 +15324,34 @@ function saveCloakingConfig() {
 }
 
 function applyCloaking() {
-  const title = document.getElementById("cloakTitle").value.trim();
-  const faviconUrl = document.getElementById("cloakFavicon").value.trim();
+  const titleInput = document.getElementById("cloakTitle");
+  const faviconInput = document.getElementById("cloakFavicon");
+  const title = titleInput?.value.trim();
+  const faviconUrl = faviconInput?.value.trim();
 
   if (!title && !faviconUrl) {
     showToast("Please enter a title or favicon URL", "fa-exclamation-circle");
     return;
   }
 
-  if (title) {
-    document.title = title;
-  }
+  const finalTitle =
+    title || cloakingConfig.cloakTitle || DEFAULT_CLOAK_TITLE;
+  const finalFaviconUrl =
+    faviconUrl || cloakingConfig.cloakFaviconUrl || DEFAULT_CLOAK_FAVICON_URL;
 
-  if (faviconUrl) {
-    setFavicon(faviconUrl);
-  }
+  applyCloakState(finalTitle, finalFaviconUrl);
+
+  cloakingConfig.cloakActive = true;
+  cloakingConfig.cloakTitle = finalTitle;
+  cloakingConfig.cloakFaviconUrl = finalFaviconUrl;
+  saveCloakingConfig();
+
+  if (titleInput) titleInput.value = finalTitle;
+  if (faviconInput) faviconInput.value = finalFaviconUrl;
 
   showToast("Cloaking applied!", "fa-check-circle");
   unlockAchievement("stealth-mode");
+  updateCloakPreview();
 }
 
 function setFavicon(url) {
@@ -13895,6 +15381,16 @@ function setFavicon(url) {
   };
 }
 
+function applyCloakState(title, faviconUrl) {
+  if (title) {
+    document.title = title;
+  }
+
+  if (faviconUrl) {
+    setFavicon(faviconUrl);
+  }
+}
+
 function resetCloaking() {
   document.title = originalTitle;
 
@@ -13910,8 +15406,15 @@ function resetCloaking() {
 
   const titleInput = document.getElementById("cloakTitle");
   const faviconInput = document.getElementById("cloakFavicon");
-  if (titleInput) titleInput.value = originalTitle;
-  if (faviconInput) faviconInput.value = "";
+  if (titleInput) titleInput.value = DEFAULT_CLOAK_TITLE;
+  if (faviconInput) faviconInput.value = DEFAULT_CLOAK_FAVICON_URL;
+
+  cloakingConfig.cloakActive = false;
+  cloakingConfig.cloakTitle = DEFAULT_CLOAK_TITLE;
+  cloakingConfig.cloakFaviconUrl = DEFAULT_CLOAK_FAVICON_URL;
+  saveCloakingConfig();
+
+  updateCloakPreview();
 
   showToast("Cloaking reset to default", "fa-undo");
 }
@@ -14056,6 +15559,9 @@ function saveRotationSettings() {
 
 window.addEventListener("DOMContentLoaded", () => {
   loadCloakingConfig();
+  if (cloakingConfig.cloakActive) {
+    applyCloakState(cloakingConfig.cloakTitle, cloakingConfig.cloakFaviconUrl);
+  }
 
   if (cloakingConfig.autoRotate) {
     setTimeout(() => {
@@ -14142,6 +15648,19 @@ window.openApp = openApp = function (appName, ...args) {
       if (delayInput) {
         delayInput.value = cloakingConfig.antiMonitorDelay;
         updateAntiMonitorDelayDisplay(cloakingConfig.antiMonitorDelay);
+      }
+
+      const cloakTitleInput = document.getElementById("cloakTitle");
+      if (cloakTitleInput) {
+        cloakTitleInput.value = cloakingConfig.cloakActive
+          ? cloakingConfig.cloakTitle
+          : DEFAULT_CLOAK_TITLE;
+      }
+      const cloakFaviconInput = document.getElementById("cloakFavicon");
+      if (cloakFaviconInput) {
+        cloakFaviconInput.value = cloakingConfig.cloakActive
+          ? cloakingConfig.cloakFaviconUrl
+          : DEFAULT_CLOAK_FAVICON_URL;
       }
 
       updateCloakPreview();
@@ -14475,17 +15994,20 @@ function updateLoginScreen() {
     const isPasswordless =
       localStorage.getItem("nebulo_isPasswordless") === "true";
     const passwordWrapper = document.getElementById("passwordWrapper");
+    const passwordInput = document.getElementById("password");
     const loginSubtitle = document.getElementById("loginSubtitle");
     const loginContainer = document.querySelector(".login-container");
 
     if (isPasswordless) {
       if (passwordWrapper) passwordWrapper.style.display = "none";
+      if (passwordInput) passwordInput.required = false;
       if (loginSubtitle)
         loginSubtitle.textContent =
           "Passwordless account - just enter your username";
       if (loginContainer) loginContainer.classList.add("passwordless");
     } else {
       if (passwordWrapper) passwordWrapper.style.display = "block";
+      if (passwordInput) passwordInput.required = true;
       if (loginSubtitle) loginSubtitle.textContent = "Sign in to continue";
       if (loginContainer) loginContainer.classList.remove("passwordless");
     }
@@ -14496,6 +16018,7 @@ function updateLoginWithAccounts(accounts) {
   const loginSubtitle = document.getElementById("loginSubtitle");
   const usernameInput = document.getElementById("username");
   const passwordWrapper = document.getElementById("passwordWrapper");
+  const passwordInput = document.getElementById("password");
 
   if (accounts.length === 1) {
     // Only one account, pre-fill username
@@ -14509,6 +16032,7 @@ function updateLoginWithAccounts(accounts) {
     if (passwordWrapper) {
       passwordWrapper.style.display = account.isPasswordless ? "none" : "block";
     }
+    if (passwordInput) passwordInput.required = !account.isPasswordless;
   } else {
     // Multiple accounts - show account selector
     if (loginSubtitle) {
@@ -14532,6 +16056,7 @@ function updateLoginWithAccounts(accounts) {
     // Hide username and password fields initially
     if (usernameInput) usernameInput.style.display = "none";
     if (passwordWrapper) passwordWrapper.style.display = "none";
+    if (passwordInput) passwordInput.required = false;
   }
 }
 
@@ -14554,6 +16079,7 @@ function selectLoginAccount(username) {
   if (passwordWrapper) {
     passwordWrapper.style.display = account.isPasswordless ? "none" : "block";
   }
+  if (passwordInput) passwordInput.required = !account.isPasswordless;
 
   // Update subtitle
   if (loginSubtitle) {
@@ -15323,6 +16849,10 @@ function applyPreset(presetName) {
       title: "GitHub",
       url: "https://github.com",
     },
+    aboutBlank: {
+      title: "About:blank",
+      url: "about:blank",
+    },
   };
 
   const preset = presets[presetName];
@@ -15330,6 +16860,10 @@ function applyPreset(presetName) {
 
   document.title = preset.title;
   setFavicon(preset.url);
+
+  if (preset.url === "about:blank") {
+    window.open("about:blank", "_blank");
+  }
 
   showToast(`Applied ${preset.title} preset!`, "fa-check-circle");
   unlockAchievement("stealth-mode");
@@ -15356,7 +16890,7 @@ function checkImportedAchievements() {
     "appstore",
     "calculator",
     "cloaking",
-  ];
+  ].filter((app) => !hiddenAppIds.has(app));
 
   installedApps.forEach((appName) => {
     if (!preinstalledApps.includes(appName)) {
@@ -15441,7 +16975,7 @@ function changeUsername() {
 
   currentUsername = newUsername;
   localStorage.setItem("nebulo_username", newUsername);
-  document.getElementById("displayUsername").textContent = newUsername;
+  updateUsernameBadges(newUsername);
 
   showToast(`Username changed to "${newUsername}"`, "fa-check-circle");
   closeModal();
@@ -18659,7 +20193,7 @@ function executeTool_GetAvailableOptions(params) {
       },
       urls: {
         wispUrl: {
-          current: localStorage.getItem('nOS_wispUrl') || 'wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/',
+          current: localStorage.getItem('nOS_wispUrl') || 'wss://wisp.rhw.one/',
           description: 'Wisp proxy URL for browser'
         },
         bareUrl: {
@@ -18909,6 +20443,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   });
+  reorderStartMenuApps();
 });
 
 // Proxy Settings Helpers
@@ -18937,7 +20472,7 @@ function changeWispUrl(url) {
 }
 
 function resetWispUrl() {
-  const defaultUrl = 'wss://neutral-joan-nebulo-7ce3f9eb.koyeb.app/';
+  const defaultUrl = 'wss://wisp.rhw.one/';
   localStorage.setItem('nOS_wispUrl', defaultUrl);
   const input = document.getElementById('wispUrlInput');
   if (input) input.value = defaultUrl;
@@ -19094,6 +20629,54 @@ function openCustomWebAppWindow(app) {
     app.id,
     true // noPadding
   );
+}
+
+function handlePopularAppCardActivation(card) {
+  if (!card) return;
+  const payload = {
+    id: card.dataset.appId,
+    name: card.dataset.appName || "Popular App",
+    url: card.dataset.appUrl,
+    icon: card.dataset.appIcon || "fas fa-globe",
+  };
+  if (!payload.url) return;
+  launchProxyApp(payload);
+}
+
+function launchProxyApp(app) {
+  if (!app || !app.url) return;
+  initScramjetProxy();
+  let proxyUrl = encodeScramjetUrl(app.url);
+  if (!proxyUrl || proxyUrl === app.url) {
+    console.warn("[Popular Apps] Scramjet not available for", app.url, "using direct URL");
+    proxyUrl = app.url;
+  }
+
+  const content = `
+    <div style="width: 100%; height: 100%; display: flex; flex-direction: column; background: #fff;">
+      <iframe src="${proxyUrl}" style="flex: 1; width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
+    </div>
+  `;
+  showToast(`Launching ${app.name}`, "fa-arrow-up-right-from-square");
+  createWindow(
+    app.name,
+    app.icon || "fas fa-globe",
+    content,
+    1000,
+    700,
+    app.id,
+    true
+  );
+}
+
+function initializeBrowserWispControls(windowEl) {
+  if (!windowEl) return;
+  const iframe = windowEl.querySelector("#browserUvIframe");
+  const wispUrl = window.currentScramjetWispUrl || resolvePreferredWispUrl();
+  persistWispUrl(wispUrl, { persist: wispUrl !== SCRAMJET_FALLBACK_WISP });
+  if (iframe && !iframe.src) {
+    iframe.src = iframe.dataset.src || wispUrl;
+  }
 }
 
 // Helper to create desktop icon dynamically
@@ -19590,9 +21173,16 @@ window.addEventListener('message', function(event) {
   } else if (event.data.type === 'showChatNotification') {
     console.log('Processing showChatNotification message');
     showChatToast(event.data.username, event.data.content);
+  } else if (event.data.type === 'mentionUser') {
+    const username = (event.data.username || '').trim();
+    if (username) {
+      addUsersToMentionCache([{ username }]);
+    }
   } else if (event.data.type === 'getOnlineUsers') {
     console.log('🔄 Processing getOnlineUsers request');
     const onlineUsers = getOnlineUsers();
+
+    addUsersToMentionCache(onlineUsers);
 
     // Add avatar URLs to each user
     const usersWithAvatars = onlineUsers.map(user => ({
@@ -19630,6 +21220,10 @@ window.addEventListener('message', function(event) {
     if (!sent) {
       console.log('❌ No chat iframe found for getOnlineUsers request');
     }
+  } else if (event.data?.type === 'remoteAccounts') {
+    const accounts = Array.isArray(event.data.accounts) ? event.data.accounts : [];
+    console.log('📨 Received remote accounts list from chat iframe:', accounts.length);
+    updateRemoteMentionAccounts(accounts);
   } else if (event.data.type === 'getUserAvatar') {
     console.log('Processing getUserAvatar request for:', event.data.username);
     const avatarUrl = getUserProfilePicture(event.data.username);
@@ -19663,13 +21257,12 @@ window.addEventListener('storage', function(event) {
   if (event.key === 'nebulo_accounts') {
     console.log('📡 Accounts data changed in another tab, updating online users...');
     console.log('📊 New accounts data length:', event.newValue ? event.newValue.length : 0);
+    refreshMentionCacheFromAccounts(true);
 
-    // If chat is open, refresh the online users list
     const iframes = document.querySelectorAll('iframe[src*="chat-only.html"]');
     console.log('🔍 Found', iframes.length, 'chat iframes');
 
     if (iframes.length > 0) {
-      // Get updated online users
       const onlineUsers = getOnlineUsers();
       const usersWithAvatars = onlineUsers.map(user => ({
         ...user,
@@ -19678,7 +21271,6 @@ window.addEventListener('storage', function(event) {
 
       console.log('🔄 Cross-tab update: found', onlineUsers.length, 'online users:', onlineUsers.map(u => u.username));
 
-      // Send to chat iframes
       iframes.forEach((iframe, i) => {
         if (iframe.contentWindow) {
           iframe.contentWindow.postMessage({
@@ -19797,35 +21389,6 @@ function startActivityTracking() {
   });
 }
 
-// Get current active user count (would come from tracking server)
-function getActiveUserCount() {
-  // This would normally fetch from your tracking server
-  // For now, return a mock value
-  return Math.floor(Math.random() * 50) + 10; // Mock: 10-60 users
-}
-
-// Show active user count in UI
-function updateActiveUserDisplay() {
-  const count = getActiveUserCount();
-
-  // Update the active users indicator
-  const indicator = document.getElementById('activeUsersCount');
-  if (indicator) {
-    indicator.textContent = count;
-  }
-}
-
-// Start periodic UI updates for active users
-function startActiveUserUpdates() {
-  // Update immediately
-  updateActiveUserDisplay();
-
-  // Update every 60 seconds
-  setInterval(() => {
-    updateActiveUserDisplay();
-  }, 60000);
-}
-
 // Configure tracking server
 window.configureActivityTracking = function(options = {}) {
   if (options.enabled !== undefined) ACTIVITY_TRACKING.enabled = options.enabled;
@@ -19845,8 +21408,6 @@ window.testActivityTracking = function() {
   // Send a test ping
   sendActivityPing();
 
-  // Show active user count
-  updateActiveUserDisplay();
 };
 
 // Demo: Configure for testing (replace with your actual server)
@@ -19867,12 +21428,10 @@ if (isSystemLoggedIn) {
 // Also start tracking when user logs in
 window.addEventListener('Login Success', () => {
   startActivityTracking();
-  startActiveUserUpdates();
 });
 
-// Start active user updates for anonymous users too
+// Start online indicators for anonymous users too
 if (!isSystemLoggedIn) {
-  startActiveUserUpdates();
 }
 
 // ========== CHAT SECURITY & INTEGRITY PROTECTION ==========
@@ -20006,6 +21565,11 @@ window.addEventListener('DOMContentLoaded', () => {
     if (toggleButton) {
         toggleButton.addEventListener('click', toggleChatNotifications);
     }
-});
 
+    const desktopInput = document.getElementById('chatInput');
+    const desktopSuggestionBox = document.getElementById('mentionSuggestionsDesktop');
+    if (desktopInput && desktopSuggestionBox) {
+        setupChatMentionSuggestions(desktopInput, desktopSuggestionBox);
+    }
+});
 

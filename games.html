@@ -1668,5 +1668,60 @@ HTMLCanvasElement.prototype.toDataURL = function (...args) {
     <script>
         navigator.serviceWorker.register(location.protocol+"//"+location.hostname+"/sw.js");
     </script>
+    <script>
+        (function() {
+            const blockPatterns = [/spotify(-stats)?/i];
+            const redirectPatterns = [/gn-math/i, /gn-math\\.github\\.io/i, /cdn\\.jsdelivr\\.net/i];
+            const isBlocked = (url) => {
+                if (!url) return false;
+                try {
+                    const normalized = new URL(url, location.origin).hostname;
+                    return (
+                        blockPatterns.some(pattern => pattern.test(normalized)) ||
+                        redirectPatterns.some(pattern => pattern.test(normalized))
+                    );
+                } catch {
+                    return (
+                        blockPatterns.some(pattern => pattern.test(url)) ||
+                        redirectPatterns.some(pattern => pattern.test(url))
+                    );
+                }
+            };
+            document.addEventListener('click', (event) => {
+                const anchor = event.target.closest('a');
+                if (!anchor || !anchor.href) return;
+                if (isBlocked(anchor.href)) {
+                    event.preventDefault();
+                    console.warn('[Games] Blocked Spotify redirect:', anchor.href);
+                }
+            }, { capture: true });
+            const safe = {
+                assign: window.location.assign,
+                replace: window.location.replace,
+                open: window.open
+            };
+            window.location.assign = function(url) {
+                if (isBlocked(url)) {
+                    console.warn('[Games] Blocked Spotify redirect via assign:', url);
+                    return;
+                }
+                return safe.assign.call(window.location, url);
+            };
+            window.location.replace = function(url) {
+                if (isBlocked(url)) {
+                    console.warn('[Games] Blocked Spotify redirect via replace:', url);
+                    return;
+                }
+                return safe.replace.call(window.location, url);
+            };
+            window.open = function(url, target, features) {
+                if (isBlocked(url)) {
+                    console.warn('[Games] Blocked Spotify redirect via open:', url);
+                    return null;
+                }
+                return safe.open.call(window, url, target, features);
+            };
+        })();
+    </script>
 </body>
 </html>
