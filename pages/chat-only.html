@@ -154,6 +154,15 @@
         0 10px 30px rgba(239, 68, 68, 0.12);
     }
 
+    .message.system.ban .message-content {
+      background: rgba(251, 146, 60, 0.16);
+      border: 1px solid rgba(251, 146, 60, 0.35);
+      color: #fb923c;
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
     .message.user { justify-content: flex-end; }
     .message.other { justify-content: flex-start; }
 
@@ -479,6 +488,14 @@
 
     const OWNER_USERNAME = 'shs12lord';
     const OWNER_DISPLAY_NAME = 'Owner';
+    const BAN_REFRESH_INTERVAL_MS = 60 * 1000;
+    const BAN_EVENT_PREFIX = "[BAN_EVENT]";
+    const banEventNonces = new Set();
+
+    let bannedUsers = new Map();
+    let banRefreshTimer = null;
+    const LAST_MESSAGE_TIMES = new Map();
+    const SLOW_MODE_MS = 2000;
 
     // ------------------------------
     // MODERATION (PLACEHOLDERS ONLY)
@@ -581,6 +598,34 @@
       if (isOwnerUser(normalized)) return OWNER_DISPLAY_NAME;
       if (!normalized) return 'Unknown';
       return isRespectedUser(normalized) ? `${normalized} - Respected` : normalized;
+    }
+
+    function normalizeBanName(name) {
+      const normalized = normalizeUsername(name);
+      return normalized ? normalized.toLowerCase() : '';
+    }
+
+    function formatHoursLabel(hours) {
+      const safe = Number.isFinite(hours) && hours > 0 ? hours : 1;
+      const rounded = Number.isInteger(safe) ? safe : Number(safe.toFixed(1));
+      return `${rounded} hour${Math.abs(rounded) === 1 ? '' : 's'}`;
+    }
+
+    function getBanHoursRemaining(name) {
+      const normalized = normalizeBanName(name);
+      const expiresAt = bannedUsers.get(normalized);
+      if (!expiresAt) return null;
+      const now = Date.now();
+      if (expiresAt <= now) {
+        bannedUsers.delete(normalized);
+        return null;
+      }
+      return (expiresAt - now) / 3600000;
+    }
+
+    function isUserBanned(name) {
+      const remaining = getBanHoursRemaining(name);
+      return remaining !== null;
     }
 
     function getRateRecord(username) {
@@ -722,13 +767,34 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: username, text: message })
       });
-      if (resp.status === 429) {
-        const errorData = await resp.json();
-        throw { status: 429, message: errorData.error || "Rate limit exceeded" };
+
+      let data = null;
+      try {
+        data = await resp.json();
+      } catch (parseError) {
+        console.warn("Failed to parse Cloudflare response:", parseError);
       }
-      if (!resp.ok) throw new Error(`Cloudflare error: ${resp.status}`);
-      const data = await resp.json();
-      return data.message;
+
+      if (resp.status === 429) {
+        const err = new Error(data?.error || "Rate limit exceeded");
+        err.status = 429;
+        throw err;
+      }
+
+      if (resp.status === 403) {
+        const err = new Error(data?.error || "Forbidden");
+        err.status = 403;
+        err.hoursRemaining = data?.hoursRemaining;
+        throw err;
+      }
+
+      if (!resp.ok) {
+        const err = new Error(data?.error || `Cloudflare error: ${resp.status}`);
+        err.status = resp.status;
+        throw err;
+      }
+
+      return data?.message;
     }
 
     async function cfFetchRecent(limit = 50) {
@@ -791,7 +857,8 @@
 
       // SYSTEM (centered)
       if (message.type === 'system') {
-        messageDiv.className = 'message system' + (message.variant === "mod" ? ' mod' : '');
+        const variantClass = message.variant ? ` ${message.variant}` : '';
+        messageDiv.className = `message system${variantClass}`;
         messageDiv.innerHTML = `<div class="message-content">${escapeHtml(message.content)}</div>`;
         return messageDiv;
       }
@@ -913,6 +980,23 @@
     function appendIncomingMessage(raw, source) {
       const rawUsername = raw.name || raw.username || 'Unknown';
       const content = raw.text || raw.content || raw.message || '';
+
+      if (typeof content === 'string' && content.startsWith(BAN_EVENT_PREFIX)) {
+        const payloadText = content.slice(BAN_EVENT_PREFIX.length);
+        try {
+          const payload = JSON.parse(payloadText);
+          if (payload?.nonce && !banEventNonces.has(payload.nonce)) {
+            banEventNonces.add(payload.nonce);
+            const actor = payload.actor || OWNER_DISPLAY_NAME;
+            const target = payload.target || 'someone';
+            const duration = payload.durationLabel ? ` for ${payload.durationLabel}` : '';
+            addCenterText(`🟠 ${actor} banned ${target}${duration}.`, 'ban');
+          }
+        } catch (error) {
+          console.warn('Malformed ban event payload:', error);
+        }
+        return;
+      }
       const tsIso = raw.t || raw.created_at || null;
 
       // Incoming moderation: hide bad content and show mod center text
@@ -955,7 +1039,9 @@
         timestamp: displayTime,
         isCurrentUser: rawUsername === currentUsername,
         _source: source,
-        isRespected: isRespectedUser(rawUsername)
+        isRespected: isRespectedUser(rawUsername),
+        type: raw.type,
+        variant: raw.variant
       };
 
       messages.push(msg);
@@ -1074,10 +1160,140 @@
       }
     }
 
+    async function refreshBanList() {
+      if (!CHAT_API_BASE) return;
+      try {
+        const resp = await fetch(`${CHAT_API_BASE}/chat/bans`, { cache: 'no-store' });
+        if (!resp.ok) return;
+        const data = await resp.json().catch(() => null);
+        const list = Array.isArray(data?.bans) ? data.bans : [];
+        const now = Date.now();
+        const fallbackExpiry = now + 24 * 3600000;
+        const map = new Map();
+        list.forEach((entry) => {
+          let username = "";
+          let expiresAt = fallbackExpiry;
+          if (typeof entry === 'string') {
+            username = normalizeBanName(entry);
+          } else {
+            username = normalizeBanName(entry.username || entry.name || entry.target);
+            expiresAt = Number(entry.expiresAt || entry.expiration || entry.expires || 0) || fallbackExpiry;
+          }
+          if (!username) return;
+          if (expiresAt <= now) return;
+          map.set(username, expiresAt);
+        });
+        bannedUsers = map;
+    } catch (error) {
+      const message = typeof error === "string" ? error : error?.message || "";
+      if (message.includes("Failed to fetch") || error?.name === "TypeError") {
+        return;
+      }
+      console.warn("Failed to refresh ban list:", error);
+    }
+    }
+
+    function ensureBanRefreshTimer() {
+      if (banRefreshTimer) return;
+      banRefreshTimer = setInterval(() => {
+        refreshBanList();
+      }, BAN_REFRESH_INTERVAL_MS);
+    }
+
+    async function broadcastBanEvent(payload) {
+      if (!payload || !payload.nonce) return;
+      const safePayload = {
+        actor: payload.actor || OWNER_DISPLAY_NAME,
+        target: payload.target || "",
+        durationLabel: payload.durationLabel || "",
+        nonce: payload.nonce,
+      };
+
+      try {
+        await sbInsertMessage(OWNER_USERNAME, `${BAN_EVENT_PREFIX}${JSON.stringify(safePayload)}`);
+      } catch (error) {
+        console.warn("Failed to broadcast ban event:", error);
+      }
+    }
+
+    async function handleBanCommand(targetRaw, hoursArg) {
+      const target = targetRaw ? targetRaw.trim() : "";
+      if (!target) {
+        addSystemMessage('⚠️ Usage: /*ban username');
+        return;
+      }
+
+      if (!CHAT_API_BASE) {
+        addSystemMessage('⚠️ Chat service unavailable.');
+        return;
+      }
+
+      const displayTarget = getDisplayUsername(target);
+      const parsedHours = Number(hoursArg);
+      const requestedHours = Number.isFinite(parsedHours) && parsedHours > 0 ? parsedHours : 1;
+      const durationLabel = formatHoursLabel(requestedHours);
+      try {
+        const resp = await fetch(`${CHAT_API_BASE}/chat/ban`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            owner: OWNER_USERNAME,
+            target,
+            hours: requestedHours
+          })
+        });
+        const data = await resp.json().catch(() => null);
+        if (!resp.ok) {
+          addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${data?.error || resp.statusText}`);
+          return;
+        }
+        await refreshBanList();
+        const banMessage = `🟠 ${OWNER_DISPLAY_NAME} banned ${displayTarget} for ${durationLabel}.`;
+        const eventPayload = {
+          target: displayTarget,
+          durationLabel,
+          nonce: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          actor: OWNER_DISPLAY_NAME,
+        };
+        banEventNonces.add(eventPayload.nonce);
+        addCenterText(banMessage, "ban");
+        await broadcastBanEvent(eventPayload);
+      } catch (error) {
+        console.error('Ban command failed:', error);
+        addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${error.message || error}`);
+      }
+    }
+
     async function sendMessage() {
       const input = document.getElementById('messageInput');
       const text = (input.value || '').trim();
       if (!text || globalChatSending) return;
+
+      const normalizedUser = (currentUsername || 'User').trim();
+      const now = Date.now();
+      const lastSent = LAST_MESSAGE_TIMES.get(normalizedUser) || 0;
+      if (now - lastSent < SLOW_MODE_MS) {
+        const wait = Math.ceil((SLOW_MODE_MS - (now - lastSent)) / 1000);
+        addSystemMessage(`⏱ Slow mode is active. Please wait ${wait} second${wait === 1 ? '' : 's'} before sending another message.`);
+        return;
+      }
+      LAST_MESSAGE_TIMES.set(normalizedUser, now);
+
+      const banCommandMatch = text.match(/^\/\*ban\s+([^\s]+)(?:\s+([\d.]+))?/i);
+      if (banCommandMatch && isOwnerUser(currentUsername)) {
+        await handleBanCommand(banCommandMatch[1], banCommandMatch[2]);
+        input.value = '';
+        input.style.height = '44px';
+        return;
+      }
+
+      if (isUserBanned(currentUsername)) {
+        const hoursRemaining = getBanHoursRemaining(currentUsername);
+        const detail = hoursRemaining ? ` for ${formatHoursLabel(hoursRemaining)}` : '';
+        addCenterText(`⚠️ You are banned from chat${detail}.`, 'mod');
+        input.value = '';
+        return;
+      }
 
       // If username didn't arrive yet, refuse to send as "User"
       resolveUsernameNow();
@@ -1168,6 +1384,11 @@
             row = await cfInsertMessage(currentUsername, text);
           } catch (cfErr) {
             console.warn("Cloudflare send failed:", cfErr);
+            if (cfErr?.status === 403) {
+              const detail = cfErr.hoursRemaining ? ` for ${formatHoursLabel(cfErr.hoursRemaining)}` : '';
+              addCenterText(`⚠️ You are banned from chat${detail}.`, 'mod');
+              throw cfErr;
+            }
             cfBackoffUntil = Date.now() + CF_BACKOFF_MS;
             useSupabase = true;
           }
@@ -1333,6 +1554,9 @@
         CHAT_API_BASE = DEFAULT_CHAT_API_BASE;
       }
 
+      refreshBanList();
+      ensureBanRefreshTimer();
+
       // Ask parent for init info (helps on fresh accounts / race conditions)
       try {
         window.parent.postMessage({ type: "requestInitChat" }, "*");
@@ -1342,6 +1566,8 @@
         if (event.data && event.data.type === 'initChat') {
           setCurrentUsername(event.data.username, "parent:initChat");
           if (event.data.chatApiBase) CHAT_API_BASE = event.data.chatApiBase;
+          refreshBanList();
+          ensureBanRefreshTimer();
           bootstrapChatExperience(); // safe; it won't double-run
         } else if (event.data && event.data.type === 'chatOpened') {
           resetUnreadCount();
