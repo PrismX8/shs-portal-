@@ -179,6 +179,16 @@
       border-bottom-left-radius: 4px;
     }
 
+    .message.respected .message-content,
+    .message.user.respected .message-content {
+      background: #bbf7d0;
+      border: 1px solid #6ee7b7;
+      color: #064e3b;
+    }
+    .message.respected .message-username {
+      color: #065f46;
+    }
+
     /* Moderation normal chat bubble (NOT centered, NOT system) */
     .message.moderation .message-content {
       background: rgba(239, 68, 68, 0.22);
@@ -370,8 +380,9 @@
     // - Removed hard-coded bad-words lists (place comments where to add)
     // =====================================================
 
-    // Cloudflare Worker base (set by parent window or URL param)
+    // Cloudflare Worker base (set by parent window, URL param, or fallback)
     let CHAT_API_BASE = null;
+    const DEFAULT_CHAT_API_BASE = "https://chat-worker.ethan-owsiany.workers.dev";
 
     // Supabase (browser-safe anon/publishable key)
     const SUPABASE_URL = "https://bvhigzazfcsoqeivnmxe.supabase.co";
@@ -384,6 +395,12 @@
     // Cloudflare circuit breaker (rate-limit backoff)
     let cfBackoffUntil = 0;
     const CF_BACKOFF_MS = 10 * 60 * 1000; // 10 minutes
+
+    // Simple per-user burst limiter
+    const RATE_LIMIT_WINDOW_MS = 2000;
+    const RATE_LIMIT_THRESHOLD = 4;
+    const RATE_LIMIT_PENALTY_MS = 25000;
+    const userRateState = new Map();
 
     // Chat state
     let currentUsername = 'User'; // placeholder until resolved
@@ -552,11 +569,54 @@
       return { ok: true };
     }
 
+    const RESPECTED_USERNAMES = new Set(['ethen2x', 'kilo']);
     function normalizeUsername(name) { return (name || '').trim(); }
     function isOwnerUser(name) { return normalizeUsername(name).toLowerCase() === OWNER_USERNAME; }
+    function isRespectedUser(name) {
+      const normalized = normalizeUsername(name).toLowerCase();
+      return normalized && RESPECTED_USERNAMES.has(normalized);
+    }
     function getDisplayUsername(name) {
       const normalized = normalizeUsername(name);
-      return isOwnerUser(normalized) ? OWNER_DISPLAY_NAME : (normalized || 'Unknown');
+      if (isOwnerUser(normalized)) return OWNER_DISPLAY_NAME;
+      if (!normalized) return 'Unknown';
+      return isRespectedUser(normalized) ? `${normalized} - Respected` : normalized;
+    }
+
+    function getRateRecord(username) {
+      const normalized = normalizeUsername(username);
+      if (!normalized) return null;
+      let record = userRateState.get(normalized);
+      if (!record) {
+        record = { timestamps: [], penaltyUntil: 0 };
+        userRateState.set(normalized, record);
+      }
+      return record;
+    }
+
+    function checkRateLimit(username) {
+      const record = getRateRecord(username);
+      if (!record) return { allowed: true };
+      const now = Date.now();
+      if (record.penaltyUntil && now < record.penaltyUntil) {
+        return { allowed: false, waitMs: record.penaltyUntil - now };
+      }
+      return { allowed: true };
+    }
+
+    function registerRateUsage(username) {
+      const record = getRateRecord(username);
+      if (!record) return { penaltyTriggered: false };
+      const now = Date.now();
+      const windowStart = now - RATE_LIMIT_WINDOW_MS;
+      record.timestamps = record.timestamps.filter((ts) => ts >= windowStart);
+      record.timestamps.push(now);
+      if (record.timestamps.length >= RATE_LIMIT_THRESHOLD) {
+        record.penaltyUntil = now + RATE_LIMIT_PENALTY_MS;
+        record.timestamps = [];
+        return { penaltyTriggered: true };
+      }
+      return { penaltyTriggered: false };
     }
 
     // Center-of-chat text helper with variant: "info" or "mod"
@@ -743,7 +803,8 @@
       messageDiv.className =
         `message ${message.isCurrentUser ? 'user' : 'other'} ` +
         `${message.isSending ? 'sending' : ''} ${message.isFailed ? 'failed' : ''} ` +
-        `${isOwner ? 'owner' : ''} ${isModeration ? 'moderation' : ''}`;
+        `${isOwner ? 'owner' : ''} ${isModeration ? 'moderation' : ''}` +
+        `${message.isRespected ? ' respected' : ''}`;
 
       messageDiv.innerHTML = `
         <div class="message-content">
@@ -893,7 +954,8 @@
         isOwner: isOwnerUser(rawUsername),
         timestamp: displayTime,
         isCurrentUser: rawUsername === currentUsername,
-        _source: source
+        _source: source,
+        isRespected: isRespectedUser(rawUsername)
       };
 
       messages.push(msg);
@@ -1020,7 +1082,14 @@
       // If username didn't arrive yet, refuse to send as "User"
       resolveUsernameNow();
       if (!currentUsername || currentUsername === "User") {
-        addSystemMessage("⚠️ Your username hasn't loaded yet. Close and reopen chat (or wait 1s).");
+        addSystemMessage("⚠️ Your username hasn't loaded yet. Please, Refresh the page (Control+Shift+R)");
+        return;
+      }
+
+      const rateCheck = checkRateLimit(currentUsername);
+      if (!rateCheck.allowed) {
+        const waitSec = Math.max(1, Math.ceil(rateCheck.waitMs / 1000));
+        addSystemMessage(`⚠️ You're sending too fast. Please wait ${waitSec} second${waitSec === 1 ? "" : "s"} before sending again.`);
         return;
       }
 
@@ -1043,6 +1112,12 @@
         return;
       }
       lastGlobalChatMessageSig = dedupSig;
+
+      const rateUsage = registerRateUsage(currentUsername);
+      if (rateUsage.penaltyTriggered) {
+        addSystemMessage('⚠️ You hit the burst limit. Wait 25 seconds before sending another message.');
+        return;
+      }
 
       const sendButtonIcon = document.querySelector('.send-button i');
       if (!sendButtonIcon) return;
@@ -1069,7 +1144,8 @@
         timestamp: 'Sending...',
         isCurrentUser: true,
         isSending: true,
-        isFailed: false
+        isFailed: false,
+        isRespected: isRespectedUser(currentUsername)
       };
 
       messages.push(sendingMessage);
@@ -1081,28 +1157,29 @@
 
       try {
         let row = null;
+        const now = Date.now();
+        let useSupabase = false;
 
-        // Try Cloudflare first unless in backoff
-        if (Date.now() > cfBackoffUntil) {
+        if (now < cfBackoffUntil) {
+          useSupabase = true;
+        } else {
           try {
             setBackendMode("cloudflare");
             row = await cfInsertMessage(currentUsername, text);
           } catch (cfErr) {
             console.warn("Cloudflare send failed:", cfErr);
-            // Switch to backoff for ANY error (429 or network failure) to avoid repeated hangs
             cfBackoffUntil = Date.now() + CF_BACKOFF_MS;
-            if (cfErr.status === 429) {
-              addSystemMessage("⚠️ Cloudflare limit reached. Switching to Supabase backup...");
-            } else {
-              addSystemMessage("⚠️ Cloudflare connection failed. Switching to Supabase backup...");
-            }
+            useSupabase = true;
           }
         }
 
-        // Fallback to Supabase if CF failed or in backoff
-        if (!row) {
+        if (useSupabase && !row) {
           setBackendMode("supabase");
           row = await sbInsertMessage(currentUsername, text);
+        }
+
+        if (!row) {
+          throw new Error("Unable to deliver message via Cloudflare or Supabase.");
         }
 
         const serverId = row && row.id ? row.id : null;
@@ -1249,6 +1326,12 @@
 
     function initChat() {
       getApiBaseFromUrl();
+      if (!CHAT_API_BASE && window.CHAT_API_BASE) {
+        CHAT_API_BASE = window.CHAT_API_BASE;
+      }
+      if (!CHAT_API_BASE) {
+        CHAT_API_BASE = DEFAULT_CHAT_API_BASE;
+      }
 
       // Ask parent for init info (helps on fresh accounts / race conditions)
       try {
