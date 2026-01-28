@@ -397,6 +397,7 @@
     const SUPABASE_URL = "https://bvhigzazfcsoqeivnmxe.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_DMZNbwUB_8qvQRTtl5xS5g_OMdvEZdQ";
     const SUPABASE_TABLE = "chat_messages";
+    const SUPABASE_BAN_TABLE = "chat_bans";
 
     // IMPORTANT: do NOT name this "supabase" (Nebulo likely already has a global)
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -476,6 +477,9 @@
 
     // Backend mode tracking
     let backendMode = "unknown"; // "cloudflare" | "supabase" | "unknown"
+    let chatWorkerAvailable = true;
+    let chatWorkerBackoffUntil = 0;
+    const CHAT_WORKER_BACKOFF_MS = 5 * 60 * 1000;
     let lastGlobalChatMessageSig = "";
 
     // Dedup + DOM tracking
@@ -729,6 +733,83 @@
       return data;
     }
 
+    function parseSupabaseBanExpires(value) {
+      if (value == null) return 0;
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) return numeric;
+      const dateMs = new Date(value).getTime();
+      return Number.isFinite(dateMs) && dateMs > 0 ? dateMs : 0;
+    }
+
+    async function refreshBanListFromSupabase() {
+      if (!sbClient) return false;
+      try {
+        const { data, error } = await sbClient
+          .from(SUPABASE_BAN_TABLE)
+          .select("username, expires_at")
+          .order("expires_at", { ascending: false })
+          .limit(300);
+        if (error) throw error;
+        const now = Date.now();
+        const map = new Map();
+        (data || []).forEach((entry) => {
+          const normalized = normalizeBanName(entry?.username);
+          const expiresAt = parseSupabaseBanExpires(entry?.expires_at);
+          if (!normalized || expiresAt <= now) return;
+          map.set(normalized, expiresAt);
+        });
+        bannedUsers = map;
+        return true;
+      } catch (error) {
+        console.warn("Failed to refresh ban list from Supabase:", error);
+        return false;
+      }
+    }
+
+    async function handleBanSuccess(normalizedTarget, displayTarget, durationLabel, expiresAt) {
+      const payload = {
+        target: displayTarget,
+        targetNormalized: normalizedTarget,
+        durationLabel,
+        nonce: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        actor: OWNER_DISPLAY_NAME,
+        expiresAt: expiresAt || null,
+      };
+      banEventNonces.add(payload.nonce);
+      addCenterText(`🟠 ${OWNER_DISPLAY_NAME} banned ${displayTarget} for ${durationLabel}.`, "ban");
+      try {
+        await broadcastBanEvent(payload);
+      } catch (error) {
+        console.warn("Failed to broadcast ban event:", error);
+      }
+      if (normalizedTarget && expiresAt) {
+        bannedUsers.set(normalizedTarget, expiresAt);
+      }
+    }
+
+    async function banViaSupabase(targetNormalized, displayTarget, requestedHours, durationLabel) {
+      if (!sbClient) return false;
+      const expiresAt = new Date(Date.now() + requestedHours * 3600000).toISOString();
+      try {
+      const { error } = await sbClient
+        .from(SUPABASE_BAN_TABLE)
+        .upsert(
+          { username: targetNormalized, expires_at: expiresAt },
+          { onConflict: "username", count: "exact" }
+        );
+        if (error) throw error;
+        const expiresMs = parseSupabaseBanExpires(expiresAt);
+        if (expiresMs > 0) {
+          bannedUsers.set(targetNormalized, expiresMs);
+        }
+        await handleBanSuccess(targetNormalized, displayTarget, durationLabel, expiresMs);
+        return true;
+      } catch (error) {
+        console.warn("Supabase ban failed:", error);
+        return false;
+      }
+    }
+
     async function sbFetchRecent50() {
       const { data, error } = await sbClient
         .from("chat_messages")
@@ -738,6 +819,46 @@
 
       if (error) throw error;
       return (data || []).reverse(); // oldest -> newest for display
+    }
+
+    let supabaseBanChannelCleanup = null;
+
+    function handleSupabaseBanChange(row) {
+      if (!row) return;
+      const normalized = normalizeBanName(row?.username);
+      const expiresAt = parseSupabaseBanExpires(row?.expires_at);
+      if (!normalized || expiresAt <= Date.now()) return;
+      if (!bannedUsers.has(normalized) || bannedUsers.get(normalized) < expiresAt) {
+        bannedUsers.set(normalized, expiresAt);
+      }
+    }
+
+    function subscribeToSupabaseBanChanges() {
+      if (!sbClient || !SUPABASE_BAN_TABLE || typeof sbClient.channel !== "function") return;
+      if (supabaseBanChannelCleanup) {
+        supabaseBanChannelCleanup();
+        supabaseBanChannelCleanup = null;
+      }
+      const channel = sbClient.channel("chat_bans_stream");
+      const onChange = (payload) => {
+        handleSupabaseBanChange(payload?.new);
+      };
+      channel
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: SUPABASE_BAN_TABLE },
+          onChange
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: SUPABASE_BAN_TABLE },
+          onChange
+        )
+        .subscribe((status) => {
+          console.log("Supabase ban channel status:", status);
+        });
+
+      supabaseBanChannelCleanup = () => sbClient.removeChannel(channel);
     }
 
     function sbSubscribeRealtime(onRow) {
@@ -985,13 +1106,19 @@
         const payloadText = content.slice(BAN_EVENT_PREFIX.length);
         try {
           const payload = JSON.parse(payloadText);
-          if (payload?.nonce && !banEventNonces.has(payload.nonce)) {
-            banEventNonces.add(payload.nonce);
-            const actor = payload.actor || OWNER_DISPLAY_NAME;
-            const target = payload.target || 'someone';
-            const duration = payload.durationLabel ? ` for ${payload.durationLabel}` : '';
-            addCenterText(`🟠 ${actor} banned ${target}${duration}.`, 'ban');
+        if (payload?.nonce && !banEventNonces.has(payload.nonce)) {
+          banEventNonces.add(payload.nonce);
+          const actor = payload.actor || OWNER_DISPLAY_NAME;
+          const target = payload.target || 'someone';
+          const duration = payload.durationLabel ? ` for ${payload.durationLabel}` : '';
+          if (payload?.targetNormalized && payload?.expiresAt) {
+            const expiresAt = Number(payload.expiresAt);
+            if (Number.isFinite(expiresAt) && expiresAt > Date.now()) {
+              bannedUsers.set(payload.targetNormalized, expiresAt);
+            }
           }
+          addCenterText(`🟠 ${actor} banned ${target}${duration}.`, 'ban');
+        }
         } catch (error) {
           console.warn('Malformed ban event payload:', error);
         }
@@ -1113,6 +1240,8 @@
           
           // Subscribe to realtime inserts (no polling needed for Supabase)
           sbSubscribeRealtime(appendRowAsMessage);
+          // Listen for ban table changes so bans apply immediately
+          subscribeToSupabaseBanChanges();
 
           // Start polling for Cloudflare since it lacks realtime
           startCloudflarePolling();
@@ -1161,10 +1290,18 @@
     }
 
     async function refreshBanList() {
-      if (!CHAT_API_BASE) return;
+      if (!CHAT_API_BASE) {
+        await refreshBanListFromSupabase();
+        return;
+      }
       try {
         const resp = await fetch(`${CHAT_API_BASE}/chat/bans`, { cache: 'no-store' });
-        if (!resp.ok) return;
+        if (!resp.ok) {
+          chatWorkerAvailable = false;
+          chatWorkerBackoffUntil = Date.now() + CHAT_WORKER_BACKOFF_MS;
+          await refreshBanListFromSupabase();
+          return;
+        }
         const data = await resp.json().catch(() => null);
         const list = Array.isArray(data?.bans) ? data.bans : [];
         const now = Date.now();
@@ -1184,13 +1321,16 @@
           map.set(username, expiresAt);
         });
         bannedUsers = map;
-    } catch (error) {
-      const message = typeof error === "string" ? error : error?.message || "";
-      if (message.includes("Failed to fetch") || error?.name === "TypeError") {
-        return;
+      } catch (error) {
+        const message = typeof error === "string" ? error : error?.message || "";
+        if (message.includes("Failed to fetch") || error?.name === "TypeError") {
+          chatWorkerAvailable = false;
+          chatWorkerBackoffUntil = Date.now() + CHAT_WORKER_BACKOFF_MS;
+          await refreshBanListFromSupabase();
+          return;
+        }
+        console.warn("Failed to refresh ban list:", error);
       }
-      console.warn("Failed to refresh ban list:", error);
-    }
     }
 
     function ensureBanRefreshTimer() {
@@ -1232,9 +1372,26 @@
       const parsedHours = Number(hoursArg);
       const requestedHours = Number.isFinite(parsedHours) && parsedHours > 0 ? parsedHours : 1;
       const durationLabel = formatHoursLabel(requestedHours);
+      const normalizedTarget = normalizeBanName(target);
+      const trySupabaseFallback = async () => {
+        if (!normalizedTarget) return false;
+        return await banViaSupabase(normalizedTarget, displayTarget, requestedHours, durationLabel);
+      };
+
       try {
-        const resp = await fetch(`${CHAT_API_BASE}/chat/ban`, {
+        const shouldSkipWorker = !chatWorkerAvailable && Date.now() < chatWorkerBackoffUntil;
+        if (shouldSkipWorker) {
+          const fallbackHandled = await trySupabaseFallback();
+          if (fallbackHandled) return;
+          addSystemMessage(`⚠️ Chat worker unreachable; can't ban ${displayTarget} right now.`);
+          return;
+        }
+
+        const base = CHAT_API_BASE.replace(/\/+$/, '');
+        const resp = await fetch(`${base}/chat/ban`, {
           method: 'POST',
+          mode: 'cors',
+          cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             owner: OWNER_USERNAME,
@@ -1244,24 +1401,31 @@
         });
         const data = await resp.json().catch(() => null);
         if (!resp.ok) {
+          chatWorkerAvailable = false;
+          chatWorkerBackoffUntil = Date.now() + CHAT_WORKER_BACKOFF_MS;
+          const fallbackSuccess = await trySupabaseFallback();
+          if (fallbackSuccess) return;
           addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${data?.error || resp.statusText}`);
           return;
         }
+        chatWorkerAvailable = true;
+        chatWorkerBackoffUntil = 0;
         await refreshBanList();
-        const banMessage = `🟠 ${OWNER_DISPLAY_NAME} banned ${displayTarget} for ${durationLabel}.`;
-        const eventPayload = {
-          target: displayTarget,
-          durationLabel,
-          nonce: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
-          actor: OWNER_DISPLAY_NAME,
-        };
-        banEventNonces.add(eventPayload.nonce);
-        addCenterText(banMessage, "ban");
-        await broadcastBanEvent(eventPayload);
+        const expiresAt = Number(data?.expiresAt) || Date.now() + requestedHours * 3600000;
+        await handleBanSuccess(normalizedTarget, displayTarget, durationLabel, expiresAt);
       } catch (error) {
         console.error('Ban command failed:', error);
-        addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${error.message || error}`);
-      }
+        chatWorkerAvailable = false;
+        chatWorkerBackoffUntil = Date.now() + CHAT_WORKER_BACKOFF_MS;
+        const message = typeof error === "string" ? error : error?.message || "Network error";
+        const hint = message.toLowerCase().includes("failed to fetch")
+          ? " (chat worker unreachable; check your connection or try again)"
+          : "";
+        const fallbackHandled = await trySupabaseFallback();
+        if (!fallbackHandled) {
+      addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${message}${hint}`);
+    }
+  }
     }
 
     async function sendMessage() {
