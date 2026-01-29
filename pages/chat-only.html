@@ -291,6 +291,37 @@
       align-items: flex-end;
     }
 
+    .typing-indicator {
+      width: 100%;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      min-height: 18px;
+      line-height: 1.5;
+    }
+    .typing-indicator.active {
+      opacity: 0.9;
+    }
+
+    .chat-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .chat-overlay-content {
+      color: #ffffff;
+      font-size: clamp(1.2rem, 1.5vw, 1.5rem);
+      font-weight: 600;
+      line-height: 1.5;
+      max-width: 960px;
+    }
+
     .message-input {
       flex: 1;
       padding: 12px 16px;
@@ -348,6 +379,12 @@
 </head>
 
 <body>
+  <div class="chat-overlay" role="status" aria-live="polite">
+    <div class="chat-overlay-content">
+      I didn’t think I would need to do this, but the global chat is temporarily disabled due to spammers and people being racist. The chat will be back up some time in the future, but the chat will be worked on until it is fully functional.<br><br>
+      If you have any issues with anything, join the Discord and let me know or fill out the “issue loading a game” app on the desktop. Thanks to everyone who didn’t abuse the chat, and be on the lookout for when the chat comes back.
+    </div>
+  </div>
   <div class="chat-container">
     <div class="chat-header">
       <div class="chat-title">
@@ -371,6 +408,7 @@
     </div>
 
     <div class="input-area">
+      <div id="typingIndicator" class="typing-indicator" aria-live="polite"></div>
       <textarea
         class="message-input"
         id="messageInput"
@@ -386,6 +424,7 @@
 
   <!-- Supabase client library (defines window.supabase). -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
 
   <script>
     // =====================================================
@@ -406,6 +445,15 @@
     const SUPABASE_TABLE = "chat_messages";
     const SUPABASE_BAN_TABLE = "chat_bans";
     const SUPABASE_ROLE_TABLE = "chat_roles";
+    const ABLY_TOKEN_ENDPOINT = ""; // configure your own token request endpoint
+    const ABLY_CHANNEL_NAME = "nebulo-chat";
+    const ABLY_MESSAGE_EVENT = "message";
+    const ABLY_BAN_EVENT = "ban";
+    const ABLY_ROLE_EVENT = "role";
+    const ABLY_TYPING_EVENT = "typing";
+    const ABLY_TYPING_SEND_COOLDOWN_MS = 2500;
+    const ABLY_TYPING_INDICATOR_MS = 4000;
+    const SUPABASE_BACKOFF_MS = 2 * 60 * 1000;
 
     // IMPORTANT: do NOT name this "supabase" (Nebulo likely already has a global)
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -506,6 +554,16 @@
     const ROLE_DEFAULT_TEXT_COLOR = "#0f172a"; 
     const BAN_EVENT_PREFIX = "[BAN_EVENT]";
     const banEventNonces = new Set();
+    let ablyRealtime = null;
+    let ablyChannel = null;
+    let ablyTokenInfo = null;
+    let ablySubscribed = false;
+    let ablyFallbackActive = false;
+    let supabaseBackoffUntil = 0;
+    const typingUsers = new Map();
+    const typingTimers = new Map();
+    let typingIndicatorElement = null;
+    let lastTypingSentAt = 0;
     const roleEventNonces = new Set();
 
     let bannedUsers = new Map();
@@ -685,6 +743,214 @@
       return userRoles.get(normalized) || null;
     }
 
+    function markSupabaseSuccess() {
+      supabaseBackoffUntil = 0;
+      if (ablyFallbackActive) ablyFallbackActive = false;
+    }
+
+    function markSupabaseFailure(activateAblyFallback = false) {
+      supabaseBackoffUntil = Date.now() + SUPABASE_BACKOFF_MS;
+      if (activateAblyFallback && !ablyFallbackActive) {
+        ablyFallbackActive = true;
+        ensureAblyRealtime().catch(err => console.warn("Ably init failed:", err));
+      }
+    }
+
+    function shouldUseAblyFallback() {
+      if (!ABLY_TOKEN_ENDPOINT) return false;
+      if (ablyFallbackActive) return true;
+      if (Date.now() < supabaseBackoffUntil) {
+        ablyFallbackActive = true;
+        ensureAblyRealtime().catch(() => {});
+        return true;
+      }
+      return false;
+    }
+
+    async function fetchAblyToken(force = false) {
+      if (!ABLY_TOKEN_ENDPOINT) return null;
+      const now = Date.now();
+      if (!force && ablyTokenInfo && ablyTokenInfo.token && ablyTokenInfo.expiresAt && now < ablyTokenInfo.expiresAt - 10000) {
+        return ablyTokenInfo.token;
+      }
+      const resp = await fetch(ABLY_TOKEN_ENDPOINT, { cache: 'no-store' });
+      if (!resp.ok) throw new Error("Unable to fetch Ably token");
+      const data = await resp.json().catch(() => null);
+      const token = data?.token;
+      if (!token) throw new Error("Ably token response missing token");
+      const expiresAt = Number(data?.expires) && Number(data?.expires) > now
+        ? Number(data.expires)
+        : now + ((Number(data?.ttl) || 60) * 1000);
+      ablyTokenInfo = { token, expiresAt };
+      return token;
+    }
+
+    async function ensureAblyRealtime(forceReinit = false) {
+      if (!ABLY_TOKEN_ENDPOINT) return null;
+      if (ablyRealtime && ablyChannel && !forceReinit) return ablyChannel;
+      const token = await fetchAblyToken(forceReinit);
+      if (!token) return null;
+      if (ablyRealtime) {
+        try { ablyRealtime.close(); } catch {}
+        ablyRealtime = null;
+        ablyChannel = null;
+        ablySubscribed = false;
+      }
+      ablyRealtime = new Ably.Realtime.Promise({ token });
+      ablyRealtime.connection.on('failed', () => {
+        ablySubscribed = false;
+      });
+      ablyChannel = ablyRealtime.channels.get(ABLY_CHANNEL_NAME);
+      subscribeToAblyChannel();
+      return ablyChannel;
+    }
+
+    function subscribeToAblyChannel() {
+      if (!ablyChannel || ablySubscribed) return;
+      ablyChannel.subscribe(ABLY_MESSAGE_EVENT, handleAblyMessageEvent);
+      ablyChannel.subscribe(ABLY_BAN_EVENT, (msg) => handleAblyBanPayload(msg?.data));
+      ablyChannel.subscribe(ABLY_ROLE_EVENT, (msg) => handleAblyRoleEvent(msg?.data));
+      ablyChannel.subscribe(ABLY_TYPING_EVENT, (msg) => handleTypingEvent(msg?.data?.username));
+      ablySubscribed = true;
+    }
+
+    function appendAblyIncoming(raw) {
+      appendIncomingMessage(
+        {
+          name: raw.username,
+          username: raw.username,
+          message: raw.message || raw.text,
+          content: raw.message || raw.text,
+          created_at: raw.timestamp || raw.createdAt || new Date().toISOString(),
+          variant: raw.variant || 'ably',
+          id: raw.id || raw.messageId || `${ABLY_CHANNEL_NAME}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        },
+        "ably"
+      );
+    }
+
+    function handleAblyMessageEvent(msg) {
+      const payload = msg?.data;
+      if (!payload) return;
+      appendAblyIncoming(payload);
+    }
+
+    function handleAblyBanPayload(payload) {
+      if (!payload) return;
+      const normalized = payload.targetNormalized || normalizeBanName(payload.target);
+      if (normalized && payload.expiresAt && payload.expiresAt > Date.now()) {
+        bannedUsers.set(normalized, Number(payload.expiresAt));
+      }
+      banEventNonces.add(payload.nonce || `ably-${Date.now()}`);
+      if (payload.fallback) {
+        const actor = payload.actor || OWNER_DISPLAY_NAME;
+        const target = payload.target || payload.targetNormalized || 'someone';
+        const duration = payload.durationLabel ? ` for ${payload.durationLabel}` : '';
+        addCenterText(`🟠 ${actor} banned ${target}${duration}.`, 'ban');
+      }
+    }
+
+    function applyRolePayload(payload) {
+      if (!payload) return null;
+      const normalizedTarget = payload.targetNormalized || normalizeBanName(payload.target);
+      if (!normalizedTarget) return null;
+      const colors = parseRoleColorString(payload.color);
+      const colorSpec = formatRoleColorString(colors.bgColor, colors.textColor);
+      applyRoleLocally(normalizedTarget, payload.roleName || "", colorSpec);
+      return normalizedTarget;
+    }
+
+    function handleAblyRoleEvent(payload) {
+      if (!payload) return;
+      const nonce = payload.nonce || `ably-${payload.target}-${Date.now()}`;
+      if (roleEventNonces.has(nonce)) return;
+      roleEventNonces.add(nonce);
+      const targetDisplay = payload.target || payload.targetNormalized || 'someone';
+      const roleName = payload.roleName || '';
+      applyRolePayload(payload);
+      if (payload.fallback) {
+        const roleLabel = roleName ? ` the role "${roleName}"` : " a role";
+        addCenterText(`🟢 ${payload.actor || OWNER_DISPLAY_NAME} gave ${targetDisplay}${roleLabel}.`, 'role');
+      }
+    }
+
+    async function publishAblyEvent(eventName, payload) {
+      if (!eventName || !payload) return;
+      try {
+        const channel = await ensureAblyRealtime();
+        if (!channel) return;
+        await channel.publish(eventName, payload);
+      } catch (error) {
+        console.warn("Ably publish failed:", error);
+      }
+    }
+
+    async function publishAblyMessage(text) {
+      if (!text || !currentUsername) throw new Error("Missing message data");
+      await publishAblyEvent(ABLY_MESSAGE_EVENT, {
+        username: currentUsername,
+        text,
+        timestamp: new Date().toISOString(),
+        messageId: `ably-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      });
+    }
+
+    async function publishAblyBan(payload) {
+      await publishAblyEvent(ABLY_BAN_EVENT, payload);
+    }
+
+    async function publishAblyRole(payload) {
+      await publishAblyEvent(ABLY_ROLE_EVENT, payload);
+    }
+
+    async function publishAblyTyping() {
+      if (!ABLY_TOKEN_ENDPOINT || !currentUsername) return;
+      const now = Date.now();
+      if (now - lastTypingSentAt < ABLY_TYPING_SEND_COOLDOWN_MS) return;
+      lastTypingSentAt = now;
+      await publishAblyEvent(ABLY_TYPING_EVENT, { username: currentUsername });
+    }
+
+    function refreshTypingIndicator() {
+      const indicator = typingIndicatorElement || document.getElementById('typingIndicator');
+      if (!indicator) return;
+      typingIndicatorElement = indicator;
+      const active = Array.from(typingUsers.keys());
+      if (!active.length) {
+        indicator.textContent = '';
+        indicator.classList.remove('active');
+        return;
+      }
+      const text = active.length === 1
+        ? `${active[0]} is typing...`
+        : `${active[0]} and ${active.length - 1} others are typing...`;
+      indicator.textContent = text;
+      indicator.classList.add('active');
+    }
+
+    function handleTypingEvent(username) {
+      if (!username || username === currentUsername) return;
+      typingUsers.set(username, Date.now());
+      if (typingTimers.has(username)) {
+        clearTimeout(typingTimers.get(username));
+      }
+      const timer = setTimeout(() => {
+        typingUsers.delete(username);
+        typingTimers.delete(username);
+        refreshTypingIndicator();
+      }, ABLY_TYPING_INDICATOR_MS);
+      typingTimers.set(username, timer);
+      refreshTypingIndicator();
+    }
+
+    function setupTypingIndicator() {
+      const input = document.getElementById('messageInput');
+      if (!input) return;
+      input.addEventListener('input', () => {
+        publishAblyTyping().catch(() => {});
+      });
+    }
+
     function formatHoursLabel(hours) {
       const safe = Number.isFinite(hours) && hours > 0 ? hours : 1;
       const rounded = Number.isInteger(safe) ? safe : Number(safe.toFixed(1));
@@ -806,6 +1072,7 @@
         .single();
 
       if (error) throw error;
+      markSupabaseSuccess();
       return data;
     }
 
@@ -835,9 +1102,11 @@
           map.set(normalized, expiresAt);
         });
         bannedUsers = map;
+        markSupabaseSuccess();
         return true;
       } catch (error) {
         console.warn("Failed to refresh ban list from Supabase:", error);
+        markSupabaseFailure();
         return false;
       }
     }
@@ -879,9 +1148,11 @@
           bannedUsers.set(targetNormalized, expiresMs);
         }
         await handleBanSuccess(targetNormalized, displayTarget, durationLabel, expiresMs);
+        markSupabaseSuccess();
         return true;
       } catch (error) {
         console.warn("Supabase ban failed:", error);
+        markSupabaseFailure();
         return false;
       }
     }
@@ -1449,8 +1720,10 @@
           if (!normalizedName) return;
           applyRoleLocally(normalizedName, entry?.role_name || "", entry?.color || formatRoleColorString());
         });
+        markSupabaseSuccess();
       } catch (error) {
         console.warn("Failed to refresh role list from Supabase:", error);
+        markSupabaseFailure();
       }
     }
 
@@ -1468,6 +1741,7 @@
       } catch (error) {
         console.warn("Failed to broadcast ban event:", error);
       }
+      publishAblyBan(safePayload).catch(() => {});
     }
 
     function tokenizeCommandArgs(argsText) {
@@ -1606,11 +1880,25 @@
         const hint = message.toLowerCase().includes("failed to fetch")
           ? " (chat worker unreachable; check your connection or try again)"
           : "";
-      const fallbackHandled = await trySupabaseFallback();
-      if (!fallbackHandled) {
-    addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${message}${hint}`);
-  }
-}
+        const fallbackHandled = await trySupabaseFallback();
+        if (fallbackHandled) return;
+        markSupabaseFailure(true);
+        const expiresMs = Date.now() + requestedHours * 3600000;
+        if (normalizedTarget && expiresMs > Date.now()) {
+          bannedUsers.set(normalizedTarget, expiresMs);
+        }
+        const ablyPayload = {
+          actor: OWNER_DISPLAY_NAME,
+          target: displayTarget,
+          targetNormalized: normalizedTarget,
+          durationLabel,
+          expiresAt: expiresMs,
+          nonce: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          fallback: true
+        };
+        await publishAblyBan(ablyPayload);
+        addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${message}${hint}`);
+      }
     }
 
     async function handleRoleCommand(targetRaw, roleNameRaw, colorSpecRaw) {
@@ -1647,17 +1935,20 @@
         const { error } = await sbClient
           .from(SUPABASE_ROLE_TABLE)
           .upsert(
-        { username: normalizedTarget, role_name: roleName, color: payload.color },
+            { username: normalizedTarget, role_name: roleName, color: payload.color },
             { onConflict: "username", count: "exact" }
           );
         if (error) throw error;
 
         roleEventNonces.add(payload.nonce);
         applyRoleLocally(normalizedTarget, roleName, payload.color);
+        markSupabaseSuccess();
         await broadcastRoleEvent(payload);
+        await publishAblyRole({ ...payload, fallback: ablyFallbackActive });
         addCenterText(`🟢 ${OWNER_DISPLAY_NAME} gave ${displayTarget} the role "${roleName}".`, 'role');
       } catch (error) {
         console.error('Role command failed:', error);
+        markSupabaseFailure();
         const message = typeof error === "string" ? error : error?.message || "Network error";
         addSystemMessage(`⚠️ Unable to set role: ${message}`);
       }
@@ -1790,10 +2081,16 @@
       // track as pending so echo confirms (no duplicate)
       addPending(tempMessageId, currentUsername, text);
 
+      let useSupabase = false;
       try {
         let row = null;
         const now = Date.now();
-        let useSupabase = false;
+
+        if (shouldUseAblyFallback()) {
+          await publishAblyMessage(text);
+          addSystemMessage("ℹ️ Sent message via Ably fallback.");
+          return;
+        }
 
         if (now < cfBackoffUntil) {
           useSupabase = true;
@@ -1834,6 +2131,19 @@
         }, 5000);
       } catch (err) {
         console.error("Send failed:", err);
+        const attemptedSupabase = useSupabase;
+        if (attemptedSupabase) {
+          markSupabaseFailure(true);
+          if (ABLY_TOKEN_ENDPOINT) {
+            try {
+              await publishAblyMessage(text);
+              addSystemMessage("â„¹ï¸ Sent message via Ably fallback.");
+              return;
+            } catch (ablyErr) {
+              console.warn("Ably fallback send failed:", ablyErr);
+            }
+          }
+        }
         markMessageFailed(tempMessageId);
 
         const p = pendingOutbox.findIndex(x => x.tempId === tempMessageId);
@@ -2040,6 +2350,10 @@
 
     document.addEventListener('DOMContentLoaded', function() {
       console.log('Chat iframe DOM loaded, initializing...');
+      setupTypingIndicator();
+      if (ABLY_TOKEN_ENDPOINT) {
+        ensureAblyRealtime().catch(() => {});
+      }
       initChat();
 
       const messagesContainer = document.getElementById('messagesContainer');
