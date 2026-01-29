@@ -233,6 +233,13 @@
 
     .message.owner .message-content > * { position: relative; z-index: 1; }
 
+    .message.booty .message-content {
+      background: #392c20;
+      color: #fef5e6;
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
     .message-header {
       display: flex;
       align-items: center;
@@ -398,6 +405,7 @@
     const SUPABASE_ANON_KEY = "sb_publishable_DMZNbwUB_8qvQRTtl5xS5g_OMdvEZdQ";
     const SUPABASE_TABLE = "chat_messages";
     const SUPABASE_BAN_TABLE = "chat_bans";
+    const SUPABASE_ROLE_TABLE = "chat_roles";
 
     // IMPORTANT: do NOT name this "supabase" (Nebulo likely already has a global)
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -493,13 +501,18 @@
     const OWNER_USERNAME = 'shs12lord';
     const OWNER_DISPLAY_NAME = 'Owner';
     const BAN_REFRESH_INTERVAL_MS = 60 * 1000;
+    const ROLE_EVENT_PREFIX = "[ROLE_EVENT]";
+    const ROLE_DEFAULT_BG_COLOR = "#7dd3c0";
+    const ROLE_DEFAULT_TEXT_COLOR = "#0f172a"; 
     const BAN_EVENT_PREFIX = "[BAN_EVENT]";
     const banEventNonces = new Set();
+    const roleEventNonces = new Set();
 
     let bannedUsers = new Map();
     let banRefreshTimer = null;
     const LAST_MESSAGE_TIMES = new Map();
     const SLOW_MODE_MS = 2000;
+    const userRoles = new Map();
 
     // ------------------------------
     // MODERATION (PLACEHOLDERS ONLY)
@@ -592,6 +605,15 @@
 
     const RESPECTED_USERNAMES = new Set(['ethen2x', 'kilo']);
     function normalizeUsername(name) { return (name || '').trim(); }
+
+    const BOOTY_USERNAMES = new Set(["bootyclapperyunomiles"]);
+
+    function isBootyUser(name) {
+      if (!name) return false;
+      const normalized = normalizeUsername(name);
+      if (!normalized) return false;
+      return BOOTY_USERNAMES.has(normalized.toLowerCase());
+    }
     function isOwnerUser(name) { return normalizeUsername(name).toLowerCase() === OWNER_USERNAME; }
     function isRespectedUser(name) {
       const normalized = normalizeUsername(name).toLowerCase();
@@ -607,6 +629,60 @@
     function normalizeBanName(name) {
       const normalized = normalizeUsername(name);
       return normalized ? normalized.toLowerCase() : '';
+    }
+
+    function normalizeColorInput(value) {
+      if (!value) return null;
+      let color = value.trim();
+      if (!color) return null;
+      if (!color.startsWith("#")) {
+        color = `#${color}`;
+      }
+      if (/^#[0-9a-fA-F]{3}$/.test(color)) {
+        color = color
+          .slice(1)
+          .split("")
+          .map(char => char + char)
+          .join("");
+        color = `#${color}`;
+      }
+      if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+        return color.toLowerCase();
+      }
+      return null;
+    }
+
+    function parseRoleColorString(value) {
+      const parts = String(value || "")
+        .split(",")
+        .map(part => normalizeColorInput(part))
+        .filter(Boolean);
+      const bgColor = parts[0] || ROLE_DEFAULT_BG_COLOR;
+      const textColor = parts[1] || ROLE_DEFAULT_TEXT_COLOR;
+      return { bgColor, textColor };
+    }
+
+    function formatRoleColorString(bgColor, textColor) {
+      const bg = bgColor || ROLE_DEFAULT_BG_COLOR;
+      const text = textColor || ROLE_DEFAULT_TEXT_COLOR;
+      return `${bg},${text}`;
+    }
+
+    function applyRoleLocally(normalizedName, roleName, colorSpec) {
+      if (!normalizedName) return;
+      const normalizedColors = parseRoleColorString(colorSpec);
+      userRoles.set(normalizedName, {
+        roleName: roleName ? roleName.trim() : "",
+        bgColor: normalizedColors.bgColor,
+        textColor: normalizedColors.textColor
+      });
+      renderAllMessages();
+    }
+
+    function getUserRoleMetadata(name) {
+      const normalized = normalizeBanName(name);
+      if (!normalized) return null;
+      return userRoles.get(normalized) || null;
     }
 
     function formatHoursLabel(hours) {
@@ -987,22 +1063,29 @@
       const isOwner = message.isOwner || isOwnerUser(message.username);
       const isModeration = message.username === "Moderation";
       const displayUsername = message.displayUsername || getDisplayUsername(message.username);
+      const isBooty = isBootyUser(message.username);
+      const roleMeta = getUserRoleMetadata(message.username);
+      const roleBgStyle = roleMeta?.bgColor ? ` style="background-color:${roleMeta.bgColor};"` : "";
+      const usernameColorStyle = roleMeta?.textColor ? ` style="color:${roleMeta.textColor};"` : "";
+      const messageTextStyle = roleMeta?.textColor ? ` style="color:${roleMeta.textColor};"` : "";
+      const roleSuffix = roleMeta?.roleName ? ` - ${escapeHtml(roleMeta.roleName)}` : "";
 
       messageDiv.className =
         `message ${message.isCurrentUser ? 'user' : 'other'} ` +
         `${message.isSending ? 'sending' : ''} ${message.isFailed ? 'failed' : ''} ` +
         `${isOwner ? 'owner' : ''} ${isModeration ? 'moderation' : ''}` +
-        `${message.isRespected ? ' respected' : ''}`;
+        `${message.isRespected ? ' respected' : ''}` +
+        `${isBooty ? ' booty' : ''}`;
 
       messageDiv.innerHTML = `
-        <div class="message-content">
+        <div class="message-content"${roleBgStyle}>
           <div class="message-header">
-            <span class="message-username">${escapeHtml(displayUsername)}</span>
+            <span class="message-username"${usernameColorStyle}>${escapeHtml(displayUsername)}${roleSuffix}</span>
             <span class="message-timestamp">${escapeHtml(message.timestamp || '')}</span>
             ${message.isSending ? '<span class="sending-indicator"><i class="fas fa-circle-notch fa-spin"></i> Sending...</span>' : ''}
             ${message.isFailed ? '<span class="failed-indicator"><i class="fas fa-exclamation-triangle"></i> Failed</span>' : ''}
           </div>
-          <div>${escapeHtml(message.content || '')}</div>
+          <div${messageTextStyle}>${escapeHtml(message.content || '')}</div>
         </div>
       `;
 
@@ -1101,6 +1184,18 @@
     function appendIncomingMessage(raw, source) {
       const rawUsername = raw.name || raw.username || 'Unknown';
       const content = raw.text || raw.content || raw.message || '';
+
+      if (typeof content === 'string' && content.startsWith(ROLE_EVENT_PREFIX)) {
+        const payload = handleRoleEventPayload(content.slice(ROLE_EVENT_PREFIX.length));
+        if (payload) {
+          const actor = payload.actor || OWNER_DISPLAY_NAME;
+          const target = payload.target || payload.targetNormalized || 'someone';
+          const roleName = payload.roleName || '';
+          const roleLabel = roleName ? ` the role "${roleName}"` : " a role";
+          addCenterText(`🟢 ${actor} gave ${target}${roleLabel}.`, 'role');
+        }
+        return;
+      }
 
       if (typeof content === 'string' && content.startsWith(BAN_EVENT_PREFIX)) {
         const payloadText = content.slice(BAN_EVENT_PREFIX.length);
@@ -1215,6 +1310,7 @@
 
         // Sort ascending by time
         all.sort((a, b) => a._t - b._t);
+        await refreshRoleListFromSupabase();
 
         if (all.length === 0) {
           addSystemMessage("ℹ️ No recent messages found.");
@@ -1340,6 +1436,24 @@
       }, BAN_REFRESH_INTERVAL_MS);
     }
 
+    async function refreshRoleListFromSupabase() {
+      if (!sbClient) return;
+      try {
+        const { data, error } = await sbClient
+          .from(SUPABASE_ROLE_TABLE)
+          .select("username, role_name, color");
+        if (error) throw error;
+        userRoles.clear();
+        (data || []).forEach((entry) => {
+          const normalizedName = normalizeBanName(entry?.username);
+          if (!normalizedName) return;
+          applyRoleLocally(normalizedName, entry?.role_name || "", entry?.color || formatRoleColorString());
+        });
+      } catch (error) {
+        console.warn("Failed to refresh role list from Supabase:", error);
+      }
+    }
+
     async function broadcastBanEvent(payload) {
       if (!payload || !payload.nonce) return;
       const safePayload = {
@@ -1353,6 +1467,77 @@
         await sbInsertMessage(OWNER_USERNAME, `${BAN_EVENT_PREFIX}${JSON.stringify(safePayload)}`);
       } catch (error) {
         console.warn("Failed to broadcast ban event:", error);
+      }
+    }
+
+    function tokenizeCommandArgs(argsText) {
+      const tokens = [];
+      let current = "";
+      let quoteChar = null;
+      for (const ch of (argsText || "")) {
+        if (quoteChar) {
+          if (ch === quoteChar) {
+            tokens.push(current);
+            current = "";
+            quoteChar = null;
+            continue;
+          }
+          current += ch;
+          continue;
+        }
+
+        if (ch === '"' || ch === "'") {
+          quoteChar = ch;
+          continue;
+        }
+
+        if (/\s/.test(ch)) {
+          if (current) {
+            tokens.push(current);
+            current = "";
+          }
+          continue;
+        }
+
+        current += ch;
+      }
+
+      if (current) tokens.push(current);
+      return tokens;
+    }
+
+    async function broadcastRoleEvent(payload) {
+      if (!payload || !payload.nonce) return;
+      const safePayload = {
+        actor: payload.actor || OWNER_DISPLAY_NAME,
+        target: payload.target || "",
+        targetNormalized: payload.targetNormalized || "",
+        roleName: payload.roleName || "",
+        color: payload.color || "",
+        nonce: payload.nonce,
+      };
+
+      try {
+        await sbInsertMessage(OWNER_USERNAME, `${ROLE_EVENT_PREFIX}${JSON.stringify(safePayload)}`);
+      } catch (error) {
+        console.warn("Failed to broadcast role event:", error);
+      }
+    }
+
+    function handleRoleEventPayload(payloadText) {
+      if (!payloadText) return null;
+      try {
+        const payload = JSON.parse(payloadText);
+        if (!payload?.nonce) return null;
+        if (roleEventNonces.has(payload.nonce)) return null;
+        roleEventNonces.add(payload.nonce);
+        if (payload?.targetNormalized) {
+          applyRoleLocally(payload.targetNormalized, payload.roleName || "", payload.color || formatRoleColorString());
+        }
+        return payload;
+      } catch (error) {
+        console.warn("Malformed role event payload:", error);
+        return null;
       }
     }
 
@@ -1421,11 +1606,61 @@
         const hint = message.toLowerCase().includes("failed to fetch")
           ? " (chat worker unreachable; check your connection or try again)"
           : "";
-        const fallbackHandled = await trySupabaseFallback();
-        if (!fallbackHandled) {
-      addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${message}${hint}`);
-    }
+      const fallbackHandled = await trySupabaseFallback();
+      if (!fallbackHandled) {
+    addSystemMessage(`⚠️ Unable to ban ${displayTarget}: ${message}${hint}`);
   }
+}
+    }
+
+    async function handleRoleCommand(targetRaw, roleNameRaw, colorSpecRaw) {
+      const target = targetRaw ? targetRaw.trim() : "";
+      const roleName = roleNameRaw ? roleNameRaw.trim() : "";
+      if (!target || !roleName) {
+        addSystemMessage('⚠️ Usage: /*role username roleName [color]');
+        return;
+      }
+
+      if (!sbClient) {
+        addSystemMessage('⚠️ Role service unavailable.');
+        return;
+      }
+
+      const normalizedTarget = normalizeBanName(target);
+      if (!normalizedTarget) {
+        addSystemMessage(`⚠️ Invalid username: ${target}`);
+        return;
+      }
+
+      const colors = parseRoleColorString(colorSpecRaw);
+      const displayTarget = normalizeUsername(target) || normalizedTarget;
+      const payload = {
+        target: displayTarget,
+        targetNormalized: normalizedTarget,
+        roleName,
+        color: formatRoleColorString(colors.bgColor, colors.textColor),
+        actor: OWNER_DISPLAY_NAME,
+        nonce: `${Date.now()}_${Math.random().toString(36).slice(2)}`
+      };
+
+      try {
+        const { error } = await sbClient
+          .from(SUPABASE_ROLE_TABLE)
+          .upsert(
+        { username: normalizedTarget, role_name: roleName, color: payload.color },
+            { onConflict: "username", count: "exact" }
+          );
+        if (error) throw error;
+
+        roleEventNonces.add(payload.nonce);
+        applyRoleLocally(normalizedTarget, roleName, payload.color);
+        await broadcastRoleEvent(payload);
+        addCenterText(`🟢 ${OWNER_DISPLAY_NAME} gave ${displayTarget} the role "${roleName}".`, 'role');
+      } catch (error) {
+        console.error('Role command failed:', error);
+        const message = typeof error === "string" ? error : error?.message || "Network error";
+        addSystemMessage(`⚠️ Unable to set role: ${message}`);
+      }
     }
 
     async function sendMessage() {
@@ -1443,9 +1678,29 @@
       }
       LAST_MESSAGE_TIMES.set(normalizedUser, now);
 
-      const banCommandMatch = text.match(/^\/\*ban\s+([^\s]+)(?:\s+([\d.]+))?/i);
+      const roleCommandMatch = text.match(/^\/\*role\b/i);
+      if (roleCommandMatch && isOwnerUser(currentUsername)) {
+        const argsText = text.slice(roleCommandMatch[0].length).trim();
+        const args = tokenizeCommandArgs(argsText);
+        const targetName = args[0];
+        const roleName = args[1];
+        const colorSpec = [args[2], args[3]].filter(Boolean).join(',');
+        if (!targetName || !roleName) {
+          addSystemMessage('⚠️ Usage: /*role username roleName [color]');
+        } else {
+          await handleRoleCommand(targetName, roleName, colorSpec);
+        }
+        input.value = '';
+        input.style.height = '44px';
+        return;
+      }
+
+      const banCommandMatch = text.match(/^\/\*ban\s+(?:"([^"]+)"|'([^']+)'|([^\s]+))(?:\s+([\d.]+))?/i);
       if (banCommandMatch && isOwnerUser(currentUsername)) {
-        await handleBanCommand(banCommandMatch[1], banCommandMatch[2]);
+        const targetName = banCommandMatch[1] || banCommandMatch[2] || banCommandMatch[3];
+        if (targetName) {
+          await handleBanCommand(targetName, banCommandMatch[4]);
+        }
         input.value = '';
         input.style.height = '44px';
         return;
